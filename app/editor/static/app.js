@@ -2019,6 +2019,7 @@ function styleSelect(value, onChange, perKey) {
   return sel;
 }
 
+let lookSample = [], lookSampleSeq = 0;   // última prévia do exemplo em Config › Aparência das teclas
 function refreshAllPreviews() {
   S.previews = {};
   renderKeys();
@@ -2122,12 +2123,19 @@ function setLook(body) {
   const style = icons.style || "below";
   const size = Number(icons.text_size || 16);
   // tecla de exemplo: as três primeiras teclas da página, já com o estilo e o tamanho escolhidos
-  const sample = h("div", { class: "set-sample", "aria-label": t("Example") });
+  // começa com as imagens da última vez: enquanto a nova prévia não chega, nada some (antes piscava)
+  const sample = h("div", { class: "set-sample", "aria-label": t("Example") }, ...lookSample.map((src) => h("img", { src, alt: "" })));
   const keys = Object.entries(pageKeys()).sort((a, b) => Number(a[0]) - Number(b[0])).slice(0, 3).map(([, k]) => k);
   const paint = () => {
     const list = (keys.length ? keys : [{ icon: { lucide: "mic", text: t("Example"), bg: "#5865F2" } }]).map((k) => ({ icon: normalizeIcon(k.icon) }));
+    const seq = ++lookSampleSeq;
     api("/api/preview", { keys: list, icons: S.cfg.icons || null }).then((r) => {
-      sample.replaceChildren(...r.images.filter(Boolean).map((x) => h("img", { src: x.normal, alt: "" })));
+      if (seq !== lookSampleSeq) return;                 // chegou uma resposta mais nova antes
+      const srcs = r.images.filter(Boolean).map((x) => x.normal);
+      const imgs = sample.querySelectorAll("img");
+      if (imgs.length === srcs.length) imgs.forEach((img, i) => { img.src = srcs[i]; });   // troca no lugar, sem redesenhar
+      else sample.replaceChildren(...srcs.map((src) => h("img", { src, alt: "" })));
+      lookSample = srcs;
     }).catch(() => {});
   };
   paint();
