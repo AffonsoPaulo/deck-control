@@ -13,6 +13,7 @@ import json
 import mimetypes
 import re
 import secrets
+import sys
 import threading
 import time
 import urllib.parse
@@ -37,6 +38,19 @@ mimetypes.add_type("image/svg+xml", ".svg")
 mimetypes.add_type("font/ttf", ".ttf")
 MAX_BODY = 8 * 1024 * 1024
 log = logs.get("editor")
+_GONE = (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)
+
+
+class _Server(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def handle_error(self, request, client_address) -> None:
+        """No lugar do traceback cru no stderr: conexão caída fica em debug, o resto vira um erro só."""
+        exc = sys.exc_info()[1]
+        if isinstance(exc, _GONE):
+            log.debug("Browser closed the connection: %s", exc)
+            return
+        log.error("Editor request failed", exc_info=True)
 
 
 class EditorServer:
@@ -69,7 +83,7 @@ class EditorServer:
         handler = _make_handler(self)
         for p in (port, 0):  # porta ocupada -> qualquer livre
             try:
-                srv = ThreadingHTTPServer(("127.0.0.1", p), handler)
+                srv = _Server(("127.0.0.1", p), handler)
                 if p != port:
                     log.warning("Port %d is busy; the editor uses port %d", port, srv.server_address[1])
                 return srv
@@ -553,7 +567,11 @@ def _make_handler(server: EditorServer):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
-            self.wfile.write(body)
+            try:
+                self.wfile.write(body)
+            except _GONE:
+                # o navegador desistiu do pedido (F5, aba fechada): normal, não é erro
+                log.debug("Browser closed the connection before %s finished", self.path.split("?", 1)[0])
 
         def _json(self, code: int, obj) -> None:
             self._send(code, json.dumps(obj, ensure_ascii=False).encode(), "application/json; charset=utf-8")

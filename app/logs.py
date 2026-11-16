@@ -124,6 +124,8 @@ class _Formatter(logging.Formatter):
             line += "\n" + mask("".join(traceback.format_exception(*record.exc_info)).rstrip())
         elif record.stack_info:
             line += "\n" + mask(record.stack_info)
+        elif getattr(record, "block", None):
+            line += "\n" + "\n".join("    " + ln for ln in mask(record.block).split("\n"))
         return line
 
 
@@ -134,6 +136,8 @@ class _Buffer(logging.Handler):
         try:
             level = LEVEL_NAME.get(record.levelname, record.levelname)
             tb = mask("".join(traceback.format_exception(*record.exc_info)).rstrip()) if record.exc_info else None
+            if tb is None and getattr(record, "block", None):
+                tb = mask(record.block)
             ctx = getattr(record, "ctx", None)
             with _lock:
                 _seq += 1
@@ -147,19 +151,40 @@ class _Buffer(logging.Handler):
 
 class _Stream(io.TextIOBase):
     """print() e saídas de bibliotecas viram linhas do log (sem console no modo bandeja)."""
+    GAP = 0.1   # linhas escritas em sequência (um traceback, por exemplo) viram um registro só
+
     def __init__(self, logger: logging.Logger, level: int):
         self.logger, self.level, self._buf = logger, level, ""
+        self._lock = threading.Lock()
+        self._timer: threading.Timer | None = None
 
     def writable(self) -> bool:
         return True
 
     def write(self, s: str) -> int:
-        self._buf += s
-        while "\n" in self._buf:
-            line, self._buf = self._buf.split("\n", 1)
-            if line.strip():
-                self.logger.log(self.level, line.rstrip())
+        with self._lock:
+            self._buf += s
+            if self._timer is None:
+                self._timer = threading.Timer(self.GAP, self._emit)
+                self._timer.daemon = True
+                self._timer.start()
         return len(s)
+
+    def _emit(self) -> None:
+        with self._lock:
+            self._timer = None
+            if "\n" not in self._buf:
+                return
+            done, self._buf = self._buf.rsplit("\n", 1)
+        lines = [ln.rstrip() for ln in done.split("\n")]
+        lines = [ln for ln in lines if ln.strip() and set(ln.strip()) != {"-"}]
+        if len(lines) == 1:
+            self.logger.log(self.level, lines[0])
+        elif lines:
+            # o resumo na linha; o bloco inteiro fica no detalhe (como um traceback)
+            tb = any(ln.startswith("Traceback") for ln in lines)
+            head = lines[-1].strip() if tb else lines[0].strip()
+            self.logger.log(self.level, "%s", head, extra={"block": "\n".join(lines)})
 
     def flush(self) -> None:
         pass
