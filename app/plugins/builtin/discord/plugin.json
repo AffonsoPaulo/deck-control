@@ -1,0 +1,445 @@
+{
+  "id": "discord",
+  "name": "Discord",
+  "order": 2,
+  "version": "1.5.0",
+  "author": "D6",
+  "default_locale": "en",
+  "description": "%description%",
+  "icon": "headphones",
+  "color": "#5865f2",
+  "category": "Discord",
+  "entry": "plugin.py",
+  "config_key": "discord",
+  "default_enabled": true,
+  "settings": [
+    {
+      "name": "mode",
+      "kind": "enum",
+      "style": "pills",
+      "label": "%setting.mode.label%",
+      "default": "keys",
+      "options": [
+        [
+          "keys",
+          "%option.mode.keys%"
+        ],
+        [
+          "rpc",
+          "%option.mode.rpc%"
+        ]
+      ],
+      "help": "%setting.mode.help%"
+    },
+    {
+      "name": "mute",
+      "kind": "shortcut",
+      "label": "%setting.mute.label%",
+      "placeholder": "ctrl+shift+alt+f23",
+      "default": "ctrl+shift+alt+f23",
+      "help": "%setting.mute.help%",
+      "when": {
+        "mode": "keys"
+      }
+    },
+    {
+      "name": "deafen",
+      "kind": "shortcut",
+      "label": "%setting.deafen.label%",
+      "placeholder": "ctrl+shift+alt+f24",
+      "default": "ctrl+shift+alt+f24",
+      "help": "%setting.deafen.help%",
+      "when": {
+        "mode": "keys"
+      }
+    },
+    {
+      "name": "client_id",
+      "kind": "text",
+      "label": "%setting.client_id.label%",
+      "when": {
+        "mode": "rpc"
+      }
+    },
+    {
+      "name": "client_secret",
+      "kind": "password",
+      "label": "%setting.client_secret.label%",
+      "help": "%setting.client_secret.help%",
+      "when": {
+        "mode": "rpc"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "text": "%step.1%",
+      "when": {
+        "mode": "keys"
+      }
+    },
+    {
+      "text": "%step.2%",
+      "when": {
+        "mode": "keys"
+      }
+    },
+    {
+      "text": "%step.3%",
+      "when": {
+        "mode": "keys"
+      }
+    },
+    {
+      "text": "%step.4%",
+      "when": {
+        "mode": "keys"
+      }
+    },
+    {
+      "text": "%step.5%",
+      "when": {
+        "mode": "keys"
+      }
+    },
+    {
+      "text": "%step.rpc.1%",
+      "when": {
+        "mode": "rpc"
+      }
+    },
+    {
+      "text": "%step.rpc.2%",
+      "when": {
+        "mode": "rpc"
+      }
+    },
+    {
+      "text": "%step.rpc.3%",
+      "when": {
+        "mode": "rpc"
+      }
+    },
+    {
+      "text": "%step.rpc.4%",
+      "when": {
+        "mode": "rpc"
+      }
+    },
+    {
+      "text": "%step.rpc.5%",
+      "when": {
+        "mode": "rpc"
+      }
+    },
+    {
+      "text": "%step.more%"
+    }
+  ],
+  "states": [
+    [
+      "discord.mute",
+      "%state.mute%"
+    ],
+    [
+      "discord.deafen",
+      "%state.deafen%"
+    ]
+  ],
+  "actions": {
+    "discord.mute": {
+      "label": "%action.mute.label%",
+      "help": "%action.mute.help%",
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "text",
+          "label": "%field.keys.label%",
+          "help": "%field.keys.help%"
+        }
+      ],
+      "state": true
+    },
+    "discord.deafen": {
+      "label": "%action.deafen.label%",
+      "help": "%action.deafen.help%",
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "text",
+          "label": "%field.keys.label%",
+          "help": "%field.keys.help%"
+        }
+      ],
+      "state": true
+    },
+    "discord.ptt": {
+      "label": "%action.ptt.label%",
+      "short": "%action.ptt.short%",
+      "help": "%action.ptt.help%",
+      "icon": "mic",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.ptt.hint%"
+        }
+      ]
+    },
+    "discord.ptt_priority": {
+      "label": "%action.ptt_priority.label%",
+      "short": "%action.ptt_priority.short%",
+      "help": "%action.ptt_priority.help%",
+      "icon": "megaphone",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.ptt_priority.hint%"
+        }
+      ]
+    },
+    "discord.push_to_mute": {
+      "label": "%action.push_to_mute.label%",
+      "short": "%action.push_to_mute.short%",
+      "help": "%action.push_to_mute.help%",
+      "icon": "mic-off",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.push_to_mute.hint%"
+        }
+      ]
+    },
+    "discord.vad_priority": {
+      "label": "%action.vad_priority.label%",
+      "short": "%action.vad_priority.short%",
+      "help": "%action.vad_priority.help%",
+      "icon": "speech",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.vad_priority.hint%"
+        }
+      ]
+    },
+    "discord.toggle_vad": {
+      "label": "%action.toggle_vad.label%",
+      "short": "%action.toggle_vad.short%",
+      "help": "%action.toggle_vad.help%",
+      "icon": "audio-lines",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.toggle_vad.hint%"
+        }
+      ]
+    },
+    "discord.streamer_mode": {
+      "label": "%action.streamer_mode.label%",
+      "short": "%action.streamer_mode.short%",
+      "help": "%action.streamer_mode.help%",
+      "icon": "eye-off",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.streamer_mode.hint%"
+        }
+      ]
+    },
+    "discord.voice_chat": {
+      "label": "%action.voice_chat.label%",
+      "short": "%action.voice_chat.short%",
+      "help": "%action.voice_chat.help%",
+      "icon": "message-square",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.voice_chat.hint%"
+        }
+      ]
+    },
+    "discord.overlay_lock": {
+      "label": "%action.overlay_lock.label%",
+      "short": "%action.overlay_lock.short%",
+      "help": "%action.overlay_lock.help%",
+      "icon": "lock",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.overlay_lock.hint%"
+        }
+      ]
+    },
+    "discord.overlay_chat": {
+      "label": "%action.overlay_chat.label%",
+      "short": "%action.overlay_chat.short%",
+      "help": "%action.overlay_chat.help%",
+      "icon": "message-circle",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.overlay_chat.hint%"
+        }
+      ]
+    },
+    "discord.nav_back": {
+      "label": "%action.nav_back.label%",
+      "short": "%action.nav_back.short%",
+      "help": "%action.nav_back.help%",
+      "icon": "arrow-left",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.nav_back.hint%"
+        }
+      ]
+    },
+    "discord.nav_forward": {
+      "label": "%action.nav_forward.label%",
+      "short": "%action.nav_forward.short%",
+      "help": "%action.nav_forward.help%",
+      "icon": "arrow-right",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.nav_forward.hint%"
+        }
+      ]
+    },
+    "discord.switch_channel": {
+      "label": "%action.switch_channel.label%",
+      "short": "%action.switch_channel.short%",
+      "help": "%action.switch_channel.help%",
+      "icon": "log-in",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.switch_channel.hint%"
+        }
+      ]
+    },
+    "discord.disconnect": {
+      "label": "%action.disconnect.label%",
+      "short": "%action.disconnect.short%",
+      "help": "%action.disconnect.help%",
+      "icon": "phone-off",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.disconnect.hint%"
+        }
+      ]
+    },
+    "discord.soundboard": {
+      "label": "%action.soundboard.label%",
+      "short": "%action.soundboard.short%",
+      "help": "%action.soundboard.help%",
+      "icon": "music",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.soundboard.hint%"
+        }
+      ]
+    },
+    "discord.soundboard_hold": {
+      "label": "%action.soundboard_hold.label%",
+      "short": "%action.soundboard_hold.short%",
+      "help": "%action.soundboard_hold.help%",
+      "icon": "music-2",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.soundboard_hold.hint%"
+        }
+      ]
+    },
+    "discord.save_clip": {
+      "label": "%action.save_clip.label%",
+      "short": "%action.save_clip.short%",
+      "help": "%action.save_clip.help%",
+      "icon": "clapperboard",
+      "mirror": true,
+      "fields": [
+        {
+          "name": "keys",
+          "kind": "bind",
+          "label": "%field.bind.label%",
+          "required": true,
+          "hint": "%action.save_clip.hint%"
+        }
+      ]
+    },
+    "discord.keybind": {
+      "label": "%action.keybind.label%",
+      "help": "%action.keybind.help%",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "label": "%field.name.label%",
+          "required": true
+        }
+      ]
+    }
+  }
+}

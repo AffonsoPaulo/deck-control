@@ -1,0 +1,486 @@
+{
+  "id": "weather",
+  "name": "Clima",
+  "order": 3,
+  "version": "1.0.0",
+  "author": "D6",
+  "default_locale": "en",
+  "description": "%description%",
+  "icon": "cloud-sun",
+  "color": "#3e8ed0",
+  "category": "%category%",
+  "entry": "plugin.py",
+  "config_key": "weather",
+  "default_enabled": false,
+  "homepage": "https://open-meteo.com",
+  "settings": [
+    {
+      "name": "city",
+      "kind": "text",
+      "label": "%setting.city.label%",
+      "placeholder": "São Paulo",
+      "default": "",
+      "help": "%setting.city.help%"
+    },
+    {
+      "name": "refresh",
+      "kind": "number",
+      "label": "%setting.refresh.label%",
+      "placeholder": "15",
+      "default": 15,
+      "half": true,
+      "help": "%setting.refresh.help%"
+    }
+  ],
+  "steps": [
+    {
+      "text": "%step.1%"
+    },
+    {
+      "text": "%step.2%"
+    },
+    {
+      "text": "%step.3%"
+    }
+  ],
+  "actions": {},
+  "values": [
+    {
+      "id": "weather.temp",
+      "label": "%value.temp%",
+      "kind": "number",
+      "sample": 28
+    },
+    {
+      "id": "weather.max",
+      "label": "%value.max%",
+      "kind": "number",
+      "sample": 31
+    },
+    {
+      "id": "weather.min",
+      "label": "%value.min%",
+      "kind": "number",
+      "sample": 19
+    },
+    {
+      "id": "weather.condition",
+      "label": "%value.condition%",
+      "kind": "text",
+      "sample": "%sample.condition%"
+    },
+    {
+      "id": "weather.icon",
+      "label": "%value.icon%",
+      "kind": "icon",
+      "sample": "cloud-sun"
+    },
+    {
+      "id": "weather.wind",
+      "label": "%value.wind%",
+      "kind": "number",
+      "sample": 12
+    },
+    {
+      "id": "weather.rain",
+      "label": "%value.rain%",
+      "kind": "number",
+      "sample": 40
+    },
+    {
+      "id": "weather.humidity",
+      "label": "%value.humidity%",
+      "kind": "number",
+      "sample": 65
+    },
+    {
+      "id": "weather.city",
+      "label": "%value.city%",
+      "kind": "text",
+      "sample": "São Paulo"
+    },
+    {
+      "id": "weather.d1.name",
+      "label": "%value.d1.name%",
+      "kind": "text",
+      "sample": "%sample.d1.name%"
+    },
+    {
+      "id": "weather.d1.max",
+      "label": "%value.d1.max%",
+      "kind": "number",
+      "sample": 30
+    },
+    {
+      "id": "weather.d1.min",
+      "label": "%value.d1.min%",
+      "kind": "number",
+      "sample": 20
+    },
+    {
+      "id": "weather.d1.icon",
+      "label": "%value.d1.icon%",
+      "kind": "icon",
+      "sample": "cloud-rain"
+    },
+    {
+      "id": "weather.d2.name",
+      "label": "%value.d2.name%",
+      "kind": "text",
+      "sample": "%sample.d2.name%"
+    },
+    {
+      "id": "weather.d2.max",
+      "label": "%value.d2.max%",
+      "kind": "number",
+      "sample": 27
+    },
+    {
+      "id": "weather.d2.min",
+      "label": "%value.d2.min%",
+      "kind": "number",
+      "sample": 18
+    },
+    {
+      "id": "weather.d2.icon",
+      "label": "%value.d2.icon%",
+      "kind": "icon",
+      "sample": "cloud"
+    },
+    {
+      "id": "weather.d3.name",
+      "label": "%value.d3.name%",
+      "kind": "text",
+      "sample": "%sample.d3.name%"
+    },
+    {
+      "id": "weather.d3.max",
+      "label": "%value.d3.max%",
+      "kind": "number",
+      "sample": 29
+    },
+    {
+      "id": "weather.d3.min",
+      "label": "%value.d3.min%",
+      "kind": "number",
+      "sample": 19
+    },
+    {
+      "id": "weather.d3.icon",
+      "label": "%value.d3.icon%",
+      "kind": "icon",
+      "sample": "sun"
+    }
+  ],
+  "panels": {
+    "weather.now": {
+      "label": "%panel.now%",
+      "icon": "sun",
+      "sizes": {
+        "1x1": [
+          [
+            {
+              "lucide": "{weather.icon}",
+              "text": "{weather.temp}°",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ]
+        ],
+        "1x2": [
+          [
+            {
+              "lucide": "{weather.icon}",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.temp}°",
+              "sub": "{weather.max}° / {weather.min}°",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ]
+        ],
+        "1x3": [
+          [
+            {
+              "lucide": "{weather.icon}",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.temp}°",
+              "sub": "{weather.max}° / {weather.min}°",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.rain}%",
+              "sub": "%cell.rain%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ]
+        ],
+        "1x4": [
+          [
+            {
+              "lucide": "{weather.icon}",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.temp}°",
+              "sub": "%cell.now%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.max}°",
+              "sub": "%cell.max%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.min}°",
+              "sub": "%cell.min%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ]
+        ],
+        "1x5": [
+          [
+            {
+              "lucide": "{weather.icon}",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.temp}°",
+              "sub": "%cell.now%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.max}°",
+              "sub": "%cell.max%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.min}°",
+              "sub": "%cell.min%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.rain}%",
+              "sub": "%cell.rain%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ]
+        ],
+        "2x2": [
+          [
+            {
+              "lucide": "{weather.icon}",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.temp}°",
+              "sub": "%cell.now%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ],
+          [
+            {
+              "text": "{weather.max}°",
+              "sub": "%cell.max%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.min}°",
+              "sub": "%cell.min%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ]
+        ],
+        "2x3": [
+          [
+            {
+              "lucide": "{weather.icon}",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.temp}°",
+              "sub": "{weather.max}° / {weather.min}°",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.rain}%",
+              "sub": "%cell.rain%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ],
+          [
+            {
+              "lucide": "{weather.d1.icon}",
+              "text": "{weather.d1.name}",
+              "sub": "{weather.d1.max}° / {weather.d1.min}°",
+              "bg": "#1a2f4d",
+              "fg": "#ffffff"
+            },
+            {
+              "lucide": "{weather.d2.icon}",
+              "text": "{weather.d2.name}",
+              "sub": "{weather.d2.max}° / {weather.d2.min}°",
+              "bg": "#1a2f4d",
+              "fg": "#ffffff"
+            },
+            {
+              "lucide": "{weather.d3.icon}",
+              "text": "{weather.d3.name}",
+              "sub": "{weather.d3.max}° / {weather.d3.min}°",
+              "bg": "#1a2f4d",
+              "fg": "#ffffff"
+            }
+          ]
+        ],
+        "2x4": [
+          [
+            {
+              "lucide": "{weather.icon}",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.temp}°",
+              "sub": "%cell.now%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.max}°",
+              "sub": "%cell.max%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.min}°",
+              "sub": "%cell.min%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ],
+          [
+            {
+              "text": "{weather.rain}%",
+              "sub": "%cell.rain%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "lucide": "{weather.d1.icon}",
+              "text": "{weather.d1.name}",
+              "sub": "{weather.d1.max}° / {weather.d1.min}°",
+              "bg": "#1a2f4d",
+              "fg": "#ffffff"
+            },
+            {
+              "lucide": "{weather.d2.icon}",
+              "text": "{weather.d2.name}",
+              "sub": "{weather.d2.max}° / {weather.d2.min}°",
+              "bg": "#1a2f4d",
+              "fg": "#ffffff"
+            },
+            {
+              "lucide": "{weather.d3.icon}",
+              "text": "{weather.d3.name}",
+              "sub": "{weather.d3.max}° / {weather.d3.min}°",
+              "bg": "#1a2f4d",
+              "fg": "#ffffff"
+            }
+          ]
+        ],
+        "2x5": [
+          [
+            {
+              "lucide": "{weather.icon}",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.temp}°",
+              "sub": "%cell.now%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.max}°",
+              "sub": "%cell.max%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.min}°",
+              "sub": "%cell.min%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.wind}",
+              "sub": "%cell.wind%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            }
+          ],
+          [
+            {
+              "text": "{weather.rain}%",
+              "sub": "%cell.rain%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "text": "{weather.humidity}%",
+              "sub": "%cell.humidity%",
+              "bg": "#1f3a5f",
+              "fg": "#ffffff"
+            },
+            {
+              "lucide": "{weather.d1.icon}",
+              "text": "{weather.d1.name}",
+              "sub": "{weather.d1.max}° / {weather.d1.min}°",
+              "bg": "#1a2f4d",
+              "fg": "#ffffff"
+            },
+            {
+              "lucide": "{weather.d2.icon}",
+              "text": "{weather.d2.name}",
+              "sub": "{weather.d2.max}° / {weather.d2.min}°",
+              "bg": "#1a2f4d",
+              "fg": "#ffffff"
+            },
+            {
+              "lucide": "{weather.d3.icon}",
+              "text": "{weather.d3.name}",
+              "sub": "{weather.d3.max}° / {weather.d3.min}°",
+              "bg": "#1a2f4d",
+              "fg": "#ffffff"
+            }
+          ]
+        ]
+      }
+    }
+  }
+}

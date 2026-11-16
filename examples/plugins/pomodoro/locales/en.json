@@ -1,0 +1,22 @@
+{
+  "description": "Focus and break cycles, with the key lit while the time runs",
+  "author": "Deck example",
+  "permission.1": "Plays a Windows sound when the time is up",
+  "setting.focus.label": "Focus minutes",
+  "setting.pause.label": "Break minutes",
+  "setting.sound.label": "Play a sound when the time is up",
+  "step.1": "Turn on the plugin and set the focus and break minutes.",
+  "step.2": "Drag the **Start or pause** action onto a key. It stays lit while the time runs.",
+  "step.3": "When focus ends, the break starts on its own (and vice versa). The status up here shows how much is left.",
+  "state.running": "The Pomodoro is running",
+  "state.break": "It's Pomodoro break time",
+  "action.toggle.label": "Start or pause",
+  "action.toggle.help": "Starts focus, pauses or resumes. The key stays lit while the time runs.",
+  "action.reset.label": "Reset the Pomodoro",
+  "action.reset.help": "Stops and goes back to the start of focus.",
+  "status.ready": "Ready",
+  "status.focus": "Focus: {min} min",
+  "status.break": "Break: {min} min",
+  "status.paused": "{status} (paused)",
+  "error.unknown_action": "unknown action: {name}"
+}

@@ -1,0 +1,22 @@
+{
+  "description": "Ciclos de foco e pausa, com a tecla acesa enquanto o tempo corre",
+  "author": "Exemplo do Deck",
+  "permission.1": "Toca um som do Windows quando o tempo acaba",
+  "setting.focus.label": "Minutos de foco",
+  "setting.pause.label": "Minutos de pausa",
+  "setting.sound.label": "Tocar um som quando o tempo acabar",
+  "step.1": "Ative o plugin e ajuste os minutos de foco e de pausa.",
+  "step.2": "Arraste a ação **Começar ou pausar** para uma tecla. Ela fica acesa enquanto o tempo corre.",
+  "step.3": "Quando o foco acaba, começa a pausa sozinha (e vice-versa). O estado aqui em cima mostra quanto falta.",
+  "state.running": "O Pomodoro está correndo",
+  "state.break": "É hora da pausa do Pomodoro",
+  "action.toggle.label": "Começar ou pausar",
+  "action.toggle.help": "Começa o foco, pausa ou continua. A tecla fica acesa enquanto o tempo corre.",
+  "action.reset.label": "Zerar o Pomodoro",
+  "action.reset.help": "Para e volta para o começo do foco.",
+  "status.ready": "Pronto",
+  "status.focus": "Foco: {min} min",
+  "status.break": "Pausa: {min} min",
+  "status.paused": "{status} (pausado)",
+  "error.unknown_action": "ação desconhecida: {name}"
+}

@@ -1,0 +1,70 @@
+{
+  "id": "pomodoro",
+  "name": "Pomodoro",
+  "version": "1.0.0",
+  "author": "%author%",
+  "default_locale": "en",
+  "description": "%description%",
+  "icon": "timer",
+  "color": "#e5484d",
+  "category": "Pomodoro",
+  "run": [
+    "python",
+    "main.py"
+  ],
+  "permissions": [
+    "%permission.1%"
+  ],
+  "settings": [
+    {
+      "name": "focus",
+      "kind": "number",
+      "label": "%setting.focus.label%",
+      "default": 25,
+      "half": true
+    },
+    {
+      "name": "pause",
+      "kind": "number",
+      "label": "%setting.pause.label%",
+      "default": 5,
+      "half": true
+    },
+    {
+      "name": "sound",
+      "kind": "bool",
+      "label": "%setting.sound.label%",
+      "default": true
+    }
+  ],
+  "steps": [
+    "%step.1%",
+    "%step.2%",
+    "%step.3%"
+  ],
+  "states": [
+    [
+      "pomodoro.running",
+      "%state.running%"
+    ],
+    [
+      "pomodoro.break",
+      "%state.break%"
+    ]
+  ],
+  "actions": {
+    "pomodoro.toggle": {
+      "label": "%action.toggle.label%",
+      "help": "%action.toggle.help%",
+      "state": "pomodoro.running",
+      "icon": "timer",
+      "fields": []
+    },
+    "pomodoro.reset": {
+      "label": "%action.reset.label%",
+      "help": "%action.reset.help%",
+      "icon": "rotate-ccw",
+      "fields": []
+    }
+  }
+}

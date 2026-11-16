@@ -1,0 +1,219 @@
+"""Plugins de terceiros: um programa separado que conversa com o app por JSON, uma mensagem por linha.
+
+O app abre o programa ('run' do plugin.json, na pasta do plugin) e escreve no stdin dele;
+o plugin responde no stdout. O stderr vai para o log do app. Protocolo (versão 1):
+
+  app -> plugin
+    {"type": "hello", "protocol": 1, "plugin": "<id>", "locale": "pt-BR", "settings": {...}}
+    {"type": "settings", "settings": {...}}                 configurações mudaram no editor
+    {"type": "locale", "locale": "en"}                       o idioma do app mudou (pt-BR ou en)
+    {"type": "action", "id": 7, "action": "<id>.<nome>", "params": {...}, "page": "main", "key": 3}
+    {"type": "stop"}                                         o app vai fechar o plugin
+
+  plugin -> app
+    {"type": "result", "id": 7, "ok": true}                  (ou "ok": false, "error": "texto")
+    {"type": "state", "name": "<id>.<nome>", "value": true}  liga/desliga um estado (troca o ícone da tecla)
+    {"type": "status", "state": "ok|wait|error", "label": "Conectado"}
+    {"type": "log", "message": "texto"}
+    {"type": "value", "name": "<id>.<nome>", "value": 28}     publica um valor (teclas, regras, automações)
+
+Isolamento: o plugin roda em outro processo, então se ele travar ou cair o app continua
+(e reinicia o plugin, até 3 vezes por minuto). Ele só mexe no app por estas mensagens.
+Mas é um programa como outro qualquer no seu PC: instale só plugins de quem você confia.
+"""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import threading
+import time
+from typing import TYPE_CHECKING
+from app import i18n
+from app.i18n import tr
+
+if TYPE_CHECKING:
+    from app.plugins import Plugin, PluginManager
+
+PROTOCOL = 1
+ACTION_TIMEOUT = 10.0
+MAX_RESTARTS = 3          # por minuto
+
+
+class ExternalPlugin:
+    def __init__(self, manager: "PluginManager", plugin: "Plugin"):
+        self.m, self.p = manager, plugin
+        self.proc: subprocess.Popen | None = None
+        self.settings: dict = {}
+        self._lock = threading.Lock()
+        self._pending: dict[int, dict] = {}
+        self._next_id = 1
+        self._stopping = False
+        self._restarts: list[float] = []
+        self._status = {"state": "wait", "label": tr("Starting")}
+        self.locale = i18n.language()
+
+    # -- ciclo de vida (chamado pelo PluginManager)
+    def start(self, settings: dict) -> None:
+        self.settings = dict(settings)
+        self._stopping = False
+        self._spawn()
+
+    def update(self, settings: dict) -> None:
+        if settings != self.settings:
+            self.settings = dict(settings)
+            self._send({"type": "settings", "settings": self.settings})
+
+    def set_locale(self, locale: str) -> None:
+        if locale != self.locale:
+            self.locale = locale
+            self._send({"type": "locale", "locale": locale})
+
+    def stop(self) -> None:
+        self._stopping = True
+        proc = self.proc
+        if proc is None:
+            return
+        self._send({"type": "stop"})
+        try:
+            proc.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+        self.proc = None
+        self._fail_pending(tr("the plugin was turned off"))
+
+    def current_status(self) -> dict:
+        return dict(self._status)
+
+    # -- processo
+    def _command(self) -> list[str]:
+        cmd = list(self.p.manifest["run"])
+        if cmd and cmd[0] in ("python", "python3", "pythonw"):
+            cmd[0] = sys.executable.replace("pythonw.exe", "python.exe")   # o mesmo Python do app
+        return cmd
+
+    def _spawn(self) -> None:
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1", "D6_PLUGIN_ID": self.p.id}
+        try:
+            self.proc = subprocess.Popen(self._command(), cwd=str(self.p.path), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE, creationflags=flags, env=env, bufsize=1,
+                                         text=True, encoding="utf-8", errors="replace")
+        except OSError as e:
+            self._status = {"state": "error", "label": tr("Didn't open")}
+            raise RuntimeError(tr("couldn't open the plugin ({error})", error=e)) from None
+        self._status = {"state": "wait", "label": tr("Starting")}
+        proc = self.proc
+        threading.Thread(target=self._read_out, args=(proc,), daemon=True, name=f"plugin-{self.p.id}").start()
+        threading.Thread(target=self._read_err, args=(proc,), daemon=True, name=f"plugin-{self.p.id}-err").start()
+        self.locale = i18n.language()
+        self._send({"type": "hello", "protocol": PROTOCOL, "plugin": self.p.id, "locale": self.locale,
+                    "settings": self.settings})
+
+    def _send(self, msg: dict) -> bool:
+        proc = self.proc
+        if proc is None or proc.poll() is not None or proc.stdin is None:
+            return False
+        try:
+            with self._lock:
+                proc.stdin.write(json.dumps(msg, ensure_ascii=False) + "\n")
+                proc.stdin.flush()
+            return True
+        except (OSError, ValueError):
+            return False
+
+    def _read_err(self, proc: subprocess.Popen) -> None:
+        for line in proc.stderr:
+            line = line.rstrip()
+            if line:
+                print(f"[plugin {self.p.id}] {line}")
+
+    def _read_out(self, proc: subprocess.Popen) -> None:
+        for line in proc.stdout:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                msg = json.loads(line)
+            except ValueError:
+                print(f"[plugin {self.p.id}] {line}")     # texto solto: vai para o log
+                continue
+            if isinstance(msg, dict):
+                self._handle(msg)
+        # o processo terminou
+        if proc is self.proc and not self._stopping:
+            try:
+                code = proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                code = None
+            print(f"[plugin {self.p.id}] parou (código {code})")
+            self._fail_pending("o plugin parou")
+            now = time.monotonic()
+            self._restarts = [t for t in self._restarts if now - t < 60] + [now]
+            if len(self._restarts) <= MAX_RESTARTS:
+                time.sleep(1)
+                if not self._stopping:
+                    try:
+                        self._spawn()
+                        return
+                    except RuntimeError:
+                        pass
+            self.proc = None
+            self._status = {"state": "error", "label": tr("Stopped")}
+            self.p.error = tr("the plugin stopped several times in a row; see the log")
+
+    def _handle(self, msg: dict) -> None:
+        kind = msg.get("type")
+        if kind == "result":
+            waiter = self._pending.get(msg.get("id"))
+            if waiter is not None:
+                waiter["msg"] = msg
+                waiter["event"].set()
+        elif kind == "state":
+            name = str(msg.get("name", ""))
+            if not name.startswith(self.p.id + "."):
+                print(f"[plugin {self.p.id}] estado '{name}' ignorado: deve começar com '{self.p.id}.'")
+                return
+            eng = self.m.engine
+            if eng is not None:
+                eng.set_state(name, bool(msg.get("value")))
+        elif kind == "status":
+            state = msg.get("state") if msg.get("state") in ("ok", "wait", "error") else "ok"
+            self._status = {"state": state, "label": str(msg.get("label") or "")[:40] or tr("On")}
+        elif kind == "value":
+            name = str(msg.get("name", ""))
+            if not name.startswith(self.p.id + "."):
+                print(f"[plugin {self.p.id}] valor '{name}' ignorado: deve começar com '{self.p.id}.'")
+                return
+            from app.values import VALUES
+            VALUES.set(name, msg.get("value"))
+        elif kind == "log":
+            print(f"[plugin {self.p.id}] {msg.get('message', '')}")
+
+    def _fail_pending(self, why: str) -> None:
+        for waiter in list(self._pending.values()):
+            waiter["msg"] = {"ok": False, "error": why}
+            waiter["event"].set()
+
+    # -- ações
+    def make_action(self, name: str):
+        def run(spec: dict, ctx) -> None:
+            with self._lock:
+                rid = self._next_id
+                self._next_id += 1
+            waiter = {"event": threading.Event(), "msg": None}
+            self._pending[rid] = waiter
+            params = {k: v for k, v in spec.items() if k != "type"}
+            try:
+                if not self._send({"type": "action", "id": rid, "action": name, "params": params,
+                                   "page": ctx.page, "key": ctx.key}):
+                    raise RuntimeError(tr("the plugin isn't running"))
+                if not waiter["event"].wait(ACTION_TIMEOUT):
+                    raise RuntimeError(tr("the plugin didn't answer within {seconds} s", seconds=f"{ACTION_TIMEOUT:.0f}"))
+                res = waiter["msg"] or {}
+                if not res.get("ok", False):
+                    raise RuntimeError(res.get("error") or tr("the plugin returned an error"))
+            finally:
+                self._pending.pop(rid, None)
+        return run

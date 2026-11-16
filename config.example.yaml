@@ -1,0 +1,267 @@
+# =============================================================================
+#  Configuração do D6. O app recarrega este arquivo sozinho quando você salva.
+# =============================================================================
+#
+# Teclas numeradas em ordem de leitura:
+#     1  2  3  4  5
+#     6  7  8  9 10
+#    11 12 13 14 15
+#
+# Cada tecla aceita:
+#   icon:         como a tecla aparece (ver "ÍCONES" abaixo). Pode ser só um texto.
+#   active_icon:  só o que muda quando o estado está ATIVO (ex.: gravando).
+#                 Se omitido, o fundo fica vermelho.
+#   action:       o que fazer ao apertar.
+#   hold:         o que fazer ao SEGURAR (com isso, 'action' passa a rodar ao soltar).
+#   hold_ms:      quanto tempo conta como "segurar" (padrão 500).
+#   release:      o que fazer ao soltar.
+#   rules:        regras de aparência: [{if: {value: discord.mute, op: eq, to: true}, icon: {bg: "#b4232a"}}]
+#                 (a primeira que valer muda o ícone; op: eq ne gt lt ge le contains)
+#   span:         [colunas, linhas] junta teclas num bloco a partir desta (canto de cima à esquerda);
+#                 cells: um ícone por tecla do bloco; mode: split (cada tecla uma parte) | image
+#                 (icon.image atravessa as telas, pulando o vão; ajuste device.gap_px se precisar)
+#   double:       o que fazer com dois toques rápidos ('action' vira o toque simples). Numa
+#                 página com toque duplo, todas as teclas esperam double_tap_ms (padrão 250)
+#                 antes de rodar o aperto; a luz reage na hora. Atalhos para segurar não esperam.
+#   repeat:       press = repete 'action' enquanto segura (volume, avançar faixa, atalho);
+#                 hold = repete 'hold' depois de hold_ms. repeat_ms: intervalo (padrão 80);
+#                 repeat_delay: só no press, espera antes de repetir (padrão 400).
+#   state:        qual estado o ícone reflete. Geralmente é automático
+#                 (OBS, Discord, toggle); só preencha para casos especiais.
+#
+# VALORES (teclas que mostram informação): em text, sub, lucide, image e bg dá para usar {id}:
+#   text: "{clock.hour}:{clock.minute}"   sub: "{clock.weekday_short}"   lucide: "{weather.icon}"
+#   bar: {value: system.volume, min: 0, max: 100, color: "#F5A524"}   (ou bands: [[30, "#8f98a5"], [100, "#f97316"]])
+#   bg: {value: weather.temp, bands: [[20, "#1f3a5f"], [30, "#3a2a12"], [99, "#b4232a"]]}
+#   Do app: clock.*, system.volume, system.muted, deck.page, deck.brightness, timer.<nome>; os plugins
+#   acrescentam os deles (obs.scene, obs.stream_time, weather.temp…). A lista completa aparece no editor.
+#
+# AUTOMAÇÕES (rodam enquanto o app está aberto):
+#   automations:
+#     - name: Quando a live começar
+#       when: {type: value, value: obs.streaming, op: eq, to: true}   # time (at: "18:00") | every (minutes)
+#       do: [{type: light.flash, color: "#22c55e", seconds: 3}]        # | countdown (minutes) | connected | page
+#       cooldown: 30                                                   # days: all | weekdays | weekend
+#   temp_pages: [Clima]     páginas marcadas como temporárias (para a ação page.temp)
+#   saved_keys: [...]        teclas guardadas no editor (Teclas guardadas, na biblioteca)
+#
+# ÍCONES:
+#   bg: "#5865F2"     fundo        | fg: white       cor do texto/glifo
+#   text: "Mute"      texto        | text_size: 18
+#   lucide: mic       ícone do Lucide, pelo nome (lista em https://lucide.dev/icons)
+#                     o formato antigo 'glyph: E720' (Segoe Fluent Icons) ainda funciona;
+#                     tools/migrate_lucide.py troca um pelo outro
+#   image: icons/x.png  imagem (caminho relativo a este arquivo) | image_scale: 0.8
+#   border: "#FF0000"   borda de 4 px
+#   style: below | top | big   ícone com texto embaixo (padrão) | texto em cima | só o ícone, grande
+#
+# AÇÕES (type: ...):
+#   hotkey        keys: "ctrl+shift+m"  ou  ["ctrl+c", "ctrl+v"]
+#   bind          keys: "ctrl+shift+alt+f13"   combinação exclusiva para vincular em outro programa
+#                 (Discord, OBS, jogos). O editor sorteia uma livre. mirror: false = só um toque
+#                 (padrão: segura junto com a tecla do D6, serve para "apertar para falar").
+#   text          text: "Olá!"  enter: true
+#   media         key: play_pause | next | prev | stop | vol_up | vol_down | mute   repeat: 5
+#   launch        target: programa, arquivo, pasta ou URL   args: "..."   cwd: "..."
+#   command       command: "..."   shell: cmd | powershell   hide: true   wait: false
+#   http          url: ...   method: POST   json: {...}   headers: {...}
+#   delay         ms: 500
+#   multi         actions: [ ... ]      (uma lista direto também vale como multi)
+#   toggle        on: ação   off: ação   state: nome-opcional
+#   set_state     state: nome   value: true | false | toggle
+#   page          page: nome | back | home
+#   brightness    value: 0-100   ou   step: 25 (cicla)
+#   discord.mute / discord.deafen / discord.keybind (name: ...)
+#   obs.scene (scene) | obs.record (mode: toggle/start/stop/pause) | obs.stream
+#   obs.replay (mode: toggle/start/stop/save) | obs.virtualcam
+#   obs.mute (input, mode: toggle/on/off) | obs.source (scene, source, mode: toggle/show/hide)
+#   obs.request   request: "QualquerRequisicao"  data: {...}   (protocolo completo do obs-websocket)
+#
+# Atalhos de uma linha: "page:obs", "hotkey:ctrl+c", "launch:notepad", "media:play_pause"
+# =============================================================================
+
+home: main
+brightness: 80
+language: pt-BR      # pt-BR ou en (editor, bandeja e plugins). Sem a linha, segue o idioma do Windows.
+
+# Aparência de todas as teclas (cada tecla pode trocar o estilo no campo 'style' do ícone).
+# O ícone fica sempre do mesmo tamanho e no mesmo lugar, com ou sem texto.
+icons:
+  style: below       # below = ícone + texto embaixo | top = texto em cima | big = só ícone grande
+  text_size: 16      # tamanho fixo do texto; texto longo quebra em 2 linhas antes de diminuir
+
+# OBS: Ferramentas > Configurações do servidor WebSocket > Ativar. Apague esta seção se não usar
+# (ou ponha 'enabled: false' para desligar sem perder os dados).
+obs:
+  host: localhost
+  port: 4455
+  password: ""
+
+# Discord: crie estes atalhos em Configurações > Atalhos de teclado ('enabled: false' desliga).
+discord:
+  mute: ctrl+shift+alt+f23    # "Alternar silenciar" (F13–F24 não existem no teclado: nunca colidem)
+  deafen: ctrl+shift+alt+f24  # "Alternar ensurdecer"
+
+# Ajustes finos de envio de imagens. O modo rápido (lote) foi testado com as 15 teclas.
+# Se alguma tecla deixar de atualizar, troque para per_key_session: true e key_delay: 0.3
+# (bem mais lento, ~1,2 s por tecla, porém o modo mais conservador).
+device:
+  # session: true      # modo antigo de desenhar (a iluminação pisca a cada troca)
+  per_key_session: false
+  key_delay: 0.05
+  settle: 0.25       # fator das pausas entre comandos (1.0 = mais conservador e lento)
+
+# Luz do D6 (o anel de 18 LEDs). Sem esta seção o app não mexe na luz.
+# Para o app controlar, dê dois cliques rápidos no botão de trás do D6
+# (um clique só troca para os efeitos do próprio aparelho). Tudo isto também
+# se ajusta no editor, na tela "Luz".
+# lighting:
+#   effect: comet          # off, solid, breath, beat, aurora, candle, rainbow, wave, grad,
+#                          # comet, chase, theater, fill, stars, sparks
+#   color: "#F5A524"
+#   color2: "#E5701A"      # segunda cor (degradê)
+#   speed: 50              # 0 a 100
+#   size: 50               # rastro do cometa / quantidade de estrelas e faíscas
+#   direction: cw          # cw (horário) | ccw (anti-horário)
+#   brightness: 80
+#   off_with_screen: true  # apaga com a tela do PC ou com o Windows bloqueado
+#   per_page: false        # true: cada página com a sua (em pages:)
+#   reaction: { kind: ripple, color: key }   # reação padrão ao apertar: none, ripple, point, pulse
+#   pages:
+#     obs: { effect: breath, color: "#E5484D" }
+# Numa tecla, 'light:' troca a reação dela em cada momento (tem prioridade sobre a padrão):
+#   light: { press: { kind: ripple, color: fixed, fixed: "#E5484D" }, hold: { kind: hold } }
+
+pages:
+  # ---------------------------------------------------------------------------
+  main:
+    1:
+      icon: { lucide: mic, text: Mic, bg: "#5865F2" }
+      active_icon: { lucide: mic-off, text: Mutado, bg: "#C62828" }
+      action: { type: discord.mute }
+      hold: { type: set_state, state: discord.mute, value: toggle }   # corrige o ícone se dessincronizar
+    2:
+      icon: { lucide: headphones, text: Áudio, bg: "#5865F2" }
+      active_icon: { text: Surdo, bg: "#C62828" }
+      action: { type: discord.deafen }
+      hold: { type: set_state, state: discord.deafen, value: toggle }
+    3:
+      icon: { lucide: circle-dot, text: Gravar, bg: "#303030" }
+      active_icon: { text: Gravando, bg: "#C62828" }
+      action: { type: obs.record }
+      hold: { type: obs.record, mode: pause }
+    4:
+      icon: { lucide: radio, text: Live, bg: "#303030" }
+      active_icon: { text: AO VIVO, bg: "#C62828" }
+      action: { type: obs.stream }
+    5:
+      icon: { lucide: folder, text: OBS, bg: "#1E3A5F" }
+      action: page:obs
+
+    6:
+      icon: { lucide: skip-back, bg: "#1B5E20" }
+      action: media:prev
+    7:
+      icon: { lucide: play, text: Play/Pause, bg: "#1B5E20" }
+      action: media:play_pause
+    8:
+      icon: { lucide: skip-forward, bg: "#1B5E20" }
+      action: media:next
+    9:
+      icon: { lucide: volume-1, text: Vol -, bg: "#263238" }
+      action: { type: media, key: vol_down, repeat: 2 }
+      hold: media:mute
+    10:
+      icon: { lucide: volume-2, text: Vol +, bg: "#263238" }
+      action: { type: media, key: vol_up, repeat: 2 }
+
+    11:
+      icon: { lucide: globe, text: Navegador, bg: "#37474F" }
+      action: launch:https://www.google.com
+    12:
+      icon: { lucide: camera, text: Print, bg: "#37474F" }
+      action: hotkey:win+shift+s
+    13:
+      icon: { lucide: keyboard, text: Texto, bg: "#37474F" }
+      action: { type: text, text: "Já volto! 🙂" }
+    14:
+      icon: { lucide: sun, text: Brilho, bg: "#424242" }
+      action: { type: brightness, step: 30 }
+    15:
+      icon: { lucide: settings, text: Mais, bg: "#4A148C" }
+      action: page:mais
+
+  # ---------------------------------------------------------------------------
+  obs:
+    1:
+      icon: { lucide: monitor, text: Cena 1, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }          # verde = cena atual
+      action: { type: obs.scene, scene: "Cena" }
+    2:
+      icon: { lucide: monitor, text: Cena 2, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }
+      action: { type: obs.scene, scene: "Cena 2" }
+    3:
+      icon: { lucide: monitor, text: Cena 3, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }
+      action: { type: obs.scene, scene: "Cena 3" }
+    6:
+      icon: { lucide: mic, text: Mic OBS, bg: "#303030" }
+      active_icon: { lucide: mic-off, text: Mic mudo, bg: "#C62828" }
+      action: { type: obs.mute, input: "Mic/Aux" }
+    7:
+      icon: { lucide: volume-1, text: Desktop, bg: "#303030" }
+      active_icon: { lucide: volume-x, text: Mudo, bg: "#C62828" }
+      action: { type: obs.mute, input: "Desktop Audio" }
+    8:
+      icon: { lucide: video, text: Webcam, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }          # verde = visível
+      action: { type: obs.source, scene: "Cena", source: "Webcam" }
+    11:
+      icon: { lucide: save, text: Salvar replay, bg: "#303030" }
+      action: { type: obs.replay, mode: save }
+    12:
+      icon: { lucide: circle-dot, text: Replay, bg: "#303030" }
+      active_icon: { text: Replay ON, bg: "#C62828" }
+      action: { type: obs.replay }
+    13:
+      icon: { lucide: video, text: Cam virtual, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }
+      action: { type: obs.virtualcam }
+    15:
+      icon: { lucide: arrow-left, text: Voltar, bg: "#1E3A5F" }
+      action: page:back
+
+  # ---------------------------------------------------------------------------
+  mais:
+    1:
+      icon: { text: "Notas", lucide: sticky-note, bg: "#00695C" }
+      action: { type: launch, target: notepad.exe }
+    2:
+      icon: { text: "Copiar\ncolar", bg: "#00695C" }
+      action: { type: hotkey, keys: ["ctrl+c", "ctrl+v"] }
+    3:
+      icon: { text: "Toggle", bg: "#424242" }
+      active_icon: { text: "Ligado", bg: "#2E7D32" }
+      action:
+        type: toggle
+        on:  { type: text, text: "ligou" }
+        off: { type: text, text: "desligou" }
+    4:
+      icon: { text: "Combo", lucide: zap, bg: "#E65100" }
+      action:                                   # lista = várias ações em sequência
+        - { type: launch, target: notepad.exe }
+        - { type: delay, ms: 800 }
+        - { type: text, text: "Aberto pelo D6!", enter: true }
+    5:
+      icon: { text: "Webhook", lucide: network, bg: "#283593" }
+      action: { type: http, url: "https://httpbin.org/post", json: { origem: d6 } }
+    6:
+      icon: { text: "Pasta\nDownloads", lucide: download, bg: "#5D4037" }
+      action: { type: launch, target: "%USERPROFILE%\\Downloads" }
+    7:
+      icon: { text: "Bloquear", lucide: lock, bg: "#B71C1C" }
+      action: { type: command, command: "rundll32.exe user32.dll,LockWorkStation" }
+    15:
+      icon: { lucide: arrow-left, text: Voltar, bg: "#1E3A5F" }
+      action: page:back

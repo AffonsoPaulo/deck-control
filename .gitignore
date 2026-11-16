@@ -1,0 +1,22 @@
+# Config pessoal (tem senhas de integrações) — use config.example.yaml como base
+config.yaml
+config.yaml.bak
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Saídas de teste e fotos locais
+*.jpg
+*.jpeg
+*.png
+teste-animado.gif
+
+# Sistema / editores
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

@@ -1,0 +1,314 @@
+{
+  "id": "obs",
+  "name": "OBS Studio",
+  "order": 1,
+  "version": "1.0.0",
+  "author": "D6",
+  "default_locale": "en",
+  "description": "%description%",
+  "icon": "radio",
+  "color": "#0f8f99",
+  "category": "OBS",
+  "entry": "plugin.py",
+  "config_key": "obs",
+  "default_enabled": false,
+  "settings": [
+    {
+      "name": "host",
+      "kind": "text",
+      "label": "%setting.host.label%",
+      "placeholder": "localhost",
+      "default": "localhost",
+      "half": true
+    },
+    {
+      "name": "port",
+      "kind": "number",
+      "label": "%setting.port.label%",
+      "placeholder": "4455",
+      "default": 4455,
+      "half": true
+    },
+    {
+      "name": "password",
+      "kind": "password",
+      "label": "%setting.password.label%",
+      "default": "",
+      "help": "%setting.password.help%"
+    }
+  ],
+  "steps": [
+    "%step.1%",
+    "%step.2%",
+    "%step.3%",
+    "%step.4%",
+    "%step.5%",
+    "%step.6%"
+  ],
+  "states": [
+    [
+      "obs.recording",
+      "%state.recording%"
+    ],
+    [
+      "obs.streaming",
+      "%state.streaming%"
+    ],
+    [
+      "obs.record_paused",
+      "%state.record_paused%"
+    ],
+    [
+      "obs.replay",
+      "%state.replay%"
+    ],
+    [
+      "obs.virtualcam",
+      "%state.virtualcam%"
+    ],
+    [
+      "obs.connected",
+      "%state.connected%"
+    ]
+  ],
+  "values": [
+    {
+      "id": "obs.scene",
+      "label": "%value.scene%",
+      "kind": "text",
+      "sample": "%value.scene.sample%"
+    },
+    {
+      "id": "obs.stream_time",
+      "label": "%value.stream_time%",
+      "kind": "text",
+      "sample": "01:24:10"
+    },
+    {
+      "id": "obs.record_time",
+      "label": "%value.record_time%",
+      "kind": "text",
+      "sample": "12:05"
+    }
+  ],
+  "actions": {
+    "obs.scene": {
+      "label": "%action.scene.label%",
+      "help": "%action.scene.help%",
+      "fields": [
+        {
+          "name": "scene",
+          "kind": "scene",
+          "label": "%field.scene.label%",
+          "required": true
+        },
+        {
+          "name": "preview",
+          "kind": "bool",
+          "label": "%field.preview.label%"
+        }
+      ],
+      "state": true
+    },
+    "obs.record": {
+      "label": "%action.record.label%",
+      "help": "%action.record.help%",
+      "fields": [
+        {
+          "name": "mode",
+          "kind": "enum",
+          "label": "%field.mode.label%",
+          "options": [
+            [
+              "toggle",
+              "%option.mode.toggle%"
+            ],
+            [
+              "start",
+              "%option.mode.start%"
+            ],
+            [
+              "stop",
+              "%option.mode.stop%"
+            ],
+            [
+              "pause",
+              "%option.mode.pause%"
+            ]
+          ]
+        }
+      ],
+      "state": true
+    },
+    "obs.stream": {
+      "label": "%action.stream.label%",
+      "help": "%action.stream.help%",
+      "fields": [
+        {
+          "name": "mode",
+          "kind": "enum",
+          "label": "%field.mode.label%",
+          "options": [
+            [
+              "toggle",
+              "%option.mode.toggle%"
+            ],
+            [
+              "start",
+              "%option.mode.start%"
+            ],
+            [
+              "stop",
+              "%option.mode.stop%"
+            ]
+          ]
+        }
+      ],
+      "state": true
+    },
+    "obs.replay": {
+      "label": "%action.replay.label%",
+      "help": "%action.replay.help%",
+      "fields": [
+        {
+          "name": "mode",
+          "kind": "enum",
+          "label": "%field.mode.label%",
+          "options": [
+            [
+              "toggle",
+              "%option.mode.toggle%"
+            ],
+            [
+              "start",
+              "%option.mode.start%"
+            ],
+            [
+              "stop",
+              "%option.mode.stop%"
+            ],
+            [
+              "save",
+              "%option.mode.save%"
+            ]
+          ]
+        }
+      ],
+      "state": true
+    },
+    "obs.virtualcam": {
+      "label": "%action.virtualcam.label%",
+      "help": "",
+      "fields": [
+        {
+          "name": "mode",
+          "kind": "enum",
+          "label": "%field.mode.label%",
+          "options": [
+            [
+              "toggle",
+              "%option.mode.toggle%"
+            ],
+            [
+              "start",
+              "%option.mode.start%"
+            ],
+            [
+              "stop",
+              "%option.mode.stop%"
+            ]
+          ]
+        }
+      ],
+      "state": true
+    },
+    "obs.mute": {
+      "label": "%action.mute.label%",
+      "help": "%action.mute.help%",
+      "fields": [
+        {
+          "name": "input",
+          "kind": "input",
+          "label": "%field.input.label%",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "kind": "enum",
+          "label": "%field.mode.label%",
+          "options": [
+            [
+              "toggle",
+              "%action.mute.option.mode.toggle%"
+            ],
+            [
+              "on",
+              "%option.mode.on%"
+            ],
+            [
+              "off",
+              "%option.mode.off%"
+            ]
+          ]
+        }
+      ],
+      "state": true
+    },
+    "obs.source": {
+      "label": "%action.source.label%",
+      "help": "%action.source.help%",
+      "fields": [
+        {
+          "name": "scene",
+          "kind": "scene",
+          "label": "%field.scene.label%",
+          "required": true
+        },
+        {
+          "name": "source",
+          "kind": "source",
+          "label": "%field.source.label%",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "kind": "enum",
+          "label": "%field.mode.label%",
+          "options": [
+            [
+              "toggle",
+              "%action.source.option.mode.toggle%"
+            ],
+            [
+              "show",
+              "%option.mode.show%"
+            ],
+            [
+              "hide",
+              "%option.mode.hide%"
+            ]
+          ]
+        }
+      ],
+      "state": true
+    },
+    "obs.request": {
+      "label": "%action.request.label%",
+      "help": "%action.request.help%",
+      "fields": [
+        {
+          "name": "request",
+          "kind": "text",
+          "label": "%field.request.label%",
+          "required": true,
+          "help": "%field.request.help%"
+        },
+        {
+          "name": "data",
+          "kind": "json",
+          "label": "%field.data.label%"
+        }
+      ]
+    }
+  }
+}
