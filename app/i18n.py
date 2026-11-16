@@ -5,7 +5,7 @@ do idioma atual, ou o inglês se faltar. Variáveis vão por nome: tr("Key {n}",
 As traduções ficam em app/locales/<idioma>.json ({"texto em inglês": "tradução"}).
 
 O idioma vem do config ('language: en' ou 'language: pt-BR'); sem ele, segue o do Windows.
-Os logs do app continuam em português (são para quem desenvolve).
+Os logs do app ficam sempre em inglês (app/logs.py); só o que a pessoa vê passa pelo tr().
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def detect() -> str:
         import ctypes
         langid = ctypes.windll.kernel32.GetUserDefaultUILanguage()
         return "pt-BR" if (langid & 0x3FF) == 0x16 else "en"
-    except Exception:
+    except Exception:          # fora do Windows (testes) não há kernel32: fica o padrão
         return DEFAULT
 
 

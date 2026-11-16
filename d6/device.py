@@ -16,6 +16,7 @@ Resumo do que importa aqui:
 """
 from __future__ import annotations
 
+import logging
 import sys
 import time
 from dataclasses import dataclass
@@ -23,6 +24,7 @@ from typing import Iterator
 
 import hid
 
+log = logging.getLogger("deck.device")      # o mesmo que app.logs.get("device"), sem o d6 depender do app
 VENDOR_ID = 0x3142
 PRODUCT_ID = 0x0060
 VENDOR_USAGE_PAGE = 0xFFA0
@@ -63,8 +65,8 @@ def find_vendor_interface() -> dict:
         if d.get("usage_page") == VENDOR_USAGE_PAGE or d.get("interface_number") == 0:
             return d
     raise DeviceNotFound(
-        "Fifine D6 (3142:0060) não encontrado. Está conectado? "
-        f"Interfaces vistas: {len(devs)}"
+        "Fifine D6 (3142:0060) not found. Is it plugged in? "
+        f"Interfaces seen: {len(devs)}"
     )
 
 
@@ -117,13 +119,13 @@ class D6:
     def send(self, payload: bytes) -> None:
         """Envia um output report: 0x00 (report ID) + payload preenchido com zeros."""
         if self._dev is None:
-            raise RuntimeError("dispositivo não está aberto")
+            raise RuntimeError("the device isn't open")
         if len(payload) > self._out_size:
-            raise ValueError(f"payload de {len(payload)} bytes > {self._out_size}")
+            raise ValueError(f"payload of {len(payload)} bytes > {self._out_size}")
         report = b"\x00" + payload + b"\x00" * (self._out_size - len(payload))
         n = self._dev.write(report)
         if n < 0:
-            raise OSError(f"falha ao escrever no D6: {self._dev.error()}")
+            raise OSError(f"writing to the D6 failed: {self._dev.error()}")
 
     def set_mode(self, mode: int) -> None:
         self.send(crt("MOD", 0, 0, 0x30 + mode))
@@ -155,10 +157,11 @@ class D6:
     def firmware_version(self) -> str | None:
         """Ex.: 'V3.D6.1.009' (lido do input report 0)."""
         if self._dev is None:
-            raise RuntimeError("dispositivo não está aberto")
+            raise RuntimeError("the device isn't open")
         try:
             raw = bytes(self._dev.get_input_report(0, self._in_size + 1))
         except Exception:
+            log.debug("Couldn't read the firmware version", exc_info=True)
             return None
         text = raw.strip(b"\x00").split(b"\x00")[0].decode("latin1", "ignore")
         return text or None
@@ -189,7 +192,7 @@ class D6:
         """BAT <tamanho> <tela>, dados em pedaços, STP."""
         n = len(jpeg)
         if n > 0xFFFF:
-            raise ValueError("imagem grande demais")
+            raise ValueError("image too large")
         self.send(crt("BAT", 0, 0, (n >> 8) & 0xFF, n & 0xFF, screen))
         for off in range(0, n, chunk):
             self.send(jpeg[off:off + chunk])
@@ -252,7 +255,7 @@ class D6:
 
     def read_raw(self, timeout_ms: int = 500) -> bytes:
         if self._dev is None:
-            raise RuntimeError("dispositivo não está aberto")
+            raise RuntimeError("the device isn't open")
         data = self._dev.read(self._out_size + 1, timeout_ms)
         return bytes(data) if data else b""
 

@@ -111,6 +111,16 @@ device:
   key_delay: 0.05
   settle: 0.25       # fator das pausas entre comandos (1.0 = mais conservador e lento)
 
+# Logs. Erros, avisos e os eventos principais são sempre gravados em
+# %LOCALAPPDATA%\D6Deck\logs\app.log (até 5 arquivos de 2 MB; as mensagens ficam em inglês).
+# Senhas do config e o token do editor saem como ****. Também se ajusta no editor (Configurações).
+# logging:
+#   detail: false        # true: grava também o passo a passo das áreas abaixo (para investigar um problema)
+#   areas: [keys, values, automations, plugins, editor, device]   # quais áreas detalhar
+#   show_tab: false      # mostra a aba Logs no editor
+#   key_error: true      # a tecla mostra um X vermelho por 1 s quando a ação dela falha
+#   notify: false        # notificação do Windows quando aparece um problema (OBS que não conecta, Deck desconectado...)
+
 # Luz do D6 (o anel de 18 LEDs). Sem esta seção o app não mexe na luz.
 # Para o app controlar, dê dois cliques rápidos no botão de trás do D6
 # (um clique só troca para os efeitos do próprio aparelho). Tudo isto também

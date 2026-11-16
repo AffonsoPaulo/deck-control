@@ -1,4 +1,4 @@
-"""Utilidades do Windows: instância única, iniciar com o Windows e log em arquivo."""
+"""Utilidades do Windows: instância única, iniciar com o Windows, tela e volume."""
 from __future__ import annotations
 
 import ctypes
@@ -30,17 +30,9 @@ def data_dir() -> Path:
 
 
 def log_path() -> Path:
-    return data_dir() / "app.log"
-
-
-def redirect_output_to_log() -> Path:
-    """Com pythonw não existe console: manda print() para um arquivo (rotaciona em 1 MB)."""
-    path = log_path()
-    if path.exists() and path.stat().st_size > 1_000_000:
-        path.replace(path.with_suffix(".old.log"))
-    f = open(path, "a", encoding="utf-8", buffering=1)
-    sys.stdout = sys.stderr = f
-    return path
+    """O arquivo de log atual (app/logs.py cuida da rotação e da pasta logs/)."""
+    from app import logs
+    return logs.log_file()
 
 
 def _pythonw() -> str:
@@ -151,7 +143,7 @@ def screen_off() -> bool:
             _timeout_cache[:] = [time.monotonic(), _display_timeout_seconds()]
         timeout = _timeout_cache[1]
         return bool(timeout) and _idle_seconds() >= timeout
-    except Exception:
+    except Exception:          # perguntado a cada 2 s pela luz; se a API falhar, a luz só não apaga (sem log)
         return False
 
 
@@ -239,11 +231,11 @@ def master_volume() -> tuple[int, bool] | None:
         if _vcall(endpoint, 15, ctypes.byref(muted), argtypes=(vp,)) < 0:     # GetMute
             return None
         return max(0, min(100, round(level.value * 100))), bool(muted.value)
-    except Exception:
+    except Exception:          # lido a cada segundo para as teclas; sem áudio = sem valor (sem log)
         return None
     finally:
         try:
             _release(endpoint)
             _release(device)
-        except Exception:
+        except Exception:      # liberar uma interface COM que já caiu: nada a fazer
             pass

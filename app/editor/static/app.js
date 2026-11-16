@@ -416,7 +416,7 @@ async function load() {
   S.page = pages()[hp.get("p")] ? hp.get("p") : pages()[S.cfg.home] ? S.cfg.home : Object.keys(pages())[0];
   S.key = KEYS.includes(hp.get("k")) ? hp.get("k") : null;
   if (["look", "light"].includes(hp.get("tab"))) S.tab = hp.get("tab");
-  if (["light", "settings", "auto"].includes(hp.get("s"))) S.section = hp.get("s");
+  if (["light", "settings", "auto", "logs"].includes(hp.get("s"))) S.section = hp.get("s");
   if (SET_SECTIONS.some(([k]) => k === hp.get("set"))) S.setSection = hp.get("set");
   if (hp.get("open") === "settings") S.section = "settings";
   if (hp.get("v") === "active") S.view = "active";
@@ -458,7 +458,7 @@ async function pollStatus() {
 
 // ---------------------------------------------------------------------------- render geral
 
-const SECTION_TITLES = { keys: t("Keys"), light: t("Light"), auto: t("Automations"), settings: t("Settings") };
+const SECTION_TITLES = { keys: t("Keys"), light: t("Light"), auto: t("Automations"), logs: t("Logs"), settings: t("Settings") };
 function renderSection() {
   document.body.dataset.section = S.section;
   $("#sectionTitle").textContent = SECTION_TITLES[S.section] || t("Keys");
@@ -466,6 +466,7 @@ function renderSection() {
   $("#lightView").hidden = S.section !== "light";
   $("#settingsView").hidden = S.section !== "settings";
   $("#autoView").hidden = S.section !== "auto";
+  $("#logsView").hidden = S.section !== "logs";
   document.querySelectorAll(".rail-btn").forEach((b) => b.setAttribute("aria-current", b.dataset.section === S.section ? "page" : "false"));
 }
 document.querySelectorAll(".rail-btn").forEach((b) => b.addEventListener("click", () => { S.section = b.dataset.section; renderAll(); }));
@@ -495,6 +496,7 @@ function renderAll() {
   if (S.section === "light") { renderStatus(); renderTopButtons(); renderLightView(); return; }
   if (S.section === "settings") { renderStatus(); renderTopButtons(); renderSettingsView(); return; }
   if (S.section === "auto") { renderStatus(); renderTopButtons(); renderAutomationsView(); return; }
+  if (S.section === "logs") { renderStatus(); renderTopButtons(); renderLogsView(); return; }
   if (S.expanded && !(S.key && pageKeys()[S.key])) S.expanded = false;
   document.body.classList.toggle("expanded", S.expanded);
   $("#expandView").hidden = !S.expanded;
@@ -588,6 +590,9 @@ function renderStatus() {
   // cada parte: ícone, nome e estado; cor só quando precisa de atenção
   const item = (glyph, name, state, bad, title) =>
     h("span", { class: "stat" + (bad ? " bad" : ""), title }, ic(glyph), h("b", {}, name), h("span", { class: "st" }, state));
+  renderLogsBadge();
+  const logsItem = logsStatusItem();
+  if (logsItem) el.append(logsItem);
   if (!st.engine) return el.append(item("usb", "Deck", t("app closed"), true, t("The Deck app is not running: you can edit, but the Deck won't update.")));
   el.append(item("usb", "Deck", st.device ? t("connected") : t("disconnected"), !st.device, st.device ? t("The Deck is connected.") : t("Check the Deck USB cable.")));
   if (S.cfg && isObj(S.cfg.obs) && S.cfg.obs.enabled !== false) {
@@ -2258,7 +2263,7 @@ function pluginBlock(pl) {
   const sw = h("button", { class: "switch", role: "switch", "aria-checked": on ? "true" : "false", "aria-label": t("Enable {0}", [pl.name]),
     onclick: () => setPluginOn(pl, !on) });
   const meta = pl.builtin ? pl.description : [pl.description, h("span", { class: "int-by" }, (pl.author ? t("By {0}, version {1}", [pl.author, pl.version || "?"]) : t("Version {0}", [pl.version || "?"])))];
-  const block = h("section", { class: "int-block" + (on ? "" : " off") },
+  const block = h("section", { class: "int-block" + (on ? "" : " off"), "data-plugin": pl.id },
     h("div", { class: "int-head", style: { "--cat": pl.color || "#868d99" } },
       h("span", { class: "int-logo" }, ic(pl.icon || "plug")),
       h("div", { class: "grow" }, h("h3", {}, pl.name), h("small", {}, meta)),
@@ -2387,6 +2392,7 @@ function setAdvanced(body) {
       fmt: (v) => `${numFmt(v, 2)} s`, onChange: (v) => cfgIn("device", "key_delay", v) })),
     setSwitch(t("Send one image at a time"), dev.per_key_session !== false, (on) => { cfgIn("device", "per_key_session", on); renderSettingsView(); },
       t("Much slower, but the safest mode.")));
+  setLogging(body);
 }
 
 function setBackup(body) {

@@ -22,8 +22,10 @@ from __future__ import annotations
 
 import time
 
-from app import actions, values
+from app import actions, logs, values
 from app.i18n import tr
+
+log = logs.get("automations")
 
 TYPES = ("time", "every", "countdown", "value", "connected", "page")
 
@@ -79,24 +81,36 @@ class Automations:
     def _key(a: dict) -> str:
         return repr((a.get("name"), a.get("when"), a.get("enabled", True)))
 
-    def _allowed(self, a: dict, st: dict, now: float) -> bool:
+    def _blocked(self, a: dict, st: dict, now: float) -> str | None:
+        """Por que a automação não pode rodar agora (None = pode)."""
         if a.get("enabled", True) is False:
-            return False
+            return "it's turned off"
         days = a.get("days") or "all"
         wd = time.localtime().tm_wday
         if (days == "weekdays" and wd >= 5) or (days == "weekend" and wd < 5):
-            return False
+            return f"not today (days: {days})"
         cd = a.get("cooldown") or 0
-        return not (st["last"] is not None and now - st["last"] < float(cd))
+        if st["last"] is not None and now - st["last"] < float(cd):
+            return f"cooldown, {float(cd) - (now - st['last']):.0f} s left"
+        return None
+
+    def _allowed(self, a: dict, st: dict, now: float) -> bool:
+        return self._blocked(a, st, now) is None
+
+    @staticmethod
+    def _name(a: dict, i: int) -> str:
+        return str(a.get("name") or f"#{i + 1}")
 
     def _fire(self, i: int, now: float) -> None:
         a, st = self.items[i], self._state[i]
-        if not self._allowed(a, st, now):
+        name = self._name(a, i)
+        why = self._blocked(a, st, now)
+        if why is not None:
+            log.debug("Automation '%s' triggered (%s) but didn't run: %s", name, (a.get("when") or {}).get("type"), why)
             return
         st["last"] = now
-        name = a.get("name") or f"#{i + 1}"
-        print(f"[automação] {name}")
-        self.engine._submit(a.get("do"), 0)
+        log.info("Automation ran: '%s' (trigger: %s)", name, (a.get("when") or {}).get("type"))
+        self.engine._submit(a.get("do"), 0, "automation", name)
 
     def tick(self) -> None:
         """Chamado pelo engine; confere os gatilhos de tempo e de valor uma vez por segundo."""
@@ -122,6 +136,11 @@ class Automations:
                     self._fire(i, now)
             elif t == "value":
                 cur = values.test(w, self.engine.values.get)
+                if cur != st["prev"]:
+                    log.debug("Automation '%s': condition %s %s %r is now %s%s", self._name(a, i), w.get("value"),
+                              w.get("op") or "eq", w.get("to"), cur,
+                              " (first reading: only noted)" if st["prev"] is None else
+                              "" if cur else " (doesn't run: it runs when it turns true)")
                 if cur and st["prev"] is False:       # passou a valer (na primeira leitura só anota)
                     self._fire(i, now)
                 st["prev"] = cur

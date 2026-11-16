@@ -3,6 +3,9 @@
 O anel usa as cores das categorias do editor, uma em cada canto (azul, verde,
 laranja, âmbar) e misturadas pelas bordas. Desconectado, o anel fica cinza.
 
+Com um problema em aberto (app/logs.py), a bandeja põe um selo âmbar com "!" no canto
+de baixo à direita (alert=True).
+
 O desenho mora aqui, numa grade de 32: a bandeja (PIL) e o favicon (SVG) saem
 da mesma geometria. Depois de mudar algo, rode `python -m app.brand` para
 regravar editor/static/favicon.svg e favicon-off.svg.
@@ -19,6 +22,7 @@ WHITE = (255, 255, 255)
 CORNERS = ((62, 99, 221), (47, 158, 106),     # em cima: azul, verde
            (229, 112, 26), (245, 165, 36))    # embaixo: laranja, âmbar
 RING_OFF = (74, 80, 92)
+ALERT = (245, 165, 36)  # selo de alerta (âmbar #F5A524)
 RADIUS = 8.5           # canto externo, na grade de 32
 RING = 3               # largura do anel, na grade de 32
 STROKE = 0.35          # engrossa um pouco o traço da Figtree 700
@@ -52,8 +56,8 @@ def _ring_image(n: int, lit: bool) -> Image.Image:
     return Image.composite(bottom, top, blend)
 
 
-def mark(size: int = 64, lit: bool = True) -> Image.Image:
-    """A marca em `size` px. lit=False: anel cinza (D6 desconectado)."""
+def mark(size: int = 64, lit: bool = True, alert: bool = False) -> Image.Image:
+    """A marca em `size` px. lit=False: anel cinza (D6 desconectado). alert=True: selo de problema."""
     ss = 8                                             # desenha 8x maior e reduz
     n = size * ss
     u = n / 32                                         # 1 unidade da grade, em px
@@ -75,12 +79,29 @@ def mark(size: int = 64, lit: bool = True) -> Image.Image:
             p = [(x * u, y * u) for x, y in pts]
             d.polygon(p, fill=INK if hole else WHITE)
             d.line(p + [p[0]], fill=WHITE, width=w, joint="curve")
+    if alert:
+        _alert_badge(d, n, size, ss)
     return img.resize((size, size), Image.LANCZOS)
 
 
-def ico(lit: bool = True, sizes=TRAY_SIZES) -> bytes:
+def _alert_badge(d: ImageDraw.ImageDraw, n: int, size: int, ss: int) -> None:
+    """Quadrado âmbar arredondado com um "!" escuro, no canto de baixo à direita."""
+    side = max(9, round(size * 0.46)) * ss                # em 16 px: 9 px, ainda legível
+    x0 = y0 = n - side
+    edge = max(1, round(size / 16)) * ss                  # contorno escuro para separar do anel
+    d.rounded_rectangle([x0 - edge, y0 - edge, n - 1, n - 1], radius=round(side * 0.3) + edge, fill=INK)
+    d.rounded_rectangle([x0, y0, n - 1, n - 1], radius=round(side * 0.3), fill=ALERT)
+    cx = x0 + side / 2
+    bw = max(2 * ss, round(side * 0.2))                   # largura do traço do "!"
+    top, bottom = y0 + side * 0.18, y0 + side * 0.6
+    d.rounded_rectangle([cx - bw / 2, top, cx + bw / 2, bottom], radius=bw / 2, fill=INK)
+    dot = y0 + side * 0.8
+    d.ellipse([cx - bw / 2, dot - bw / 2, cx + bw / 2, dot + bw / 2], fill=INK)
+
+
+def ico(lit: bool = True, sizes=TRAY_SIZES, alert: bool = False) -> bytes:
     """Arquivo .ico com cada tamanho desenhado à parte (não reduzido de um só)."""
-    frames = [mark(s, lit) for s in sizes]
+    frames = [mark(s, lit, alert) for s in sizes]
     buf = io.BytesIO()
     frames[-1].save(buf, format="ICO", sizes=[(s, s) for s in sizes], append_images=frames[:-1])
     return buf.getvalue()
@@ -111,4 +132,4 @@ if __name__ == "__main__":
     static = Path(__file__).parent / "editor" / "static"
     (static / "favicon.svg").write_text(svg(True), encoding="utf-8")
     (static / "favicon-off.svg").write_text(svg(False), encoding="utf-8")
-    print("favicons regravados")
+    print("favicons rewritten")

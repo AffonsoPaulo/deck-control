@@ -17,8 +17,12 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from app import i18n
+from app import i18n, logs
 
+log = logs.get("plugins.weather")
+PROBLEM = "plugin.weather.fetch"
+FAILS_FOR_PROBLEM = 3           # falhas seguidas até virar um problema em aberto
+SLOW_MS = 5000                  # pedido mais lento que isso: aviso
 GEO_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 USER_AGENT = "D6Deck/1.0"
@@ -84,6 +88,7 @@ class _Plugin:
         self._place: dict | None = None       # {"key": (cidade, idioma), "lat", "lon", "name"}
         self._data: dict | None = None        # última resposta da previsão
         self._status = ("wait", "status.wait", {}, None)
+        self._fails = 0                       # buscas que falharam seguidas
 
     # -- textos do próprio plugin (locales/<idioma>.json)
     @staticmethod
@@ -93,7 +98,7 @@ class _Plugin:
             try:
                 out[f.stem] = json.loads(f.read_text(encoding="utf-8"))
             except (OSError, ValueError) as e:
-                print(f"[weather] locales/{f.name}: {e}")
+                log.warning("Couldn't read locales/%s: %s", f.name, e)
         return out
 
     def t(self, key: str, **kw) -> str:
@@ -124,6 +129,8 @@ class _Plugin:
     def stop(self) -> None:
         self._stop.set()
         self._wake.set()
+        self._fails = 0
+        logs.resolve(PROBLEM)
         if self._thread is not None:
             self._thread.join(timeout=1.0)      # se estiver no meio de um pedido, termina sozinha (daemon)
         self._thread = None
@@ -155,6 +162,8 @@ class _Plugin:
             if not city:
                 self._status = ("wait", "status.wait", {}, None)
                 self._place = self._data = None
+                self._fails = 0
+                logs.resolve(PROBLEM)
             else:
                 wait = self._cycle(city, stop, minutes * 60)
             if stop.is_set():
@@ -164,30 +173,52 @@ class _Plugin:
     def _cycle(self, city: str, stop: threading.Event, every: float) -> float | None:
         """Uma busca. Devolve quantos segundos esperar até a próxima (None: até o config mudar)."""
         lang = "pt" if i18n.language().startswith("pt") else "en"
+        t0 = time.monotonic()
         try:
             if self._place is None or self._place["key"] != (city, lang):
                 if self._data is None:
                     self._status = ("wait", "status.loading", {}, None)
                 self._place = self._geocode(city, lang)
+                log.debug("City '%s' -> %s (%.2f, %.2f)", city, self._place["name"], self._place["lat"], self._place["lon"])
             data = self._forecast(self._place["lat"], self._place["lon"])
         except NotFound:
             self._place = self._data = None
             self._status = ("error", "status.not_found", {}, f"open-meteo geocoding: no results for '{city}'")
+            log.warning("City not found: '%s'", city)
+            logs.problem(PROBLEM, "The weather city wasn't found: {city}", "integrations:weather", city=city)
             self._clear()
             return None
         except (urllib.error.HTTPError, ValueError, KeyError, TypeError, IndexError) as e:
             self._status = ("error", "status.service", {}, f"{type(e).__name__}: {e}")
-            print(f"[weather] {e}")
+            self._failed("The weather service isn't answering correctly", e, exc_info=not isinstance(e, urllib.error.HTTPError))
             return RETRY
         except (urllib.error.URLError, OSError) as e:      # sem rede, DNS, tempo esgotado
             self._status = ("error", "status.offline", {}, f"{type(e).__name__}: {getattr(e, 'reason', e)}")
+            self._failed("The weather can't be updated: no connection to the weather service", e)
             return RETRY
         if stop.is_set():
             return None
+        ms = round((time.monotonic() - t0) * 1000)
+        if ms > SLOW_MS:
+            log.warning("The weather service is slow: %d ms", ms)
+        if self._fails:
+            log.info("Weather updated again after %d failed attempts", self._fails)
+        self._fails = 0
+        logs.resolve(PROBLEM)
         self._data = data
         self._publish(data)
         self._status = ("ok", "status.ok", {"time": time.strftime("%H:%M")}, None)
+        log.debug("Weather updated for %s in %d ms; next in %.0f min", (self._place or {}).get("name"), ms, every / 60)
         return every
+
+    def _failed(self, text: str, e: Exception, exc_info: bool = False) -> None:
+        """Uma busca falhou: aviso no log e, depois de algumas seguidas, um problema em aberto."""
+        self._fails += 1
+        reason = f"{type(e).__name__}: {getattr(e, 'reason', e)}"
+        log.warning("Weather fetch failed (%d in a row): %s; retrying in %d s", self._fails, reason, RETRY,
+                    exc_info=exc_info)
+        if self._fails >= FAILS_FOR_PROBLEM:
+            logs.problem(PROBLEM, text, "integrations:weather")
 
     @staticmethod
     def _get(url: str, params: dict) -> dict:
@@ -228,7 +259,7 @@ class _Plugin:
             try:
                 fn(name, value)
             except Exception as e:
-                print(f"[weather] set_value {name}: {e}")
+                log.warning("Couldn't publish %s: %s", name, e, exc_info=True)
 
     def _clear(self) -> None:
         for name in ("temp", "max", "min", "condition", "icon", "wind", "rain", "humidity", "city"):

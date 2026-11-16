@@ -15,7 +15,7 @@ mode: rpc — conexão direta (Client ID + Client Secret de uma aplicação da p
 """
 from __future__ import annotations
 
-from app import keys
+from app import keys, logs
 from app.actions import Context
 from app.i18n import tr
 
@@ -25,6 +25,16 @@ SHORTCUT_ACTIONS = ("ptt", "ptt_priority", "push_to_mute", "vad_priority", "togg
                     "voice_chat", "overlay_lock", "overlay_chat", "nav_back", "nav_forward", "switch_channel",
                     "disconnect", "soundboard", "soundboard_hold", "save_clip")
 DEFAULTS = {"mode": "keys", "mute": "ctrl+shift+alt+f23", "deafen": "ctrl+shift+alt+f24", "client_id": "", "client_secret": ""}
+log = logs.get("plugins.discord")
+PROBLEM = "plugin.discord.connect"
+# motivo (rótulo de status do RPC) -> texto do problema em aberto (traduzido na tela)
+PROBLEM_TEXT = {
+    "Invalid Client ID": "Discord can't connect: the Client ID is invalid",
+    "Wrong Client Secret": "Discord can't connect: the Client Secret is wrong",
+    "Authorization refused": "Discord can't connect: the authorization was refused in Discord",
+    "Discord refused the login": "Discord can't connect: Discord refused the login",
+    "Add http://localhost to Redirects": "Discord can't connect: add http://localhost to Redirects in your Discord application",
+}
 
 
 class _Plugin:
@@ -33,6 +43,7 @@ class _Plugin:
         self.settings: dict = dict(DEFAULTS)
         self.rpc = DiscordRPC(self._on_voice, self._on_status)
         self._status = ("wait", "Waiting for Discord", {}, None)
+        self._mode_logged = None
 
     # -- ciclo de vida
     def start(self, settings: dict) -> None:
@@ -40,6 +51,11 @@ class _Plugin:
 
     def update(self, settings: dict) -> None:
         self.settings = {**DEFAULTS, **{k: v for k, v in settings.items() if v is not None}}
+        if self.mode != self._mode_logged:
+            self._mode_logged = self.mode
+            log.info("Discord mode: %s", "direct connection (RPC)" if self.mode == "rpc" else "keyboard shortcuts")
+        if self.mode != "rpc":
+            logs.resolve(PROBLEM)
         if self.mode == "rpc":
             if self.rpc._thread and self.rpc._thread.is_alive() and not self.rpc._stop.is_set():
                 self.rpc.update(self.settings["client_id"], self.settings["client_secret"])
@@ -50,6 +66,7 @@ class _Plugin:
 
     def stop(self) -> None:
         self.rpc.stop()
+        logs.resolve(PROBLEM)
 
     @property
     def mode(self) -> str:
@@ -66,9 +83,20 @@ class _Plugin:
 
     # -- vindo do RPC (thread do pipe)
     def _on_status(self, state, label, error=None, **kw) -> None:
+        old = self._status
         self._status = (state, label, kw, error)
-        if state == "error":
-            print(f"[discord] {label}: {error or ''}")
+        if (state, label, kw) != old[:3]:
+            log.debug("RPC status: %s (%s)%s", label.format(**kw) if kw else label, state, f": {error}" if error else "")
+        if state == "ok":
+            if old[0] != "ok":
+                log.info("Discord connected: %s", label.format(**kw) if kw else label)
+            logs.resolve(PROBLEM)
+        elif state == "error":
+            log.error("Discord RPC: %s%s", label, f": {error}" if error else "")
+            logs.problem(PROBLEM, PROBLEM_TEXT.get(label, "Discord can't connect: {reason}"), "integrations:discord",
+                         reason=error or label)
+        elif error:           # falha inesperada: tenta de novo, mas fica avisado
+            logs.problem(PROBLEM, "Discord can't connect: {reason}", "integrations:discord", reason=error)
 
     def _on_voice(self, v: dict) -> None:
         eng = self.api.engine

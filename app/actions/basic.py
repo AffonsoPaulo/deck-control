@@ -9,9 +9,11 @@ import time
 import urllib.request
 import webbrowser
 
-from app import keys
+from app import keys, logs
 from app.actions import Context, action, run
 from app.i18n import tr
+
+log = logs.get("actions")
 
 
 def check_combos(spec: dict) -> list[str]:
@@ -110,8 +112,7 @@ def http(spec: dict, ctx: Context) -> None:
     method = spec.get("method", "POST" if data is not None else "GET").upper()
     req = urllib.request.Request(spec["url"], data=data, method=method, headers=headers)
     with urllib.request.urlopen(req, timeout=spec.get("timeout", 5)) as resp:
-        if ctx.engine.debug:
-            print(f"[http] {method} {spec['url']} -> {resp.status}")
+        log.debug("http %s %s -> %s", method, spec["url"], resp.status)
 
 
 @action("delay", required=("ms",))

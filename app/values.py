@@ -14,8 +14,10 @@ import re
 import threading
 import time
 
+from app import logs
 from app.i18n import tr
 
+log = logs.get("values")
 _MISSING = object()
 TOKEN = re.compile(r"\{([A-Za-z0-9_.:\-]+)(?:\|([a-z0-9]+))?\}")
 
@@ -151,7 +153,10 @@ class Values:
     # -- plugins
     def set(self, name: str, value) -> None:
         with self._lock:
+            old = self._plugin.get(name, _MISSING)
             self._plugin[name] = value
+        if not callable(value) and (old is _MISSING or callable(old) or old != value):
+            log.debug("Value %s: %r -> %r", name, None if old is _MISSING or callable(old) else old, value)
 
     def forget_prefix(self, prefix: str) -> None:
         with self._lock:
@@ -214,7 +219,7 @@ class Values:
             if callable(v):
                 try:
                     return v()
-                except Exception:
+                except Exception:      # valor calculado na hora (ex.: tempo de live); lido a cada desenho, sem log
                     return None
             return v
         if e is not None and name in getattr(e, "_states", {}):
@@ -237,7 +242,7 @@ class Values:
             try:
                 from app import winutil
                 val = winutil.master_volume()
-            except Exception:
+            except Exception:          # lido toda hora para as teclas; sem áudio = sem valor, sem log
                 val = None
             self._vol = (val, time.monotonic())
         if val is None:

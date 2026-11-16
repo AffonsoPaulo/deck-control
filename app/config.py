@@ -6,13 +6,14 @@ from pathlib import Path
 
 import yaml
 
-from app import actions, icons, lighting
+from app import actions, icons, lighting, logs
 from d6.device import COLS, KEY_COUNT
 from app.i18n import tr
 from app import automations, values
 from app import i18n
 
 DEFAULT_ACTIVE_OVERRIDE = {"bg": "#C62828"}
+LOGGING_FLAGS = ("detail", "show_tab", "key_error", "notify")
 
 
 class ConfigError(ValueError):
@@ -165,6 +166,30 @@ def _page_refs(spec) -> list[str]:
     return out
 
 
+def _check_logging(lg) -> list[str]:
+    """logging: {detail, areas, show_tab, key_error, notify} (ver config.example.yaml)."""
+    if lg is None:
+        return []
+    if not isinstance(lg, dict):
+        return [tr("logging: expected an object with detail/areas/show_tab/key_error/notify")]
+    errors = []
+    unknown = set(lg) - {*LOGGING_FLAGS, "areas"}
+    if unknown:
+        errors.append(tr("logging: unknown fields {fields}", fields=sorted(unknown)))
+    for f in LOGGING_FLAGS:
+        if f in lg and not isinstance(lg[f], bool):
+            errors.append(tr("logging.{field}: use true or false", field=f))
+    areas = lg.get("areas")
+    if areas is not None:
+        if not isinstance(areas, list):
+            errors.append(tr("logging.areas: expected a list (use {areas})", areas=", ".join(logs.AREAS)))
+        else:
+            for a in areas:
+                if a not in logs.AREAS:
+                    errors.append(tr("logging.areas: unknown area '{area}' (use {areas})", area=a, areas=", ".join(logs.AREAS)))
+    return errors
+
+
 def load_config(path: Path) -> Config:
     path = Path(path)
     try:
@@ -299,6 +324,8 @@ def build_config(raw: dict, path: Path) -> Config:
     dt = raw.get("double_tap_ms")
     if dt is not None and not (isinstance(dt, (int, float)) and 120 <= dt <= 800):
         errors.append(tr("double_tap_ms: a number from {lo} to {hi}", lo=120, hi=800))
+
+    errors += _check_logging(raw.get("logging"))
 
     # atalhos repetidos não impedem salvar: o editor avisa (binds.conflicts)
 

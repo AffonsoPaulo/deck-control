@@ -1211,3 +1211,78 @@ html[lang="en"] .key.foot-replace::after { content: "replaces"; }
   .join-bar, .foot-tip, .key.m-sel, .save-state .ic { animation: none !important; }
   .tabs button, .lib-head, .set-nav-item, .auto-item, .ftile, .page-tab, .segmented button, .btn, .icon-btn { transition: none; }
 }
+
+/* ---------------------------------------------------------------- aba Logs (logs.js) */
+.logs-view { flex: 1; min-height: 0; overflow: auto; padding: 18px 24px 28px; display: flex; flex-direction: column; gap: 14px; }
+.logs-view > * { flex: none; }
+.logs-head { margin-top: -4px; }
+.logs-problems { display: flex; flex-direction: column; gap: 8px; }
+.log-problem { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 12px; background: #1c1416; box-shadow: inset 0 0 0 1px #4a2327; }
+.log-problem .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.log-problem b { font-size: 14px; }
+.log-problem-ic { color: #ff8f85; display: grid; }
+.log-problem-ic .ic { font-size: 20px; }
+.logs-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.logs-tools .grow { flex: 1; }
+.logs-tools .pills { gap: 4px; padding: 3px; border-radius: 10px; background: var(--sunken); }
+.logs-tools .pills button { height: 30px; padding: 0 12px; border-radius: 8px; background: transparent; color: var(--ink-2); font-size: 13.5px;
+  display: inline-flex; align-items: center; gap: 6px; }
+.logs-tools .pills button:hover { background: var(--raised); color: var(--ink); }
+.logs-tools .pills button[aria-pressed="true"] { background: var(--ink); color: #0b0d10; }
+.logs-tools .pills .ic { font-size: 14px; }
+.log-n { font-weight: 700; }
+.log-n.err { color: #ff8f85; }
+.log-n.warn { color: var(--led); }
+.pills button[aria-pressed="true"] .log-n { color: #0b0d10; }
+.log-area { height: 36px; max-width: 200px; }
+.log-search-wrap { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; flex: 1; min-width: 200px; max-width: 360px;
+  border: 1px solid var(--line-2); border-radius: 9px; background: var(--field); color: var(--ink-3); }
+.log-search-wrap .ic { font-size: 15px; flex: none; }
+.logs-view .log-search { flex: 1; min-width: 0; border: 0; background: none; box-shadow: none; outline: none; height: 34px; padding: 0; color: var(--ink); }
+.log-search-wrap:focus-within { border-color: var(--led); }
+.log-follow[aria-pressed="true"] { border-color: var(--led); box-shadow: inset 0 0 0 1px var(--led); }
+
+.log-table { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.log-row { display: grid; grid-template-columns: 96px 70px 104px minmax(0, 1fr) 24px; align-items: center; gap: 12px; width: 100%;
+  min-height: 34px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--sunken); background: none; color: inherit; text-align: left; font: inherit; }
+button.log-row { cursor: pointer; }
+button.log-row:hover { background: #171b23; }
+.log-cols { min-height: 32px; background: var(--field); font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.log-item.open > .log-row { background: #171b23; border-bottom: 0; }
+.log-t, .log-m, .log-tb, .log-path { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12.5px; }
+.log-t { color: var(--ink-3); }
+.log-a { color: var(--ink-2); font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-m { color: #d5d9e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-item.open .log-m { white-space: normal; word-break: break-word; padding: 7px 0; }
+.log-chev { color: var(--ink-3); display: grid; }
+.log-chev .ic { font-size: 15px; }
+.lv { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px; border-radius: 6px; font-size: 11.5px; font-weight: 700; width: 70px; }
+.lv .ic { font-size: 13px; flex: none; }
+.lv.err { background: #3a1a1d; color: #ff8f85; }
+.lv.warn { background: #33260f; color: var(--led); }
+.lv.info { background: #13283a; color: #7dd3fc; }
+.lv.dbg { background: var(--sunken); color: var(--ink-3); }
+.log-detail { margin: 0 12px 10px; padding: 14px 16px; border-radius: 10px; background: var(--canvas); box-shadow: inset 0 0 0 1px var(--line-2);
+  display: flex; flex-direction: column; gap: 12px; }
+.log-kv { margin: 0; display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 14px; font-size: 13px; }
+.log-kv dt { color: var(--ink-3); }
+.log-kv dd { margin: 0; font-weight: 600; word-break: break-word; }
+.log-tb { margin: 0; padding: 10px 12px; border-radius: 8px; background: #07080a; color: #c4cad4; line-height: 1.55; overflow-x: auto; white-space: pre; }
+.log-empty, .log-more { padding: 14px 12px; margin: 0; }
+.log-path { color: var(--ink-2); padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--field); }
+.log-areas { display: grid; grid-template-columns: repeat(2, minmax(0, 260px)); gap: 12px 24px; }
+.log-areas.off { opacity: .55; }
+.log-area-opt { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; }
+.log-area-opt input { margin-top: 3px; }
+.log-area-opt span { display: flex; flex-direction: column; gap: 1px; }
+.log-area-opt b { font-size: 14px; font-weight: 600; }
+.log-area-opt small { font-size: 13px; color: var(--ink-3); }
+.rail-btn { position: relative; }
+.rail-badge { position: absolute; top: 4px; right: 10px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #b4232a; color: #fff;
+  font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+.status-group .stat-logs { border: 0; background: none; font: inherit; cursor: pointer; }
+.status-group .stat-logs .ic { color: var(--on); }
+@keyframes m-flash { 0% { box-shadow: 0 0 0 2px var(--led); } 100% { box-shadow: 0 0 0 2px rgba(245,165,36,0); } }
+.m-flash { animation: m-flash 1.2s ease-out; border-radius: 14px; }
+@media (max-width: 900px) { .log-row { grid-template-columns: 80px 64px minmax(0, 1fr) 20px; } .log-a { display: none; } }
+@media (prefers-reduced-motion: reduce) { .m-flash { animation: none; } }

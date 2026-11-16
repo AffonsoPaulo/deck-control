@@ -190,7 +190,7 @@ window.addEventListener("DOMContentLoaded", () => {
   wrap("travel", (orig) => function () { return M.still(() => orig.apply(this, arguments)); });
 
   // -- seções (Teclas, Luz, Automações, Config)
-  const VIEWS = { keys: "#workspace", light: "#lightView", settings: "#settingsView", auto: "#autoView" };
+  const VIEWS = { keys: "#workspace", light: "#lightView", settings: "#settingsView", auto: "#autoView", logs: "#logsView" };
   let section = null;
   wrap("renderSection", (orig) => function () {
     const was = section;

@@ -32,8 +32,10 @@ from pathlib import Path
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps, ImageSequence
 
+from app import logs
 from d6 import render
 
+log = logs.get("icons")
 SIZE = render.TILE
 STYLES = ("below", "top", "big")
 TEXT_SIZE = 16          # texto junto com ícone
@@ -361,7 +363,43 @@ def _fill_image(img, draw, spec, base_dir, art) -> None:
         img.paste(art, (0, 0), art)
     except (OSError, ValueError) as e:
         draw.text((SIZE / 2, SIZE / 2), "?", font=render._font(40), fill=(255, 80, 80), anchor="mm")
-        print(f"[ícone] não consegui abrir {path}: {e}")
+        _warn_once(path, "Couldn't open the image %s: %s", e)
+
+
+_warned: set[str] = set()
+
+
+def _warn_once(path, msg: str, e) -> None:
+    """Imagem que falta é redesenhada várias vezes: avisa uma vez por arquivo, depois só no detalhado."""
+    k = str(path)
+    if k in _warned:
+        log.debug(msg, path, e)
+        return
+    if len(_warned) > 200:
+        _warned.clear()
+    _warned.add(k)
+    log.warning(msg, path, e)
+
+
+def error_mark(img: Image.Image) -> Image.Image:
+    """A tecla com a marca de erro: a imagem atual escurecida, com um círculo vermelho e um X branco."""
+    base = img.convert("RGBA")
+    if base.size != (SIZE, SIZE):
+        base = base.resize((SIZE, SIZE), Image.Resampling.LANCZOS)
+    out = Image.alpha_composite(base, Image.new("RGBA", base.size, (15, 18, 23, round(0.62 * 255))))
+    ss = 4                                             # desenha 4x maior e reduz (bordas suaves)
+    n = SIZE * ss
+    layer = Image.new("RGBA", (n, n), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    c, r = n / 2, n * 0.24                             # círculo com 48% da tecla
+    d.ellipse([c - r, c - r, c + r, c + r], fill=(0xB4, 0x23, 0x2A, 255))
+    a, w = r * 0.42, max(ss, round(n * 0.05))
+    for p, q in (((c - a, c - a), (c + a, c + a)), ((c - a, c + a), (c + a, c - a))):
+        d.line([p, q], fill=(255, 255, 255, 255), width=w)
+        for x, y in (p, q):                            # pontas arredondadas
+            d.ellipse([x - w / 2, y - w / 2, x + w / 2, y + w / 2], fill=(255, 255, 255, 255))
+    layer = layer.resize((SIZE, SIZE), Image.Resampling.LANCZOS)
+    return Image.alpha_composite(out, layer).convert("RGB")
 
 
 def _image_path(spec, base_dir) -> Path:
@@ -382,7 +420,7 @@ def _paste_image(img, draw, spec, base_dir, center_y: int, default_box: int, art
         img.paste(art, ((SIZE - art.width) // 2, int(center_y - art.height / 2)), art)
     except (OSError, ValueError) as e:
         draw.text((SIZE / 2, center_y), "?", font=render._font(40), fill=(255, 80, 80), anchor="mm")
-        print(f"[ícone] não consegui abrir {path}: {e}")
+        _warn_once(path, "Couldn't open the image %s: %s", e)
 
 
 # -- GIF animado --------------------------------------------------------------------
@@ -407,7 +445,7 @@ def _gif_frames(path: Path) -> list[tuple[Image.Image, int]] | None:
                     ms = int(fr.info.get("duration") or 0)
                     frames.append((fr.convert("RGBA"), 100 if ms <= 10 else ms))  # como os navegadores
     except (OSError, ValueError) as e:
-        print(f"[ícone] não consegui ler os quadros de {path}: {e}")
+        _warn_once(path, "Couldn't read the frames of %s: %s", e)
         frames = None
     if frames:
         frames = _limit_frames(frames)

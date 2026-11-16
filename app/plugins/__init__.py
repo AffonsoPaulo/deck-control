@@ -24,11 +24,13 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from app import actions
 from app import i18n
+from app import logs
 from app.i18n import tr
 
 if TYPE_CHECKING:
     from app.engine import Engine
 
+log = logs.get("plugins")
 BUILTIN_DIR = Path(__file__).parent / "builtin"
 ID_RE = re.compile(r"^[a-z][a-z0-9_-]{1,39}$")
 SETTING_KINDS = ("text", "password", "number", "bool", "enum", "shortcut")
@@ -117,7 +119,7 @@ def read_locales(folder: Path) -> dict[str, dict]:
             if isinstance(d, dict):
                 out[f.stem] = {k: v for k, v in d.items() if isinstance(v, str)}
         except (OSError, ValueError) as e:
-            print(f"[plugins] {folder.name}/locales/{f.name}: {e}")
+            log.warning("Plugin %s: couldn't read locales/%s: %s", folder.name, f.name, e)
     return out
 
 
@@ -263,7 +265,7 @@ class PluginAPI:
         """Publica um valor (texto, número, sim/não, nome de ícone, caminho de imagem) que teclas,
         regras e automações podem usar. O nome deve começar com '<id do plugin>.'."""
         if not str(name).startswith(self._p.id + "."):
-            print(f"[plugins] {self._p.id}: valor '{name}' ignorado: deve começar com '{self._p.id}.'")
+            logs.get(f"plugins.{self._p.id}").warning("Value '%s' ignored: it must start with '%s.'", name, self._p.id)
             return
         from app.values import VALUES
         VALUES.set(str(name), value)
@@ -296,12 +298,17 @@ class PluginManager:
                         raise PluginError(tr("there's already a plugin with the id '{id}'", id=m['id']))
                     p = Plugin(m["id"], folder, m, builtin, locales=read_locales(folder))
                     for miss in missing_keys(m, p.locales)[:5]:
-                        print(f"[plugins] {m['id']}: falta tradução {miss}")
+                        log.warning("Plugin %s: missing translation %s", m["id"], miss)
                     self._register(p)
                     self.plugins[p.id] = p
                 except Exception as e:     # um plugin com defeito não impede os outros
                     self.errors.append({"folder": folder.name, "error": str(e)})
-                    print(f"[plugins] {folder.name}: {e}")
+                    log.error("Plugin in folder %s didn't load: %s", folder.name, e,
+                              exc_info=not isinstance(e, PluginError),
+                              extra={"ctx": {"folder": str(folder), "builtin": builtin}})
+            log.info("Plugins found: %s", ", ".join(
+                f"{p.id} {p.manifest.get('version') or '?'}{' (built-in)' if p.builtin else ''}"
+                for p in self.plugins.values()) or "none")
 
     def _register(self, p: Plugin) -> None:
         if p.builtin:
@@ -353,6 +360,8 @@ class PluginManager:
                         p.running = True
                         if p.status.get("state") == "off":
                             p.status = {"state": "ok", "label": tr("On")}
+                        log.info("Plugin started: %s %s%s", p.id, p.manifest.get("version") or "?",
+                                 " (built-in)" if p.builtin else "")
                     elif on and p.running:
                         if hasattr(p.instance, "update"):
                             p.instance.update(settings)
@@ -363,14 +372,20 @@ class PluginManager:
                 except Exception as e:
                     p.error = str(e)
                     p.status = {"state": "error", "label": tr("Didn't start")}
-                    print(f"[plugins] {p.id}: {e}")
+                    log.error("Plugin %s didn't start: %s", p.id, e, exc_info=True,
+                              extra={"ctx": {"plugin": p.id, "version": p.manifest.get("version")}})
 
     def _stop(self, p: Plugin) -> None:
+        was = p.running
         if p.running and hasattr(p.instance, "stop"):
             try:
                 p.instance.stop()
             except Exception as e:
-                print(f"[plugins] {p.id} ao parar: {e}")
+                log.warning("Plugin %s failed while stopping: %s", p.id, e, exc_info=True,
+                            extra={"ctx": {"plugin": p.id}})
+        if was:
+            log.info("Plugin stopped: %s", p.id)
+        logs.resolve_prefix(f"plugin.{p.id}.")      # desligado: os problemas dele deixam de valer
         p.running = False
         p.status = {"state": "off", "label": tr("Off")}
         from app.values import VALUES
@@ -396,6 +411,8 @@ class PluginManager:
                 try:
                     p.status = p.instance.current_status()
                 except Exception as e:
+                    if p.error != str(e):       # o editor pergunta toda hora: avisa só quando o erro muda
+                        log.warning("Plugin %s: couldn't read its status: %s", p.id, e, exc_info=True)
                     p.status = {"state": "error", "label": tr("Error")}
                     p.error = str(e)
         return {pid: {**p.status, "error": p.error or p.status.get("detail")} for pid, p in self.plugins.items()}
@@ -464,6 +481,17 @@ class PluginManager:
         """Onde ficam as senhas no config (configurações 'password' de todos os plugins)."""
         return [(*p.config_path, s["name"]) for p in self.plugins.values()
                 for s in p.manifest.get("settings", []) if s.get("kind") == "password"]
+
+    def secret_values(self, cfg: dict) -> list[str]:
+        """Os valores atuais dessas senhas (para o log escondê-las)."""
+        out = []
+        for path in self.secret_paths():
+            node: Any = cfg
+            for k in path:
+                node = node.get(k) if isinstance(node, dict) else None
+            if isinstance(node, (str, int)) and not isinstance(node, bool) and str(node):
+                out.append(str(node))
+        return out
 
     def groups(self) -> dict:
         return {(p.text().get("category") or p.name): {"color": p.manifest.get("color", "#868d99"),

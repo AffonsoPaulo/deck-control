@@ -27,7 +27,9 @@ import urllib.request
 import uuid
 from ctypes import wintypes
 
-from app import winutil
+from app import logs, winutil
+
+log = logs.get("plugins.discord")
 
 OP_HANDSHAKE, OP_FRAME, OP_CLOSE, OP_PING, OP_PONG = 0, 1, 2, 3, 4
 SCOPES = ["rpc", "rpc.voice.read", "rpc.voice.write"]
@@ -116,10 +118,11 @@ class DiscordRPC:
                 self._close()
                 self._wait(3600)          # só tenta de novo se mudarem os dados (update acorda)
                 continue
-            except OSError:
+            except OSError as e:          # Discord fechado ou a conexão caiu: normal, tenta de novo
+                log.debug("RPC: %s; retrying in %.0f s", e, RETRY)
                 self.on_status("wait", "Waiting for Discord")
             except Exception as e:        # noqa: BLE001 - qualquer outra falha: tenta de novo
-                print(f"[discord] RPC: {e}")
+                log.warning("RPC failed: %s; retrying in %.0f s", e, RETRY, exc_info=True)
                 self.on_status("wait", "Waiting for Discord", error=str(e))
             self._close()
             self._wait(RETRY)
@@ -295,7 +298,7 @@ class DiscordRPC:
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(json.dumps(tok), encoding="utf-8")
         except OSError as e:
-            print(f"[discord] não salvei o token: {e}")
+            log.warning("Couldn't save the Discord token: %s", e)
 
     # -- baixo nível
     def _write(self, op: int, payload: dict) -> None:

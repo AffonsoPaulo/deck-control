@@ -14,13 +14,15 @@ import mimetypes
 import re
 import secrets
 import threading
+import time
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import yaml
 
-from app import actions, history, i18n, icons, transfer, values
+from app import actions, history, i18n, icons, logs, transfer, values
 from app.config import ConfigError, build_config
 from app.configio import read_plain, save_plain
 from app.schema import schema
@@ -34,6 +36,7 @@ mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("image/svg+xml", ".svg")
 mimetypes.add_type("font/ttf", ".ttf")
 MAX_BODY = 8 * 1024 * 1024
+log = logs.get("editor")
 
 
 class EditorServer:
@@ -41,19 +44,38 @@ class EditorServer:
         self.config_path = Path(config_path)
         self.engine = engine
         self.token = _persistent_token()
+        self._register_token()
         self.httpd = self._bind(port)
         self.port = self.httpd.server_address[1]
         self._thread = threading.Thread(target=self.httpd.serve_forever, daemon=True, name="editor")
         history.record(self.config_path)   # garante que o estado atual está no histórico
 
+    def _register_token(self) -> None:
+        """O token do editor não pode aparecer no log (ele dá permissão de gravar o config)."""
+        if self.engine is not None:
+            self.engine.log_secrets.add(self.token)
+            self.engine.apply_log_settings()
+            return
+        # sem engine (testes): as mesmas regras, lidas direto do arquivo
+        from app.plugins import MANAGER
+        try:
+            raw = yaml.safe_load(self.config_path.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            raw = {}
+        raw = raw if isinstance(raw, dict) else {}
+        logs.configure(raw.get("logging"), secrets=[*MANAGER.secret_values(raw), self.token])
+
     def _bind(self, port: int) -> ThreadingHTTPServer:
         handler = _make_handler(self)
         for p in (port, 0):  # porta ocupada -> qualquer livre
             try:
-                return ThreadingHTTPServer(("127.0.0.1", p), handler)
+                srv = ThreadingHTTPServer(("127.0.0.1", p), handler)
+                if p != port:
+                    log.warning("Port %d is busy; the editor uses port %d", port, srv.server_address[1])
+                return srv
             except OSError:
                 continue
-        raise OSError("não consegui abrir o servidor do editor")
+        raise OSError("couldn't open the editor server")
 
     @property
     def url(self) -> str:
@@ -61,7 +83,7 @@ class EditorServer:
 
     def start(self) -> None:
         self._thread.start()
-        print(f"[editor] {self.url}")
+        log.info("Editor at %s", self.url)      # o token sai como **** (logs.configure)
 
     def stop(self) -> None:
         self.httpd.shutdown()
@@ -81,9 +103,14 @@ class EditorServer:
             build_config(yaml.safe_load(yaml.safe_dump(cfg, allow_unicode=True)), self.config_path)
         except ConfigError as e:
             errors = str(e).split("\n  - ")[1:] or [str(e)]
-            print(f"[editor] não salvei, config com problemas: {'; '.join(errors)}")
+            log.warning("Config not saved: %d problem(s): %s", len(errors), "; ".join(errors))
             return {"ok": False, "errors": errors}
-        save_plain(self.config_path, cfg)
+        try:
+            save_plain(self.config_path, cfg)
+        except Exception as e:
+            log.error("Saving the config failed: %s", e, exc_info=True, extra={"ctx": {"file": str(self.config_path)}})
+            raise
+        log.info("Config saved from the editor")
         history.record(self.config_path)
         return {"ok": True}
 
@@ -109,8 +136,10 @@ class EditorServer:
         try:
             new = transfer.build_import(self.config_path, plain, images, body.get("mode", "replace"))
         except ConfigError as e:
+            log.warning("Import of %s refused: the config has problems", name)
             return {"ok": False, "errors": str(e).split("\n  - ")[1:] or [str(e)]}
         save_plain(self.config_path, new)
+        log.info("Config imported from %s (%s)", name, body.get("mode", "replace"))
         history.record(self.config_path, reason=f"Importado de {name}")
         return {"ok": True, "config": read_plain(self.config_path)}
 
@@ -119,8 +148,8 @@ class EditorServer:
         raw = body.get("config") or {}
         try:
             out = {"conflicts": conflicts(raw)}
-        except Exception as e:                # um config pela metade não pode derrubar a validação
-            print(f"[editor] atalhos: {e}")
+        except Exception:                     # um config pela metade não pode derrubar a validação
+            log.debug("Shortcut conflict check failed (config being edited)", exc_info=True)
             out = {"conflicts": []}
         try:
             build_config(raw, self.config_path)
@@ -181,17 +210,21 @@ class EditorServer:
         try:
             raw = yaml.safe_load(self.config_path.read_text(encoding="utf-8")) or {}
             i18n.set_language(raw.get("language") if isinstance(raw, dict) else None)
-        except (OSError, yaml.YAMLError):
-            pass
+        except (OSError, yaml.YAMLError) as e:
+            log.debug("api_schema: couldn't read the language from the config: %s", e)
         return schema()
 
     def api_status(self, _body):
         e = self.engine
         if e is None:
-            return {"engine": False}
+            s = logs.summary()
+            return {"engine": False, "logs": {"new_errors": s["new_errors"], "last": s["last"]},
+                    "problems": logs.problems()}
         from app.plugins import MANAGER
+        s = logs.summary()
         return {"engine": True, "device": e.device_connected, "page": e.page,
-                "obs": bool(e.obs and e.obs.req is not None), "plugins": MANAGER.status()}
+                "obs": bool(e.obs and e.obs.req is not None), "plugins": MANAGER.status(),
+                "logs": {"new_errors": s["new_errors"], "last": s["last"]}, "problems": logs.problems()}
 
     def api_about(self, _body):
         """Dados da seção Sobre e o 'iniciar com o Windows'."""
@@ -200,6 +233,7 @@ class EditorServer:
         try:
             autostart = winutil.autostart_enabled()
         except Exception:
+            log.debug("Couldn't read the autostart setting", exc_info=True)
             autostart = None
         return {"firmware": e.firmware if e else None, "device": bool(e and e.device_connected),
                 "autostart": autostart, "config": str(self.config_path), "log": str(winutil.log_path())}
@@ -210,15 +244,52 @@ class EditorServer:
         return {"autostart": winutil.autostart_enabled()}
 
     def api_open(self, body):
-        """Abre o log ou a pasta do app no Windows (só esses dois)."""
+        """Abre o log, a pasta dos logs ou a pasta do app no Windows (só esses)."""
         import os
         from app import winutil
         what = body.get("what")
-        target = {"log": winutil.log_path(), "folder": self.config_path.parent}.get(what)
+        target = {"log": winutil.log_path(), "logs": logs.log_dir(), "folder": self.config_path.parent}.get(what)
         if target is None:
-            raise ValueError("o que abrir?")
+            raise ValueError(f"what to open? (log, logs or folder, got {what!r})")
+        log.debug("Opening %s: %s", what, target)
         os.startfile(str(target))
         return {"ok": True}
+
+    # -- aba Logs
+    def api_logs(self, query):
+        try:
+            after = int(query.get("after") or 0)
+        except (TypeError, ValueError):
+            after = 0
+        return {"records": logs.records(after), "summary": logs.summary(), "problems": logs.problems(),
+                "files": logs.files_info(),
+                "detail": {"detail": bool(getattr(logs, "_detail", False)),
+                           "areas": sorted(getattr(logs, "_areas", ()) or ()),
+                           "force": bool(getattr(logs, "_force_debug", False))}}
+
+    def api_logs_seen(self, body):
+        upto = body.get("upto")
+        logs.mark_seen(int(upto) if isinstance(upto, (int, float)) and not isinstance(upto, bool) else None)
+        return {"ok": True}
+
+    def api_logs_diagnostics(self, _body):
+        """Pacote para pedir ajuda: logs, config sem as senhas, versões, plugins e o aparelho."""
+        from app import configio
+        from app.plugins import MANAGER
+        try:
+            text = configio.without_secrets(self.config_path.read_text(encoding="utf-8"), MANAGER.secret_paths())
+        except OSError as e:
+            log.warning("Diagnostics: couldn't read the config: %s", e)
+            text = None
+        e = self.engine
+        extra = {"plugins": [{"id": p.id, "version": p.manifest.get("version"), "running": p.running,
+                              "builtin": p.builtin} for p in MANAGER.plugins.values()],
+                 "device": e.device_info() if e is not None else {"connected": False},
+                 "page": e.page if e is not None else None}
+        data = logs.diagnostics_zip(text, extra=extra)
+        name = f"deck-diagnostics-{time.strftime('%Y%m%d-%H%M')}.zip"
+        log.info("Diagnostics package created: %s (%d KB)", name, len(data) // 1024)
+        return {"name": name, "data": base64.b64encode(data).decode()}
 
     # -- plugins de terceiros: inspecionar o .zip, instalar, remover
     def _plugin_zip(self, body) -> tuple[Path, dict]:
@@ -398,7 +469,7 @@ def _sample_getter():
         for v in values.describe() + MANAGER.value_schemas():
             samples[v["id"]] = v.get("sample")
     except Exception:
-        pass
+        log.debug("Couldn't read the sample values", exc_info=True)
 
     def get(name):
         v = values.VALUES.get(name)
@@ -434,6 +505,9 @@ ROUTES = {
     ("POST", "/api/preview"): "api_preview",
     ("GET", "/api/schema"): "api_schema",
     ("GET", "/api/status"): "api_status",
+    ("GET", "/api/logs"): "api_logs",
+    ("POST", "/api/logs/seen"): "api_logs_seen",
+    ("POST", "/api/logs/diagnostics"): "api_logs_diagnostics",
     ("GET", "/api/obs"): "api_obs",
     ("GET", "/api/about"): "api_about",
     ("POST", "/api/autostart"): "api_autostart",
@@ -457,9 +531,14 @@ ROUTES = {
 }
 
 
+_token_warned = [0.0]        # quando avisou do token antigo (uma aba velha pergunta a cada segundo)
+
+
 def _make_handler(server: EditorServer):
     class Handler(BaseHTTPRequestHandler):
-        def log_message(self, *args):  # silencioso
+        status = 0
+
+        def log_message(self, *args):  # silencioso (cada pedido já vai para o log em _handle)
             pass
 
         def _host_ok(self) -> bool:
@@ -467,6 +546,7 @@ def _make_handler(server: EditorServer):
             return host in (f"127.0.0.1:{server.port}", f"localhost:{server.port}")
 
         def _send(self, code: int, body: bytes, ctype: str) -> None:
+            self.status = code
             self.send_response(code)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
@@ -479,12 +559,22 @@ def _make_handler(server: EditorServer):
             self._send(code, json.dumps(obj, ensure_ascii=False).encode(), "application/json; charset=utf-8")
 
         def _handle(self, method: str) -> None:
-            if not self._host_ok():
-                return self._send(403, b"host", "text/plain")
+            t0 = time.perf_counter()
             path = self.path.split("?", 1)[0]
+            try:
+                self._route(method, path)
+            finally:
+                log.debug("%s %s %s in %d ms", method, path, self.status or "-", round((time.perf_counter() - t0) * 1000))
+
+        def _route(self, method: str, path: str) -> None:
+            if not self._host_ok():
+                log.warning("Request refused: unexpected Host header %r", self.headers.get("Host"))
+                return self._send(403, b"host", "text/plain")
             if path.startswith("/api/"):
                 if not secrets.compare_digest(self.headers.get("X-Token", ""), server.token):
-                    print("[editor] pedido recusado: token antigo (aba aberta antes de o app reiniciar?)")
+                    if time.monotonic() - _token_warned[0] > 60:
+                        _token_warned[0] = time.monotonic()
+                        log.warning("Request refused: old token (tab opened before the app restarted?)")
                     return self._json(403, {"error": "token inválido", "code": "token"})
                 name = ROUTES.get((method, path))
                 if not name:
@@ -494,10 +584,19 @@ def _make_handler(server: EditorServer):
                     n = int(self.headers.get("Content-Length") or 0)
                     if n > MAX_BODY:
                         return self._json(413, {"error": "corpo grande demais"})
-                    body = json.loads(self.rfile.read(n) or b"{}")
+                    try:
+                        body = json.loads(self.rfile.read(n) or b"{}")
+                    except ValueError as e:
+                        log.warning("%s %s: invalid JSON body: %s", method, path, e)
+                        return self._json(400, {"error": f"JSON: {e}"})
+                else:
+                    # GET: os parâmetros da URL (?after=12) chegam como o "body"
+                    query = self.path.split("?", 1)[1] if "?" in self.path else ""
+                    body = {k: v[-1] for k, v in urllib.parse.parse_qs(query).items()}
                 try:
                     return self._json(200, getattr(server, name)(body))
                 except Exception as e:
+                    log.error("%s %s failed: %s", method, path, e, exc_info=True, extra={"ctx": {"route": name}})
                     return self._json(500, {"error": f"{type(e).__name__}: {e}"})
             if method != "GET":
                 return self._send(405, b"", "text/plain")

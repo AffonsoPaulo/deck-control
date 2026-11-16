@@ -14,6 +14,7 @@ import threading
 import time
 from typing import TYPE_CHECKING
 
+from app import logs
 from app.actions import Context
 from app.i18n import tr
 
@@ -21,6 +22,25 @@ if TYPE_CHECKING:
     from app.engine import Engine
 
 logging.getLogger("obsws_python").setLevel(logging.CRITICAL)
+log = logs.get("plugins.obs")
+PROBLEM = "plugin.obs.connect"
+RETRY = 5
+
+
+def why_not(e: Exception) -> tuple[str, str]:
+    """(texto do problema, motivo curto em inglês para o log) de uma falha ao conectar."""
+    text = f"{type(e).__name__}: {e}".lower()
+    if isinstance(e, ConnectionRefusedError) or "refused" in text or "10061" in text:
+        return ("OBS can't connect at {host}: OBS is closed or its WebSocket server is off. Retrying every 5 s.",
+                "connection refused (OBS closed or WebSocket off)")
+    if "no password provided" in text:
+        return ("OBS can't connect at {host}: OBS asks for a password and none is set. Retrying every 5 s.",
+                "OBS asks for a password, none is set")
+    if "failed to identify" in text or "connectionclosed" in text or "4009" in text or "authentication" in text:
+        return ("OBS can't connect at {host}: wrong password. Retrying every 5 s.", "wrong password")
+    if isinstance(e, TimeoutError) or "timeout" in text or "timed out" in text:
+        return ("OBS can't connect at {host}: OBS didn't answer in time. Retrying every 5 s.", "timeout")
+    return ("OBS can't connect at {host}: {reason}. Retrying every 5 s.", f"{type(e).__name__}: {e}")
 
 
 class OBS:
@@ -36,6 +56,7 @@ class OBS:
         self._item_ids: dict[tuple[str, str], int] = {}
         self._wake = threading.Event()
         self._last_error = None
+        self._attempts = 0
         self._thread = threading.Thread(target=self._loop, daemon=True, name="obs")
 
     def start(self) -> None:
@@ -45,6 +66,7 @@ class OBS:
         self._stop.set()
         self._wake.set()
         self._disconnect()
+        logs.resolve(PROBLEM)
 
     def update_config(self, cfg: dict) -> None:
         """Chamado quando a seção 'obs:' muda no config: reconecta com os dados novos."""
@@ -52,6 +74,8 @@ class OBS:
             return
         self.cfg = cfg
         self._last_error = None
+        self._attempts = 0
+        log.info("OBS settings changed; reconnecting")
         self._disconnect()
         self._wake.set()
 
@@ -74,7 +98,16 @@ class OBS:
         with self._lock:
             self.req, self.ev = req, ev
             self._item_ids.clear()
-        print("[obs] conectado")
+        try:
+            v = self.call("GetVersion")
+            version = f"OBS {v.get('obsVersion', '?')}, WebSocket {v.get('obsWebSocketVersion', '?')}"
+        except Exception:
+            log.debug("GetVersion failed right after connecting", exc_info=True)
+            version = "version unknown"
+        log.info("OBS connected at %s (%s)%s", self._host(), version,
+                 f" after {self._attempts} failed attempts" if self._attempts else "")
+        self._attempts = 0
+        logs.resolve(PROBLEM)
         self.engine.set_state("obs.connected", True)
         self.refresh()
 
@@ -86,10 +119,13 @@ class OBS:
                 if c is not None:
                     c.disconnect()
             except Exception:
-                pass
+                log.debug("Closing the OBS connection failed (already closed?)", exc_info=True)
         if req is not None:
-            print("[obs] desconectado")
+            log.info("OBS disconnected")
         self.engine.set_state("obs.connected", False)
+
+    def _host(self) -> str:
+        return f"{self.cfg.get('host', 'localhost')}:{self.cfg.get('port', 4455)}"
 
     def _sleep(self, seconds: float) -> None:
         self._wake.wait(seconds)
@@ -102,17 +138,26 @@ class OBS:
                     self._connect()
                     self._last_error = None
                 except Exception as e:
+                    if self._stop.is_set():
+                        break
+                    self._attempts += 1
+                    text, reason = why_not(e)
                     msg = f"{type(e).__name__}: {e}".strip()
                     if msg != self._last_error:  # só repete o aviso quando o erro muda
-                        host = f"{self.cfg.get('host', 'localhost')}:{self.cfg.get('port', 4455)}"
-                        print(f"[obs] não conectou em {host} ({msg}); tentando a cada 5 s")
+                        log.warning("OBS didn't connect at %s: %s (attempt %d); retrying every %d s",
+                                    self._host(), reason, self._attempts, RETRY,
+                                    extra={"ctx": {"host": self._host(), "error": msg}})
                         self._last_error = msg
-                    self._sleep(5)
+                    else:
+                        log.debug("OBS didn't connect at %s: %s (attempt %d)", self._host(), reason, self._attempts)
+                    logs.problem(PROBLEM, text, "integrations:obs", host=self._host(), reason=reason)
+                    self._sleep(RETRY)
                     continue
             # checagem de vida
             try:
                 self.call("GetVersion")
             except Exception:
+                log.warning("OBS stopped answering; reconnecting", exc_info=True)
                 self._disconnect()
             self._sleep(3)
 
@@ -136,26 +181,27 @@ class OBS:
                     self._since("record" if request == "GetRecordStatus" else "stream", bool(r.get("outputActive")), r.get("outputDuration"))
                 if request == "GetRecordStatus":
                     set_("obs.record_paused", bool(r.get("outputPaused")))
-            except Exception:
+            except Exception as e:
+                log.debug("%s failed: %s", request, e)
                 set_(state, False)  # ex.: replay buffer desativado nas configurações
         self._publish_times()
         try:
             self._set_scene(self.call("GetCurrentProgramScene").get("currentProgramSceneName"))
         except Exception:
-            pass
+            log.debug("Couldn't read the current scene", exc_info=True)
         for name in self.engine.states_with_prefix("obs.muted:"):
             try:
                 set_(name, bool(self.call("GetInputMute", {"inputName": name.split(":", 1)[1]}).get("inputMuted")))
-            except Exception:
-                pass
+            except Exception as e:      # a entrada pode não existir mais no OBS
+                log.debug("Couldn't read %s: %s", name, e)
         for name in self.engine.states_with_prefix("obs.visible:"):
             scene, _, source = name.split(":", 1)[1].partition("/")
             try:
                 item = self._item_id(scene, source)
                 r = self.call("GetSceneItemEnabled", {"sceneName": scene, "sceneItemId": item})
                 set_(name, bool(r.get("sceneItemEnabled")))
-            except Exception:
-                pass
+            except Exception as e:      # a cena ou a fonte pode não existir mais
+                log.debug("Couldn't read %s: %s", name, e)
 
     # tempo de live / gravação: valores calculados na hora em que a tecla é desenhada
     def _since(self, kind: str, active: bool, duration_ms=None) -> None:
@@ -332,7 +378,6 @@ def setup(api):
         request: nome (ex.: "SetCurrentSceneTransition"), data: {...}.
         Lista: https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md"""
         r = _obs(ctx).call(spec["request"], spec.get("data"))
-        if ctx.engine.debug:
-            print(f"[obs] {spec['request']} -> {r}")
+        log.debug("%s -> %s", spec["request"], r)
 
     return _Plugin(api)

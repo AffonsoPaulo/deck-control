@@ -14,6 +14,7 @@
   <button class="rail-btn" data-section="keys" aria-current="page"><i data-lu="layout-grid"></i><span data-i18n>Keys</span></button>
   <button class="rail-btn" data-section="light" aria-current="false"><i data-lu="lightbulb"></i><span data-i18n>Light</span></button>
   <button class="rail-btn" data-section="auto" aria-current="false"><i data-lu="zap"></i><span data-i18n>Automations</span></button>
+  <button class="rail-btn" data-section="logs" aria-current="false" hidden><i data-lu="scroll-text"></i><span data-i18n>Logs</span></button>
   <button class="rail-btn" data-section="settings" aria-current="false"><i data-lu="settings"></i><span data-i18n>Settings##3</span></button>
 </nav>
 <div class="app">
@@ -62,6 +63,7 @@
 <main class="light-view" id="lightView" hidden></main>
 <main class="settings-view" id="settingsView" hidden></main>
 <main class="auto-view" id="autoView" hidden></main>
+<main class="logs-view" id="logsView" hidden></main>
 </div>
 
 <div class="sheet" id="glyphSheet" hidden>
@@ -99,5 +101,6 @@
 <script src="app.js"></script>
 <script src="light.js"></script>
 <script src="info.js"></script>
+<script src="logs.js"></script>
 </body>
 </html>

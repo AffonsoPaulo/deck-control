@@ -12,13 +12,16 @@ para trocar o ícone automaticamente (ex.: OBS gravando -> ícone ativo).
 """
 from __future__ import annotations
 
-import traceback
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable
+from app import logs
 from app.i18n import tr
 
 if TYPE_CHECKING:
     from app.engine import Engine
+
+log = logs.get("actions")
 
 
 @dataclass
@@ -26,6 +29,8 @@ class Context:
     engine: "Engine"
     page: str
     key: int
+    moment: str = "press"          # press | double | hold | release | repeat | automation | test
+    label: str | None = None       # nome da tecla (texto do ícone) ou da automação, para o log
 
     @property
     def key_id(self) -> str:
@@ -107,23 +112,44 @@ def state_of(spec, key_id: str) -> str | None:
     return d.state(spec, key_id) if d and d.state else None
 
 
+def _where(ctx: Context) -> str:
+    """'key 3 (page obs)' ou "automation 'Live'" para as mensagens do log."""
+    if not ctx.key:
+        return f"automation '{ctx.label}'" if ctx.label else "automation"
+    return f"key {ctx.key} (page {ctx.page})"
+
+
+def _info(spec: dict, ctx: Context) -> dict:
+    return {"action": spec.get("type"), "label": ctx.label, "key": ctx.key or None, "page": ctx.page,
+            "moment": ctx.moment, "params": {k: v for k, v in spec.items() if k != "type"}}
+
+
 def run(spec, ctx: Context) -> None:
     spec = normalize(spec)
     if not spec:
         return
     d = REGISTRY.get(spec["type"])
     if d is None:
-        print(f"[ação {spec.get('type')} em {ctx.key_id}] o plugin desta ação não está instalado")
+        log.warning("%s on %s: the plugin of this action isn't installed", spec.get("type"), _where(ctx),
+                    extra={"ctx": _info(spec, ctx)})
         return
+    t0 = time.perf_counter()
     try:
         if d.plugin:
             from app.plugins import run_guard
             run_guard(d)
         d.fn(spec, ctx)
     except Exception as e:  # uma ação com erro não derruba o app
-        print(f"[ação {d.name} em {ctx.key_id}] erro: {e}")
-        if ctx.engine.debug:
-            traceback.print_exc()
+        info = _info(spec, ctx)
+        info["ms"] = round((time.perf_counter() - t0) * 1000)
+        log.error("%s failed on %s: %s", d.name, _where(ctx), e, exc_info=True, extra={"ctx": info})
+        try:
+            ctx.engine.action_failed(ctx.key, ctx.page)
+        except Exception:
+            log.debug("Couldn't show the error mark on %s", _where(ctx), exc_info=True)
+        return
+    log.debug("%s ran on %s (%s) in %d ms", d.name, _where(ctx), ctx.moment,
+              round((time.perf_counter() - t0) * 1000))
 
 
 # registra as ações do app e as dos plugins (OBS, Discord e os de terceiros)
