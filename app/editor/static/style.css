@@ -1167,3 +1167,47 @@ html[lang="en"] .key.foot-replace::after { content: "replaces"; }
 .auto-flow { max-width: 640px; }
 .insp-static { display: block; font-size: 18px; font-weight: 700; color: var(--ink); padding: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .auto-edit input[type=number], .info-look .row input[type=number] { width: 90px; flex: none; }
+
+/* ---------------------------------------------------------------- movimento (motion.js)
+   Só o que responde a uma ação: abrir, fechar, entrar, sair. Curto: 140–260 ms. */
+.keys, .inspector, .expand-scroll, .auto-view, .lib-list { position: relative; }
+.m-ghost { display: contents; }
+
+@keyframes m-fade-in { from { opacity: 0; } }
+@keyframes m-fade-out { to { opacity: 0; } }
+@keyframes m-card-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+@keyframes m-card-out { to { opacity: 0; transform: translateY(4px) scale(.98); } }
+@keyframes m-menu-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } }
+@keyframes m-float-in { from { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes m-float-out { to { opacity: 0; transform: translate(-50%, 8px); } }
+@keyframes m-spin { to { transform: rotate(360deg); } }
+@keyframes m-check { 0% { opacity: 0; transform: scale(.4); } 60% { opacity: 1; transform: scale(1.18); } 100% { transform: none; } }
+/* o contorno da tecla escolhida fecha sobre ela (mesmas 4 sombras do estado selecionado) */
+@keyframes m-ring {
+  from { box-shadow: 0 0 0 1px #393b41, 0 0 0 9px rgba(245,165,36,0), 0 0 34px 8px rgba(245,165,36,0), 0 3px 0 3px #0a0b0c; }
+}
+
+.sheet:not([hidden]) { animation: m-fade-in .16s ease-out; }
+.sheet:not([hidden]) > .sheet-card { animation: m-card-in .2s cubic-bezier(.2,.8,.2,1); }
+.sheet.m-leave { animation: m-fade-out .14s cubic-bezier(.4,0,1,1) forwards; }
+.sheet.m-leave > .sheet-card { animation: m-card-out .14s cubic-bezier(.4,0,1,1) forwards; }
+.vp-back { animation: m-fade-in .16s ease-out; }
+.vp-back > .vp { animation: m-card-in .2s cubic-bezier(.2,.8,.2,1); }
+.vp-back.m-leave { animation: m-fade-out .14s cubic-bezier(.4,0,1,1) forwards; }
+.vp-back.m-leave > .vp { animation: m-card-out .14s cubic-bezier(.4,0,1,1) forwards; }
+.menu { animation: m-menu-in .14s cubic-bezier(.2,.8,.2,1); transform-origin: top left; }
+.toast:not([hidden]) { animation: m-float-in .2s cubic-bezier(.2,.8,.2,1); }
+.toast.m-leave { animation: m-float-out .16s cubic-bezier(.4,0,1,1) forwards; }
+.join-bar, .foot-tip { animation: m-float-in .18s cubic-bezier(.2,.8,.2,1); }
+
+.key.m-sel { animation: m-ring .26s cubic-bezier(.2,.8,.2,1); }
+.save-state.pending .ic, .save-state.saving .ic { animation: m-spin .9s linear infinite; }
+.save-state.saved .ic { animation: m-check .32s cubic-bezier(.2,.8,.2,1); }
+.tabs button { transition: color .15s ease-out; }
+.lib-head, .set-nav-item, .auto-item, .ftile, .page-tab, .segmented button, .btn, .icon-btn { transition: background-color .12s ease-out, color .12s ease-out, box-shadow .12s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet:not([hidden]), .sheet:not([hidden]) > .sheet-card, .vp-back, .vp-back > .vp, .menu, .toast:not([hidden]),
+  .join-bar, .foot-tip, .key.m-sel, .save-state .ic { animation: none !important; }
+  .tabs button, .lib-head, .set-nav-item, .auto-item, .ftile, .page-tab, .segmented button, .btn, .icon-btn { transition: none; }
+}

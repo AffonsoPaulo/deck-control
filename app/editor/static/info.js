@@ -335,7 +335,7 @@ function rulesSection(spec) {
       h("button", { class: "btn small", style: { alignSelf: "flex-start" }, onclick: () => { S.ruleOpen = null; renderInspector(); } }, t("Done")))
       : h("div", { class: "rule-look" }, mini, h("span", { class: "grow" }, h("b", {}, t("Appearance")), h("small", {}, summary)),
         h("button", { class: "icon-btn small", "aria-label": t("Edit appearance"), onclick: () => { S.ruleOpen = `${S.page}:${S.key}:${i}`; renderInspector(); } }, ic("pencil")));
-    sec.append(h("div", { class: "cblk rule", style: { "--cat": "#e5701a" } },
+    sec.append(h("div", { class: "cblk rule", "data-m": M.id(r), style: { "--cat": "#e5701a" } },
       h("div", { class: "cbar" }, h("span", { class: "blk-icon" }, ic("split")),
         h("span", { class: "blk-words" }, h("span", { class: "chiplabel" }, t("If")), inlCond(r.if, () => changed())),
         h("button", { class: "icon-btn small", "aria-label": t("Remove rule"), onclick: () => { rules.splice(i, 1); if (!rules.length) delete spec.rules; changed(); renderInspector(); } }, ic("trash-2"))),
@@ -728,7 +728,7 @@ function renderAutomationsView() {
     ...list.map((a, i) => {
       const tr = TRIGGERS().find((x) => x[0] === (a.when || {}).type) || TRIGGERS()[0];
       const steps = toList(a.do);
-      return h("div", { class: "auto-item" + (i === S.autoSel ? " sel" : "") },
+      return h("div", { class: "auto-item" + (i === S.autoSel ? " sel" : ""), "data-m": M.id(a) },
         h("button", { class: "auto-pick", onclick: () => { S.autoSel = i; renderAutomationsView(); } },
           h("span", { class: "auto-ic" }, ic(tr[1])),
           h("span", { class: "grow" }, h("b", {}, a.name || autoSummary(a)),
@@ -754,7 +754,7 @@ function renderAutomationsView() {
           changed({ keys: false }); renderAutomationsView(); } }, ic(icn), h("span", {}, label), h("small", {}, desc)))),
       triggerFields(a)));
     // passos: a mesma lista de blocos das teclas
-    S.autoModel = { list: toList(a.do), auto: a };
+    if (!S.autoModel || S.autoModel.auto !== a) S.autoModel = { list: toList(a.do), auto: a };
     main.append(h("div", { class: "lsec" }, h("div", { class: "row", style: { alignItems: "center" } }, h("span", { class: "lbl grow" }, t("Do")),
       h("button", { class: "btn small", onclick: () => pickAndInsert(S.autoModel.list, S.autoModel.list.length) }, ic("plus"), t("Step"))),
       h("div", { class: "logic auto-flow" }, renderFlow(S.autoModel.list, { top: true })),

@@ -117,12 +117,17 @@ let toastTimer;
 function toast(msg, { bad = false, undo = false, action = null, sticky = false } = {}) {
   const el = $("#toast");
   const btns = [action, undo ? { label: t("Undo"), fn: () => travel(-1) } : null].filter(Boolean);
-  el.replaceChildren(h("span", {}, msg), ...btns.map((b) => h("button", { onclick: () => { el.hidden = true; b.fn(); } }, b.label)));
+  el.replaceChildren(h("span", {}, msg), ...btns.map((b) => h("button", { onclick: () => { hideToast(); b.fn(); } }, b.label)));
   action = btns[0] || null;
   el.className = "toast" + (bad ? " bad" : "");
   el.hidden = false;
   clearTimeout(toastTimer);
-  if (!sticky) toastTimer = setTimeout(() => (el.hidden = true), bad || action ? 6000 : 2600);
+  if (!sticky) toastTimer = setTimeout(hideToast, bad || action ? 6000 : 2600);
+}
+function hideToast() {
+  const el = $("#toast");
+  clearTimeout(toastTimer);
+  if (!el.hidden) M.leave(el, () => { el.hidden = true; }, 160);
 }
 
 function normalizeAction(spec) {   // mesmas regras de app/actions.normalize
@@ -1259,7 +1264,7 @@ function removeBtn(list, i) {
 function block(list, i) {
   const step = list[i];
   if (step.type === "if" || step.type === "toggle" || step.type === "multi") return cBlock(list, i);
-  const el = h("div", { class: "blk" + (groupOf(step.type) === GROUPS["Pages and logic"] ? " neutral" : ""), style: { "--cat": groupOf(step.type).color } });
+  const el = h("div", { class: "blk" + (groupOf(step.type) === GROUPS["Pages and logic"] ? " neutral" : ""), "data-m": M.id(step), style: { "--cat": groupOf(step.type).color } });
   const ed = () => commitModel();
   const d = actionDef(step.type);
   const extras = d && d.fields !== null ? (d.fields || []).filter((f) => !(SENTENCE_FIELDS[step.type] || []).includes(f.name) && f.kind !== "action" && f.kind !== "actions") : null;
@@ -1278,7 +1283,7 @@ function block(list, i) {
   const moreBtn = more ? h("button", { class: "blk-btn", title: t("More options"), "aria-label": t("More options"), "aria-expanded": openMore.has(step) ? "true" : "false",
     onclick: (e) => {
       more.hidden = !more.hidden;
-      if (more.hidden) openMore.delete(step); else openMore.add(step);
+      if (more.hidden) openMore.delete(step); else { openMore.add(step); M.fadeIn([more], { y: -4, dur: 160 }); }
       e.currentTarget.setAttribute("aria-expanded", more.hidden ? "false" : "true");
     } }, ic("ellipsis")) : null;
   el.append(h("div", { class: "blk-line" },
@@ -1292,7 +1297,7 @@ function block(list, i) {
 
 function cBlock(list, i) {
   const s = list[i];
-  const el = h("div", { class: "cblk", style: { "--cat": groupOf(s.type).color } });
+  const el = h("div", { class: "cblk", "data-m": M.id(s), style: { "--cat": groupOf(s.type).color } });
   const ed = () => commitModel();
   const tools = h("span", { class: "blk-tools" }, grip(list, i, el), removeBtn(list, i));
   const body = (l) => h("div", { class: "cbody" }, renderFlow(l));
