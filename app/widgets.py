@@ -42,8 +42,20 @@ def categories() -> list[dict]:
 
 
 def builtin() -> dict:
-    hour = {"text": "{clock.hour{opt.format}}", "style": "info", "text_size": 46, "bg": BG, "edge": ":"}
-    minute = {"text": "{clock.minute}", "style": "info", "text_size": 46, "bg": BG}
+    # cada número numa tecla, com a legenda embaixo (opção) e a virada quando muda (opção "animate")
+    def clock_part(text: str, label: str) -> dict:
+        return {
+            "text": text,
+            "sub": {"$opt": "labels", "true": label},
+            "style": "info",
+            "text_size": 46,
+            "bg": BG,
+            "transition": {"$opt": "animate", "true": "flip"},
+        }
+
+    hour = clock_part("{clock.hour{opt.format}}", tr("hours"))
+    minute = clock_part("{clock.minute}", tr("minutes"))
+    second = clock_part("{clock.second}", tr("seconds"))
     day = {"text": "{clock.weekday_short}", "sub": "{clock.day} {clock.month}", "bg": BG}
     clock_fmt = {
         "name": "format",
@@ -52,6 +64,18 @@ def builtin() -> dict:
         "default": "",
         "choices": [["", tr("24 h")], ["12", tr("12 h")]],
     }
+    clock_opts = [
+        clock_fmt,
+        {"name": "labels", "kind": "bool", "label": tr("Labels below"), "default": True},
+        {
+            "name": "third",
+            "kind": "choice",
+            "label": tr("Third key (1×3)"),
+            "default": "date",
+            "choices": [["date", tr("Date")], ["seconds", tr("Seconds")]],
+        },
+        {"name": "animate", "kind": "bool", "label": tr("Animate the change"), "default": True},
+    ]
     timer_cell = {
         "lucide": "hourglass",
         "text": "{timer.$id}",
@@ -75,7 +99,7 @@ def builtin() -> dict:
             "label": tr("Clock"),
             "icon": "clock",
             "category": "time",
-            "options": [clock_fmt],
+            "options": clock_opts,
             "sizes": {
                 "1x1": [
                     [
@@ -83,11 +107,12 @@ def builtin() -> dict:
                             "text": "{clock.time{opt.format}}",
                             "sub": "{clock.weekday_short}, {clock.day} {clock.month}",
                             "bg": BG,
+                            "transition": {"$opt": "animate", "true": "flip"},
                         }
                     ]
                 ],
                 "1x2": [[hour, minute]],
-                "1x3": [[hour, minute, day]],
+                "1x3": [[hour, minute, {"$opt": "third", "date": day, "seconds": second}]],
                 "2x2": [
                     [hour, minute],
                     [
@@ -199,7 +224,29 @@ def check(name: str, d) -> str | None:
             )
         if o["kind"] == "choice" and not isinstance(o.get("choices"), list):
             return tr("the widget '{name}': the option '{option}' needs 'choices'", name=name, option=o["name"])
+    names = {o["name"] for o in opts}
+    for ref in _variant_refs(d.get("sizes")):
+        if ref not in names:
+            return tr(
+                "the widget '{name}': '$opt' points to the option '{option}', which doesn't exist",
+                name=name,
+                option=ref,
+            )
     return None
+
+
+def _variant_refs(obj) -> list[str]:
+    """As opções citadas em variantes ({"$opt": "nome", ...}), em qualquer nível do modelo."""
+    out: list[str] = []
+    if isinstance(obj, dict):
+        if "$opt" in obj:
+            out.append(str(obj["$opt"]))
+        for v in obj.values():
+            out += _variant_refs(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            out += _variant_refs(v)
+    return out
 
 
 def normalize(d: dict, plugin: str | None = None, color: str | None = None) -> dict:
@@ -245,8 +292,17 @@ def option_values(d: dict, chosen) -> dict:
     return vals
 
 
+def _branch(value) -> str:
+    """Nome do ramo de uma variante para o valor da opção: true/false para sim/não, o próprio texto nos outros."""
+    return ("true" if value else "false") if isinstance(value, bool) else str(value)
+
+
 def _fill(obj, opts: dict, kid: str):
-    """Troca {opt.x} e $id em todos os textos (o resto fica como está). Um texto que é só {opt.x} vira o valor cru."""
+    """Troca {opt.x} e $id em todos os textos (o resto fica como está). Um texto que é só {opt.x} vira o valor cru.
+    Variante por opção: {"$opt": "nome", "<valor>": ...} vira o ramo do valor escolhido (sem ramo: some)."""
+    if isinstance(obj, dict) and "$opt" in obj:
+        picked = obj.get(_branch(opts.get(str(obj["$opt"]))))
+        return None if picked is None else _fill(picked, opts, kid)
     if isinstance(obj, str):
         whole = OPT.fullmatch(obj)
         if whole and whole.group(1) in opts and not isinstance(opts[whole.group(1)], str):
@@ -256,7 +312,8 @@ def _fill(obj, opts: dict, kid: str):
     if isinstance(obj, list):
         return [_fill(x, opts, kid) for x in obj]
     if isinstance(obj, dict):
-        return {k: _fill(v, opts, kid) for k, v in obj.items() if v is not None}
+        filled = {k: _fill(v, opts, kid) for k, v in obj.items() if v is not None}
+        return {k: v for k, v in filled.items() if v is not None}
     return obj
 
 

@@ -253,5 +253,13 @@
  "{where}: unknown action type '{type}'. Known: {known}": "{where}: tipo de ação desconhecido '{type}'. Conhecidos: {known}",
  "{where}: unknown fields {fields}": "{where}: campos desconhecidos {fields}",
  "{where}: unknown moment '{moment}' (use press, hold or release)": "{where}: momento desconhecido '{moment}' (use press, hold ou release)",
- "{where}: unknown operator '{op}' (use {ops})": "{where}: operador desconhecido '{op}' (use {ops})"
+ "{where}: unknown operator '{op}' (use {ops})": "{where}: operador desconhecido '{op}' (use {ops})",
+ "hours": "horas",
+ "minutes": "minutos",
+ "seconds": "segundos",
+ "Labels below": "Legenda embaixo",
+ "Third key (1×3)": "Terceira tecla (1×3)",
+ "Seconds": "Segundos",
+ "Animate the change": "Animar a virada",
+ "the widget '{name}': '$opt' points to the option '{option}', which doesn't exist": "o widget '{name}': '$opt' aponta para a opção '{option}', que não existe"
 }

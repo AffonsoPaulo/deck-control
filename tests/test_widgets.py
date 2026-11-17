@@ -120,3 +120,59 @@ def test_expand_missing_widget_becomes_a_placeholder(k):
 def test_same_ignores_key_order():
     assert widgets.same({"a": 1, "b": [1, 2]}, {"b": [1, 2], "a": 1})
     assert not widgets.same({"a": 1}, {"a": 2})
+
+
+# ---------------------------------------------------------------------------- variantes e o relógio novo
+
+
+def test_variant_picks_the_branch_of_the_option():
+    d = widgets.normalize(
+        {
+            "label": "V",
+            "options": [
+                {"name": "on", "kind": "bool", "default": True},
+                {"name": "pick", "kind": "choice", "choices": [], "default": "a"},
+            ],
+            "sizes": {
+                "1x1": [
+                    [
+                        {
+                            "text": "x",
+                            "sub": {"$opt": "on", "true": "ligado"},
+                            "fg": {"$opt": "pick", "a": "#fff", "b": "#000"},
+                        }
+                    ]
+                ]
+            },
+        }
+    )
+    defs = {"v": d}
+    cell = widgets.expand({"widget": "v", "size": "1x1"}, defs)["cells"][0]
+    assert cell["sub"] == "ligado" and cell["fg"] == "#fff"
+    cell = widgets.expand({"widget": "v", "size": "1x1", "options": {"on": False, "pick": "b"}}, defs)["cells"][0]
+    assert "sub" not in cell  # sem ramo para false: some
+    assert cell["fg"] == "#000"
+
+
+def test_variant_must_point_to_an_existing_option():
+    bad = {"sizes": {"1x1": [[{"text": "x", "sub": {"$opt": "nope", "true": "y"}}]]}, "options": []}
+    assert widgets.check("w", bad) == "the widget 'w': '$opt' points to the option 'nope', which doesn't exist"
+
+
+CLOCK_DEFS = {"app.clock": widgets.normalize(widgets.builtin()["app.clock"])}
+
+
+def test_clock_has_no_colon_and_labels_by_default():
+    cells = widgets.expand({"widget": "app.clock", "size": "1x2"}, CLOCK_DEFS)["cells"]
+    assert all("edge" not in c for c in cells)
+    assert [c["sub"] for c in cells] == ["hours", "minutes"]
+    assert all(c["transition"] == "flip" for c in cells)
+
+
+def test_clock_options_labels_off_seconds_and_no_animation():
+    k = {"widget": "app.clock", "size": "1x3", "options": {"labels": False, "third": "seconds", "animate": False}}
+    cells = widgets.expand(k, CLOCK_DEFS)["cells"]
+    assert [c["text"] for c in cells] == ["{clock.hour}", "{clock.minute}", "{clock.second}"]
+    assert all("sub" not in c and "transition" not in c for c in cells)
+    date = widgets.expand({"widget": "app.clock", "size": "1x3"}, CLOCK_DEFS)["cells"][2]
+    assert date["text"] == "{clock.weekday_short}"  # a data continua o padrão do 1x3

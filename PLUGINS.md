@@ -144,6 +144,21 @@ Um plugin pode publicar **valores** (informações vivas) que qualquer tecla, re
     `["number"]`). Nos textos do modelo, `{opt.<nome>}` vira o valor escolhido antes de os `{valores}`
     serem lidos: a opção pode trazer valores (como no exemplo) ou montar o nome de um
     (`{clock.hour{opt.format}}` vira `{clock.hour12}`).
+    Para uma parte que muda conforme a opção, use uma variante: `{"$opt": "<nome>", "<valor>": ...}`
+    vira o ramo do valor escolhido (`true`/`false` para `bool`); sem ramo para o valor, a parte some.
+    Ex.: `"sub": {"$opt": "labels", "true": "horas"}` mostra a legenda só com a opção ligada, e uma
+    célula inteira pode ser `{"$opt": "third", "date": {...}, "seconds": {...}}`.
+  - **Animações.** Duas formas, que valem para widgets de plugin, da pessoa e do app:
+    - `"transition": "flip"` numa célula: quando o texto muda (um número, por exemplo), o velho desce e o
+      novo entra por cima, em 300 ms. Precisa de fundo liso (com degradê ou imagem de fundo, desenha direto).
+      Para a pessoa poder desligar: uma opção `bool` e `"transition": {"$opt": "animate", "true": "flip"}`.
+      Nome que o app não conhece desenha direto (mais transições virão).
+    - **A animação do próprio plugin:** um GIF com `"loop": false` toca uma vez e para no último quadro. Ex.:
+      o clima muda de ensolarado para nublado; o plugin publica o valor `clima.anim` com o caminho de
+      `sol-para-nuvem.gif` e a célula tem `{"image": "{clima.anim}", "loop": false}`. A tecla toca a
+      transição e fica na nuvem. Um redesenho qualquer não recomeça; ícone novo ou voltar à página, sim.
+      Sem `"loop": false`, o GIF repete como sempre. Quem manda os quadros ao Deck é sempre o app (no ritmo
+      e com os limites dele): o plugin não envia imagens direto.
   - `action` / `hold` (opcional): o que a tecla faz ao apertar / segurar, já preenchido quando a pessoa
     coloca o widget (ela pode trocar depois). `$id` vira um id único da tecla.
 
