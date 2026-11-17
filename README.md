@@ -94,7 +94,7 @@ Envio em lote (uma sessão para todas as teclas) funciona; página inteira em ~1
 ## Estrutura
 
 - `d6/` driver do D6 (HID, protocolo CRT, imagens)
-- `app/engine.py` loop principal: teclas, páginas, estados, redesenho só do que mudou
+- `app/engine/` loop principal: teclas, páginas, estados, redesenho só do que mudou (`engine.py` liga as peças)
 - `app/config.py` leitura/validação do YAML
 - `app/icons.py` desenho dos ícones (texto, ícones do Lucide, imagens; o Segoe antigo ainda é aceito)
 - `app/lighting.py` luz do D6: efeitos e reações às teclas no anel de LEDs

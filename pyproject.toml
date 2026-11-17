@@ -86,13 +86,42 @@ files = [
     "app/editor/contract.py",
     "app/editor/api/__init__.py",
     "app/editor/api/context.py",
+    # o engine dividido (Fase 3); leds.py e engine.py ficam fora do estrito: chamam o lighting e as automações,
+    # que ainda não têm tipos
+    "app/engine/__init__.py",
+    "app/engine/core.py",
+    "app/engine/session.py",
+    "app/engine/recorder.py",
+    "app/engine/timers.py",
+    "app/engine/navigation.py",
+    "app/engine/states.py",
+    "app/engine/drawing.py",
+    "app/engine/input.py",
+    "app/engine/leds.py",
+    "app/engine/engine.py",
 ]
 follow_imports = "silent"
 warn_unused_ignores = true
 
 # Código novo (Fase 1 em diante) entra estrito.
 [[tool.mypy.overrides]]
-module = ["app.bootstrap", "app.errors", "app.paths", "app.editor.contract", "app.editor.api", "app.editor.api.context"]
+module = [
+    "app.bootstrap",
+    "app.errors",
+    "app.paths",
+    "app.editor.contract",
+    "app.editor.api",
+    "app.editor.api.context",
+    "app.engine",
+    "app.engine.core",
+    "app.engine.session",
+    "app.engine.recorder",
+    "app.engine.timers",
+    "app.engine.navigation",
+    "app.engine.states",
+    "app.engine.drawing",
+    "app.engine.input",
+]
 # o "strict" do mypy só vale para o projeto inteiro; estas são as partes dele que funcionam por módulo
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

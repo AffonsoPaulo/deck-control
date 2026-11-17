@@ -1,7 +1,8 @@
 """Relógio falso: faz o papel do módulo `time` nos módulos do app que medem tempo.
 
-Os testes trocam o `time` importado em app/engine.py, app/values.py e app/automations.py por um FakeClock
-(nunca o `time` global: pytest e as threads do Python continuam com o relógio de verdade). O tempo só anda
+O Engine recebe o FakeClock pelo parâmetro `clock` (as peças de app/engine/ não leem o `time` direto), e os
+testes trocam o `time` importado em app/values.py e app/automations.py por ele (nunca o `time` global: pytest e
+as threads do Python continuam com o relógio de verdade). O tempo só anda
 quando o teste manda (advance), ou num sleep() de quem está usando o relógio.
 """
 

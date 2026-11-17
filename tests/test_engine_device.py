@@ -14,7 +14,13 @@ from app import logs
 from d6.device import D6, DeviceNotFound
 from tests.fakes import DeckProtocol, FakeDeck
 
-ENGINE_PY = Path(__file__).resolve().parent.parent / "app" / "engine.py"
+ENGINE_DIR = Path(__file__).resolve().parent.parent / "app" / "engine"
+
+
+def _engine_sources() -> dict[str, str]:
+    """Os módulos do engine (app/engine/*.py), pelo nome do arquivo."""
+    return {p.name: p.read_text(encoding="utf-8") for p in sorted(ENGINE_DIR.glob("*.py"))}
+
 
 RECONNECT = """
 language: en
@@ -36,10 +42,10 @@ def _members(cls) -> set[str]:
 
 def test_engine_uses_only_what_the_deck_protocol_has():
     """Tudo o que o engine chama no aparelho está no DeckProtocol (senão o FakeDeck está atrasado)."""
-    used = set(re.findall(r"\bdeck\.([a-z_]+)", ENGINE_PY.read_text(encoding="utf-8")))
-    # lê o app/engine.py: se a conversa com o aparelho mudar de arquivo (Fase 3), isto falha em vez de passar vazio
-    assert {"events", "push", "set_leds", "enable_keys", "close"} <= used, "o uso do aparelho saiu do engine.py?"
-    used.add("open")  # D6().open()
+    used = set(re.findall(r"\bdeck\.([a-z_]+)", "\n".join(_engine_sources().values())))
+    # lê todo o app/engine/: se a conversa com o aparelho sair de lá, isto falha em vez de passar vazio
+    assert {"events", "push", "set_leds", "enable_keys", "close"} <= used, "o uso do aparelho saiu do app/engine/?"
+    used.add("open")  # D6().open(), pelo `device` do Engine
     assert used <= _members(DeckProtocol) | {"settle"}, used - _members(DeckProtocol)
 
 
@@ -54,6 +60,16 @@ def test_real_d6_has_the_protocol_with_the_same_parameters(name):
             continue
         assert p.name in rp, f"D6.{name} não tem o parâmetro {p.name}"
         assert rp[p.name].default == p.default, f"D6.{name}({p.name}) tem outro padrão"
+
+
+def test_engine_reads_time_and_opens_the_deck_only_through_what_it_receives():
+    """O relógio e o D6 entram pelo Engine(clock=..., device=...): nenhuma peça lê o `time` nem cria o D6 direto
+    (senão o relógio falso e o D6 falso dos testes não valeriam para ela)."""
+    sources = _engine_sources()
+    assert "engine.py" in sources and len(sources) > 1
+    for name, src in sources.items():
+        assert not re.search(r"\btime\.[a-z_]+\(", src), f"{name} lê o time direto"
+        assert not re.search(r"\bD6\(", src), f"{name} cria o D6 direto"
 
 
 def test_real_d6_sets_settle():

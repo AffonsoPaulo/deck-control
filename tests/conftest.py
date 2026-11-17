@@ -49,21 +49,22 @@ def make_engine(tmp_path, monkeypatch):
     """Fábrica de Engine de verdade com aparelho falso, relógio falso e nada mexendo no PC (test_engine_*).
 
     make_engine(yaml) grava o config em tmp_path e devolve um EngineRig (tests/fakes/engine.py), ainda sem
-    conectar: rig.connect() conecta e desenha. O relógio falso troca o `time` do engine, dos valores
-    (contagens, relógio das teclas) e das automações antes do Engine nascer.
+    conectar: rig.connect() conecta e desenha. O relógio falso entra no Engine pelo parâmetro `clock` (as peças
+    de app/engine/ não leem o `time` direto) e troca o `time` dos valores (contagens, relógio das teclas) e das
+    automações antes do Engine nascer.
     """
     import textwrap
 
-    from app import actions, automations, engine as engine_mod, keys, values, winutil
+    from app import actions, automations, keys, values, winutil
+    from app.engine import Engine
     from tests.fakes.clock import FakeClock
     from tests.fakes.deck import FakeDeckFactory
     from tests.fakes.engine import EngineRig, InlineExecutor, StubPlugins, spy_run
 
     clock = FakeClock()
-    for mod in (engine_mod, values, automations):
+    for mod in (values, automations):
         monkeypatch.setattr(mod, "time", clock)
-    factory = FakeDeckFactory()
-    monkeypatch.setattr(engine_mod, "D6", factory)  # nunca abre o HID: o app de verdade pode estar usando o D6
+    factory = FakeDeckFactory()  # entra como `device`: nunca abre o HID (o app de verdade pode estar usando o D6)
 
     # teclado do PC: só registra (o engine chama key_down/key_up direto para as combinações seguradas)
     pressed: list[tuple[str, str]] = []
@@ -86,7 +87,7 @@ def make_engine(tmp_path, monkeypatch):
     def make(config: str) -> EngineRig:
         path = tmp_path / "config.yaml"
         path.write_text(textwrap.dedent(config), encoding="utf-8")
-        engine = engine_mod.Engine(path, plugins=StubPlugins(), values=values.Values())
+        engine = Engine(path, plugins=StubPlugins(), values=values.Values(), clock=clock, device=factory)
         engine._pool.shutdown(wait=True)
         engine._pool = InlineExecutor()  # type: ignore[assignment]
         made.append(engine)

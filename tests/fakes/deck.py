@@ -17,7 +17,7 @@ from d6.device import D6, KEY_COUNT, LED_COUNT, KeyEvent
 
 
 class DeckProtocol(Protocol):
-    """O que app/engine.py usa do aparelho."""
+    """O que o engine (app/engine/) usa do aparelho."""
 
     settle: float
 
@@ -138,7 +138,8 @@ class FakeDeck:
 
 
 class FakeDeckFactory:
-    """Faz o papel da classe D6 em app.engine: cada D6() devolve um FakeDeck novo (ou o próximo preparado)."""
+    """Faz o papel da classe D6 (o `device` do Engine): cada D6() devolve um FakeDeck novo (ou o próximo
+    preparado)."""
 
     def __init__(self) -> None:
         self.made: list[FakeDeck] = []
