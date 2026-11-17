@@ -466,8 +466,6 @@
  "Pages": "Páginas",
  "Pages added. If you don't like it, go back through the history.": "Páginas adicionadas. Se não gostar, volte pelo histórico.",
  "Pages and logic": "Páginas e lógica",
- "Paint the screens": "Pintar as telas",
- "Paints all key screens in one color, with an icon if you want, for a few seconds.": "Pinta todas as telas numa cor, com um ícone se quiser, por alguns segundos.",
  "Paints the whole light ring in one color for a few seconds, then goes back to the effect.": "Pinta o anel de luz inteiro numa cor por alguns segundos e depois volta ao efeito.",
  "Parameters (JSON)": "Parâmetros (JSON)",
  "Parameters (optional)": "Parâmetros (opcional)",
@@ -553,8 +551,6 @@
  "Scene": "Cena",
  "Scene {0}": "Cena {0}",
  "Screen brightness": "Brilho das telas",
- "Screens": "Telas",
- "Screens {0} for {1} s": "Telas {0} por {1} s",
  "Search": "Buscar",
  "Search (e.g.: hour, scene, temperature)": "Buscar (ex.: hora, cena, temperatura)",
  "Search actions": "Buscar ação",
@@ -1034,5 +1030,11 @@
  "Saving…": "Salvando…",
  "Couldn't open the editor": "Não deu para abrir o editor",
  "Open it from the app address (with the token at the end).": "Abra pelo endereço do app (com o token no fim).",
- "The app restarted and this tab is out of date. Reload the page.": "O app reiniciou e esta aba ficou desatualizada. Recarregue a página."
+ "The app restarted and this tab is out of date. Reload the page.": "O app reiniciou e esta aba ficou desatualizada. Recarregue a página.",
+ "Paint the keys": "Pintar as teclas",
+ "Paints all keys in one color, with an icon if you want, for a few seconds.": "Pinta todas as teclas numa cor, com um ícone se quiser, por alguns segundos.",
+ "Paint the keys {0} for {1} s": "Pintar as teclas de {0} por {1} s",
+ "Paint the keys##card": "Pintar as teclas de",
+ "Shrink the key when pressed": "Encolher a tecla ao apertar",
+ "While you hold a key, its screen gets a bit smaller, like a real button.": "Enquanto você segura uma tecla, a tela dela fica um pouco menor, como um botão de verdade."
 }

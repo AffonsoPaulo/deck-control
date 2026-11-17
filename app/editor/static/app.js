@@ -239,7 +239,7 @@ function summarize(a) {
     case "multi": return t("{0} steps", [(a.actions || []).length]);
     case "if": return a.value ? t("If {0}", [valueLabel(a.value)]) : a.state ? (a.is === false ? t("If not: {0}", [stateLabel(a.state)]) : t("If {0}", [stateLabel(a.state)])) : t("missing the condition");
     case "light.flash": return t("Light {0} for {1} s", [colorName(a.color), a.seconds ?? 3]);
-    case "screens.paint": return t("Screens {0} for {1} s", [colorName(a.color), a.seconds ?? 3]);
+    case "screens.paint": return t("Paint the keys {0} for {1} s", [colorName(a.color), a.seconds ?? 3]);
     case "page.temp": return t("Page {0} for {1} s", [a.page || "?", a.seconds ?? 10]);
     case "timer.toggle": return t("Countdown {0}", [a.id || "?"]);
     case "timer.reset": return t("Reset countdown {0}", [a.id || "?"]);
@@ -1500,7 +1500,8 @@ function sentence(s, ed) {
     case "discord.deafen": return [w(t("Turn Discord audio on or off"))];
     case "discord.keybind": return [w(t("Discord shortcut")), inlText(s, "name", t("name"), ed)];
     case "light.flash": return [w(t("Light")), inlColor(s, "color", ed, "#22c55e"), w(t("for")), inlNum(s, "seconds", "3", ed), w("s")];
-    case "screens.paint": return [w(t("Screens")), inlColor(s, "color", ed, "#b4232a"), w(t("for")), inlNum(s, "seconds", "3", ed), w("s")];
+    case "screens.paint": return [w(t("Paint the keys##card")), inlColor(s, "color", ed, "#b4232a"),
+      h("span", { class: "inl-keep" }, w(t("for")), inlNum(s, "seconds", "3", ed), w("s"))];
     case "page.temp": return [w(t("Show the page")), inlPage(s, ed), w(t("for")), inlNum(s, "seconds", "10", ed), w("s")];
     case "timer.toggle": return [w(t("Start or pause the countdown")), inlText(s, "id", t("name"), ed), w(t("of")), inlNum(s, "minutes", "5", ed), w("min")];
     case "timer.reset": return [w(t("Reset the countdown")), inlText(s, "id", t("name"), ed)];
@@ -2264,7 +2265,10 @@ function setLook(body) {
       t("Applies to all keys. You can change it for a specific key in the Appearance tab.")),
     setRow(t("Text size"), stepper(size, { min: 10, max: 28, step: 1, label: t("text size"), fmt: (v) => String(v),
       onChange: (v) => { cfgIn("icons", "text_size", v === 16 ? null : v); refreshAllPreviews(); paint(); } }),
-      t("The same on every key. Long text wraps onto two lines before shrinking.")));
+      t("The same on every key. Long text wraps onto two lines before shrinking.")),
+    setSwitch(t("Shrink the key when pressed"), (S.cfg.icons || {}).press_shrink !== false,
+      (on) => { cfgIn("icons", "press_shrink", on ? null : false); renderSettingsView(); },
+      t("While you hold a key, its screen gets a bit smaller, like a real button.")));
 }
 
 // Integrações: uma por plugin (OBS, Discord e os de terceiros), todas no mesmo formato.

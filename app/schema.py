@@ -259,10 +259,10 @@ ACTIONS.update(
             ],
         },
         "screens.paint": {
-            "label": "Paint the screens",
+            "label": "Paint the keys",
             "group": "Temporary responses",
-            "icon": "monitor",
-            "help": "Paints all key screens in one color, with an icon if you want, for a few seconds.",
+            "icon": "paintbrush",
+            "help": "Paints all keys in one color, with an icon if you want, for a few seconds.",
             "fields": [
                 {"name": "color", "kind": "color", "label": "Color", "default": "#b4232a"},
                 {"name": "lucide", "kind": "icon", "label": "Icon"},

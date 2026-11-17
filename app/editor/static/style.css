@@ -396,6 +396,8 @@ select.inl { text-overflow: ellipsis; }
 .grip { cursor: grab; width: 24px; height: var(--size-sm); display: grid; place-items: center; font-size: var(--icon-xs); }
 .blk-more { margin: 0 6px 6px; padding: 12px; border-radius: var(--radius-sm); display: grid; gap: 12px; font-weight: 400; }
 .inl-group { display: inline-flex; align-items: center; gap: 2px; }
+/* partes da frase do cartão que não podem se separar na quebra de linha ("por [3] s"): mesmo espaço da frase */
+.inl-keep { display: inline-flex; align-items: center; gap: inherit; }
 .inl-chip { display: inline-flex; align-items: center; height: var(--size-sm); padding: 0 9px; border-radius: var(--radius-sm); font-weight: 600; font-size: var(--text-sm); }
 input.inl, select.inl {
   width: auto; height: 28px; padding: 0 8px; border: 1px solid var(--tint-line); border-radius: var(--radius-sm);
