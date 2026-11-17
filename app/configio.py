@@ -102,26 +102,30 @@ def _merge_map(dst: CommentedMap, src: dict) -> None:
                 pos = sum(1 for existing in dst if existing < k)
                 dst.insert(pos, k, node)
             else:
-                _append_key(dst, k, node)
+                # no lugar em que o editor mandou (desfazer a exclusão de uma página a devolve onde estava)
+                order = list(src.keys())
+                prev = next((p for p in reversed(order[:order.index(k)]) if p in dst), None)
+                _insert_key(dst, prev, k, node)
 
 
-def _append_key(dst: CommentedMap, k, node) -> None:
-    """Acrescenta k no fim do mapa sem jogar a chave para depois do comentário da próxima seção.
+def _insert_key(dst: CommentedMap, prev, k, node) -> None:
+    """Põe k logo depois de prev (no começo, se prev for None) sem roubar o comentário da próxima seção.
 
-    O ruamel guarda o que vem depois da última chave (comentário da linha, linha em branco e o
-    comentário que abre a próxima seção) como um comentário só, preso à última chave. Sem isto,
+    O ruamel guarda o que vem depois de uma chave (comentário da linha, linha em branco e o
+    comentário que abre a próxima seção) como um comentário só, preso a essa chave. Sem isto,
     a chave nova sai embaixo desse bloco, longe do lugar dela.
     """
-    keys = list(dst.keys())
-    last = keys[-1] if keys else None
+    if prev is None:
+        dst.insert(0, k, node)
+        return
     tail = None
-    entry = dst.ca.items.get(last) if last is not None else None
+    entry = dst.ca.items.get(prev)
     if entry and len(entry) > 2 and entry[2] is not None and isinstance(entry[2].value, str):
         val = entry[2].value
         nl = val.find("\n")
         if nl != -1 and val[nl + 1:].strip():
             entry[2].value, tail = val[:nl + 1], val[nl + 1:]
-    dst[k] = node
+    dst.insert(list(dst.keys()).index(prev) + 1, k, node)
     if tail is not None:
         from ruamel.yaml.error import CommentMark
         from ruamel.yaml.tokens import CommentToken
