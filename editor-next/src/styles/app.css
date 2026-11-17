@@ -198,3 +198,6 @@
 @utility max-h-sheet {
   max-height: 84vh;
 }
+
+/* o desenho do aparelho (exceção do design system: --device-* e medidas próprias) */
+@import "../features/keys/deck.css";

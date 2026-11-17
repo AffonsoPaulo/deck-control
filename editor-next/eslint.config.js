@@ -17,7 +17,9 @@ export default tseslint.config(
     settings: { "better-tailwindcss": { entryPoint: "src/styles/app.css" } },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "better-tailwindcss/no-unknown-classes": "error",
+      // as classes do desenho do aparelho (src/features/keys/deck.css) são a exceção do design system:
+      // --device-* e medidas próprias; só elas ficam fora da checagem
+      "better-tailwindcss/no-unknown-classes": ["error", { ignore: ["^deck(-[a-z]+)*$"] }],
       "better-tailwindcss/no-conflicting-classes": "error",
       "better-tailwindcss/no-duplicate-classes": "error",
       "better-tailwindcss/no-restricted-classes": [

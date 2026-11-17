@@ -1,5 +1,5 @@
 // A casca do editor: trilho, topo e a seção aberta. Liga o estado (config, lugar, estado do app) aos componentes.
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import favOff from "deck-static/favicon-off.svg?url";
 import favOn from "deck-static/favicon.svg?url";
@@ -14,6 +14,9 @@ import { Rail } from "@/app/Rail";
 import { SectionPlaceholder } from "@/app/SectionPlaceholder";
 import { TopBar } from "@/app/TopBar";
 import { Toaster } from "@/components/Toaster";
+
+// cada seção num pedaço próprio do build: só carrega quando abre
+const KeysSection = lazy(() => import("@/features/keys/KeysSection").then((m) => ({ default: m.KeysSection })));
 
 const TITLES: Record<Section, string> = {
   keys: "Keys",
@@ -80,7 +83,9 @@ export function Shell() {
           onUndo={undo}
           onRedo={redo}
         />
-        <SectionPlaceholder place={{ ...place, section }} />
+        <Suspense>
+          {section === "keys" ? <KeysSection place={{ ...place, section }} /> : <SectionPlaceholder place={{ ...place, section }} />}
+        </Suspense>
       </div>
       <Toaster />
     </div>

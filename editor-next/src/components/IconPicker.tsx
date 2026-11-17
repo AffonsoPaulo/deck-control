@@ -10,6 +10,7 @@ import { useT } from "@/core/i18n";
 import { loadLucideIndex, luChar, type LucideIndex } from "@/core/icons/lucide";
 import { buildPopular, searchIcons } from "@/core/icons/search";
 import { useSchema } from "@/core/queries";
+import { useDebounced } from "@/core/useDebounced";
 
 /** O índice do Lucide (carrega uma vez, na primeira vez que alguém pede). */
 export function useLucideIndex(enabled = true): LucideIndex | undefined {
@@ -27,15 +28,6 @@ type Row = { head: string } | { items: [string, string | undefined][] };
 
 const MIN_COL = 92; // minmax(92px, 1fr) do editor atual
 const GAP = 4;
-
-function useDebounced<T>(value: T, ms: number): T {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setV(value), ms);
-    return () => clearTimeout(id);
-  }, [value, ms]);
-  return v;
-}
 
 interface IconPickerProps {
   open: boolean;

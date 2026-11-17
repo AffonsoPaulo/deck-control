@@ -1,0 +1,62 @@
+/*
+  O desenho do aparelho (a exceção do design system: usa --device-* e medidas próprias, em cqw para escalar com a
+  largura). Mesmos números do style.css do editor atual (.deck, .keys, .key, .key.block). Estados por atributo:
+  data-selected (escolhida), data-empty, data-drop (vai cair aqui), data-pressed (o "afundar" ao clicar).
+*/
+@layer components {
+
+.deck-wrap { position: relative; width: min(600px, 100%); container-type: inline-size; }
+.deck {
+  padding: 6.5cqw 7cqw 7.2cqw; border-radius: 6cqw;
+  background: radial-gradient(130% 100% at 50% 0%, var(--device-shell-1), var(--device-shell-2) 60%, var(--device-shell-3));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .07) inset, 0 24px 48px -20px rgba(0, 0, 0, .5), 0 6px 14px -6px rgba(0, 0, 0, .3);
+}
+.deck-keys { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); column-gap: 4cqw; row-gap: 4.4cqw; }
+
+.deck-key, .deck-cell {
+  position: relative; aspect-ratio: 1; padding: 0; border: 0; border-radius: 14%; background: var(--device-face);
+  box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--device-rim-2), 0 3px 0 3px var(--device-base), 0 6px 10px 2px rgba(0, 0, 0, .4);
+}
+.deck-key {
+  cursor: pointer; touch-action: none;
+  transition: transform var(--duration-instant) var(--ease-out), box-shadow var(--duration-instant) var(--ease-out);
+}
+.deck-key img, .deck-cell img { position: absolute; inset: 7%; width: 86%; height: 86%; border-radius: 8%; display: block; pointer-events: none; }
+.deck-key[data-empty]::after {
+  content: "+"; position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--device-plus); font-size: 26px; font-weight: 500;
+}
+.deck-key[data-empty]:hover::after { color: var(--device-plus-hover); }
+.deck-key[data-pressed] { transform: translateY(2px); box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--device-rim-2), 0 1px 0 3px var(--device-base), 0 2px 4px 1px rgba(0, 0, 0, .4); }
+.deck-key[data-selected] { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--accent), 0 0 22px 2px var(--accent-glow), 0 3px 0 3px var(--device-base); }
+.deck-key[data-drop] { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--device-drop), 0 0 22px 2px color-mix(in srgb, var(--device-drop) 35%, transparent), 0 3px 0 3px var(--device-base); transform: scale(1.04); }
+.deck-key:focus-visible { outline: none; box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--accent), 0 3px 0 3px var(--device-base); }
+/* a tecla que está sendo arrastada fica no lugar, apagada (a peça que anda é a de cima) */
+.deck-key[data-dragging] { opacity: .35; }
+
+/* bloco: cada tela continua sendo uma tecla, com um contorno juntando o bloco */
+.deck-key[data-block] {
+  aspect-ratio: auto; display: grid; grid-template-columns: repeat(var(--bc), 1fr); grid-template-rows: repeat(var(--br), auto);
+  column-gap: 4cqw; row-gap: 4.4cqw; background: transparent; box-shadow: none; overflow: visible;
+}
+.deck-key[data-block]::before { content: ""; position: absolute; inset: -7px; border-radius: 14px; border: 1.5px solid var(--tint-line); pointer-events: none; }
+.deck-key[data-block][data-selected]::before { border-color: var(--accent); box-shadow: 0 0 18px var(--accent-glow); }
+.deck-key[data-block][data-drop]::before { border-color: var(--device-drop); }
+.deck-key[data-block]:focus-visible::before { border-color: var(--accent); }
+
+/* a peça que acompanha o ponteiro (DragOverlay) */
+.deck-ghost { display: grid; gap: 6px; pointer-events: none; }
+.deck-ghost img { display: block; width: 100%; height: 100%; border-radius: 12px; box-shadow: inset 0 0 0 2px var(--accent), 0 10px 24px rgba(0, 0, 0, .5); }
+.deck-ghost .deck-ghost-empty { border-radius: 12px; background: var(--device-face); box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* o contorno da tecla escolhida fecha sobre ela (mesmas sombras do estado escolhido) */
+@keyframes deck-ring {
+  from { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 9px transparent, 0 0 34px 8px transparent, 0 3px 0 3px var(--device-base); }
+}
+.deck-key[data-ring] { animation: deck-ring var(--duration-slower) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-key { transition: none; }
+  .deck-key[data-ring] { animation: none; }
+}
+}
