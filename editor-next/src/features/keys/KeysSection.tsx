@@ -1,8 +1,11 @@
-// Seção Teclas: a biblioteca (esquerda), o palco com as páginas e o Deck (meio) e o inspetor (direita, ainda no
-// editor atual). O arrastar envolve a biblioteca e o Deck, porque as peças saem de uma e caem no outro.
+// Seção Teclas: a biblioteca (esquerda), o palco com as páginas e o Deck (meio) e o inspetor (direita); na visão
+// ampliada, "O que faz" ocupa o meio e a direita. O arrastar envolve tudo: as peças saem da biblioteca e caem no
+// Deck ou numa lista de passos.
 import type { Place } from "@/core/hash";
 import { useT } from "@/core/i18n";
 import { useConfig } from "@/core/store/config";
+import { useUi } from "@/core/store/ui";
+import { ExpandedView } from "@/features/keys/ExpandedView";
 import { useDeckState } from "@/features/keys/deckState";
 import { DeckDnd } from "@/features/keys/dnd";
 import { useDeckDrop } from "@/features/keys/drop";
@@ -27,6 +30,10 @@ function KeysWorkspace({ page, place }: { page: string; place: Place }) {
   const { onMove, onDrop } = useDeckDrop(page);
   const previews = usePagePreviews(page);
   useKeyShortcuts(page);
+  // a visão ampliada só existe com uma tecla que tem algo
+  const k = useUi((s) => s.key);
+  const spec = useConfig((s) => (k ? pageKeysOf(s.cfg, page)[k] : undefined));
+  const expanded = useUi((s) => s.expanded) && !!k && !!spec;
   // estas funções leem o estado na hora (o dnd-kit guarda a primeira versão delas)
   const keysNow = () => pageKeysOf(useConfig.getState().cfg, page);
   const ghostSize = (p: DragPayload) => {
@@ -53,8 +60,14 @@ function KeysWorkspace({ page, place }: { page: string; place: Place }) {
     >
       <div className="flex min-h-0 flex-1">
         <LibraryPanel page={page} />
-        <Stage page={page} />
-        <Inspector page={page} previews={previews} place={place} />
+        {expanded && k && spec ? (
+          <ExpandedView page={page} k={k} spec={spec} preview={previews?.[Number(k) - 1] ?? null} />
+        ) : (
+          <>
+            <Stage page={page} />
+            <Inspector page={page} previews={previews} place={place} />
+          </>
+        )}
       </div>
     </DeckDnd>
   );

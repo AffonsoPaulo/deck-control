@@ -73,6 +73,7 @@ interface Ctx {
   k: string;
   logic: Logic;
   pick: (path: ListPath, index: number) => void;
+  wide: boolean; // na visão ampliada: a frase um pouco maior
 }
 
 export function DoTab({ page, k, spec, wide }: { page: string; k: string; spec: KeySpec; wide?: boolean }) {
@@ -89,7 +90,7 @@ export function DoTab({ page, k, spec, wide }: { page: string; k: string; spec: 
   };
   const obs = useObs();
   const obsScenes = () => obs.scenes;
-  const ctx: Ctx = { page, k, logic, pick: (path, index) => setPicking({ path, index }) };
+  const ctx: Ctx = { page, k, logic, pick: (path, index) => setPicking({ path, index }), wide: !!wide };
 
   // o que cai numa lista de passos (ação da biblioteca ou passo arrastado)
   useEffect(() => {
@@ -337,7 +338,7 @@ function Block({ ctx, path, index, step }: { ctx: Ctx; path: ListPath; index: nu
       style={catStyle(group.color)}
       className={cn("group/step rounded-md text-fg", group.name === "Pages and logic" ? "bg-raised" : "bg-cat-block", isDragSource && "opacity-40")}
     >
-      <div className="flex min-h-control-2xl items-start gap-2 py-1.5 pr-1.5 pl-2.5 text-base font-semibold">
+      <div className={cn("flex min-h-control-2xl items-start gap-2 py-1.5 pr-1.5 pl-2.5 font-semibold", ctx.wide ? "text-md" : "text-base")}>
         <span aria-hidden className="grid h-7.5 w-4.5 flex-none place-items-center text-cat-ink">
           <NamedIcon name={iconOf(defs, type)} />
         </span>
@@ -399,7 +400,7 @@ function CBlock({ ctx, path, index, step }: { ctx: Ctx; path: ListPath; index: n
   const label = t((defs[String(step.type)]?.label as string | undefined) ?? String(step.type));
   const { ref, handleRef, isDragSource } = useStepDrag(path, index, label);
   const bar = (icon: typeof Split, words: ReactNode, f: ListField, plusLabel: string, tools?: boolean) => (
-    <div className={cn("flex min-h-control-2xl items-center gap-2 pr-1 pl-2.5 text-base font-semibold", tools && "group/step")}>
+    <div className={cn("flex min-h-control-2xl items-center gap-2 pr-1 pl-2.5 font-semibold", ctx.wide ? "text-md" : "text-base", tools && "group/step")}>
       <span aria-hidden className="grid h-7.5 w-4.5 flex-none place-items-center text-cat-ink">
         {(() => {
           const I = icon;

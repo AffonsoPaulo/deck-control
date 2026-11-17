@@ -1,7 +1,7 @@
 // O inspetor (coluna da direita da seção Teclas): sem tecla escolhida, como montar o Deck; tecla vazia, as ações
 // rápidas; tecla com algo, o cabeçalho (miniatura, nome, ferramentas) e as abas. Nesta parte: a aba Aparência da
 // tecla simples. "O que faz", "Luz" e a aparência de bloco, informação e widget ainda abrem no editor atual.
-import { BookmarkPlus, Check, ClipboardPaste, Copy, LayoutGrid, ListOrdered, MousePointer2, Pencil, Play, Trash2 } from "lucide-react";
+import { BookmarkPlus, Check, ClipboardPaste, Copy, LayoutGrid, ListOrdered, Maximize2, MousePointer2, Pencil, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { SectionPlaceholder } from "@/app/SectionPlaceholder";
 import { Button } from "@/components/Button";
@@ -37,6 +37,22 @@ export function Inspector({ page, previews, place }: { page: string; previews: K
     <aside className="min-h-0 w-107.5 flex-none overflow-y-auto border-l border-border bg-surface scrollbar-stable">
       {k === null ? <Guide /> : !spec ? <EmptyKey page={page} k={k} /> : <KeyInspector page={page} k={k} spec={spec} preview={previews?.[Number(k) - 1] ?? null} place={place} />}
     </aside>
+  );
+}
+
+/** Testar, copiar, guardar, colar e apagar (no inspetor e na visão ampliada). */
+export function KeyTools({ page, k }: { page: string; k: string }) {
+  const t = useT();
+  const ops = useKeyOps(page);
+  const clipboard = useSession((s) => s.clipboard);
+  return (
+    <div className="flex gap-0.5">
+      <IconButton icon={Play} label={t("Test")} title={t("Test (runs the saved version)")} onClick={() => void ops.test(k)} />
+      <IconButton icon={Copy} label={t("Copy")} title={t("Copy (Ctrl+C)")} onClick={() => ops.copy(k)} />
+      <IconButton icon={BookmarkPlus} label={t("Save key")} title={t("Save to use later (Saved keys)")} onClick={() => ops.save(k)} />
+      <IconButton icon={ClipboardPaste} label={t("Paste")} title={t("Paste (Ctrl+V)")} disabled={!clipboard} onClick={() => void ops.paste(k)} />
+      <IconButton icon={Trash2} label={t("Delete key")} title={t("Delete key (Delete)")} onClick={() => ops.remove(k)} className="hover:enabled:text-danger-fg" />
+    </div>
   );
 }
 
@@ -113,10 +129,8 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
   const tab = useUi((s) => s.tab);
   const go = useUi((s) => s.go);
   const edit = useConfig((s) => s.edit);
-  const ops = useKeyOps(page);
   const schema = useSchema().data;
   const cfg = useConfig((s) => s.cfg);
-  const clipboard = useSession((s) => s.clipboard);
   const [cols, rows] = spanOf(spec);
   const block = cols * rows > 1;
   const widget = isWidget(spec);
@@ -172,13 +186,7 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
           )}
           <small className="block text-xs leading-(--text-base--line-height) text-fg-subtle">{sub}</small>
         </div>
-        <div className="flex gap-0.5">
-          <IconButton icon={Play} label={t("Test")} title={t("Test (runs the saved version)")} onClick={() => void ops.test(k)} />
-          <IconButton icon={Copy} label={t("Copy")} title={t("Copy (Ctrl+C)")} onClick={() => ops.copy(k)} />
-          <IconButton icon={BookmarkPlus} label={t("Save key")} title={t("Save to use later (Saved keys)")} onClick={() => ops.save(k)} />
-          <IconButton icon={ClipboardPaste} label={t("Paste")} title={t("Paste (Ctrl+V)")} disabled={!clipboard} onClick={() => void ops.paste(k)} />
-          <IconButton icon={Trash2} label={t("Delete key")} title={t("Delete key (Delete)")} onClick={() => ops.remove(k)} className="hover:enabled:text-danger-fg" />
-        </div>
+        <KeyTools page={page} k={k} />
       </div>
       <div role="tablist" className="sticky top-20 z-(--z-raised) flex items-center gap-1 border-b border-border bg-surface px-4.5">
         {tabs.map(([v, l]) => (
@@ -193,6 +201,9 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
             {l}
           </button>
         ))}
+        {tab === "do" && (
+          <IconButton icon={Maximize2} label={t("Expand")} title={t("Open the logic in a larger area")} onClick={() => go({ expanded: true, tab: "do" })} className="ml-auto" />
+        )}
       </div>
       {!ready ? (
         <SectionPlaceholder place={place} compact />

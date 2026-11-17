@@ -1,5 +1,5 @@
 // Atalhos da seção Teclas (os do editor atual): Ctrl+C / Ctrl+V copiam e colam a tecla escolhida, Delete ou
-// Backspace apaga, as setas andam entre as teclas e Esc tira a escolha. Ficam quietos digitando num campo, com
+// Backspace apaga, as setas andam entre as teclas e Esc tira a escolha (ou sai da visão ampliada). Ficam quietos digitando num campo, com
 // menu, folha ou diálogo aberto, e enquanto uma peça está sendo arrastada (aí as setas são do arrastar).
 import { useEffect } from "react";
 import { anyOverlayOpen } from "@/core/overlay";
@@ -40,6 +40,8 @@ export function useKeyShortcuts(page: string): void {
         document.querySelector<HTMLElement>(`.deck-key[data-key="${target}"]`)?.focus();
         return;
       }
+      // na visão ampliada, Esc volta ao Deck (com a tecla ainda escolhida)
+      if (e.key === "Escape" && useUi.getState().expanded) return useUi.getState().go({ expanded: false });
       if (e.key === "Escape" && sel) useUi.getState().go({ key: null });
     };
     window.addEventListener("keydown", onKey);

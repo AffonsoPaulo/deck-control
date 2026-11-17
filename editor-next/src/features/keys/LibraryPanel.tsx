@@ -19,7 +19,9 @@ import { toast } from "@/core/toast";
 import { actionDefs, groupOf, groupedActions, groupsOf, iconOf, savedKeys, sizeColsRows, widgetDefs, type ActionDef } from "@/features/keys/actions";
 import { useLibDrag } from "@/features/keys/dnd";
 import { useLib } from "@/features/keys/libStore";
-import { spanOf, type DragPayload } from "@/features/keys/model";
+import { pageKeysOf, spanOf, type DragPayload } from "@/features/keys/model";
+import { modelOf } from "@/features/keys/logic/model";
+import { logicDrop } from "@/features/keys/drop";
 import { usePlacer } from "@/features/keys/place";
 import { useThumbs, type ThumbItem } from "@/features/keys/thumbs";
 import { WidgetThumb } from "@/features/keys/WidgetThumb";
@@ -136,8 +138,13 @@ function ActionItem({ type, def, color, page }: { type: string; def: ActionDef; 
       style={catStyle(color)}
       className={ITEM}
       onClick={() => {
-        const k = useUi.getState().key;
+        const { key: k, expanded } = useUi.getState();
         if (!k) return toast(t("Click a key first, or drag the action onto it."));
+        // na visão ampliada: vira um passo no fim de "ao apertar"
+        if (expanded && logicDrop.current) {
+          const n = modelOf(pageKeysOf(useConfig.getState().cfg, page)[k] ?? {}).action.length;
+          return void logicDrop.current({ kind: "new", type, label }, `slot|${JSON.stringify(["action"])}|${n}`);
+        }
         void placer.assign(k, type);
       }}
     >

@@ -53,6 +53,7 @@
 
 /* a tecla em miniatura no inspetor (cabeçalho) e a prévia grande da Aparência */
 .deck-insp-thumb { width: 52px; height: 52px; border-radius: var(--radius-lg); flex: none; display: block; background: var(--device-face); box-shadow: 0 0 0 1px var(--device-thumb-rim), 0 0 0 3px var(--device-thumb-rim-2); }
+.deck-insp-thumb-sm { width: 42px; height: 42px; border-radius: var(--radius-md); }
 .deck-look-img { width: 104px; height: 104px; margin: 4px; flex: none; display: block; border-radius: var(--radius-xl); background: var(--device-face); box-shadow: 0 0 0 1px var(--device-thumb-rim), 0 0 0 4px var(--device-thumb-rim-2); }
 
 /* o contorno da tecla escolhida fecha sobre ela (mesmas sombras do estado escolhido) */
