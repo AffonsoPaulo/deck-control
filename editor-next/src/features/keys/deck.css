@@ -44,10 +44,12 @@
 .deck-key[data-block][data-drop]::before { border-color: var(--device-drop); }
 .deck-key[data-block]:focus-visible::before { border-color: var(--accent); }
 
-/* a peça que acompanha o ponteiro (DragOverlay) */
-.deck-ghost { display: grid; gap: 6px; pointer-events: none; }
-.deck-ghost img { display: block; width: 100%; height: 100%; border-radius: 12px; box-shadow: inset 0 0 0 2px var(--accent), 0 10px 24px rgba(0, 0, 0, .5); }
-.deck-ghost .deck-ghost-empty { border-radius: 12px; background: var(--device-face); box-shadow: inset 0 0 0 2px var(--accent); }
+/* encaixe da peça arrastada: as casas que ela vai ocupar (âmbar) e as que vão ser substituídas; vermelho = não cabe */
+.deck-key[data-foot="foot"], .deck-key[data-foot="replace"] { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--accent), 0 0 18px var(--accent-glow); }
+.deck-key[data-foot="replace"]::before { content: ""; position: absolute; inset: 0; border-radius: 14%; background: color-mix(in srgb, var(--warning-bg) 72%, transparent); z-index: var(--z-raised); border: 0; box-shadow: none; }
+.deck-key[data-block][data-foot="replace"]::before { inset: -7px; border-radius: 14px; }
+.deck-key[data-foot="bad"] { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--danger-fg); }
+.deck-replace { position: absolute; left: 8%; top: 8%; z-index: var(--z-raised); padding: 2px 6px; border-radius: 5px; background: var(--warning-bg); color: var(--warning-fg); font-size: 10.5px; font-weight: 700; }
 
 /* o contorno da tecla escolhida fecha sobre ela (mesmas sombras do estado escolhido) */
 @keyframes deck-ring {

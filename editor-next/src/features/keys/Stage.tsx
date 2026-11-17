@@ -95,12 +95,10 @@ function StageBar({ page }: { page: string }) {
   );
 }
 
-export function Stage() {
+export function Stage({ page }: { page: string }) {
   const t = useT();
-  const page = useCurrentPage();
   const view = useUi((s) => s.view);
   const go = useUi((s) => s.go);
-  if (page === null) return null;
   return (
     <main className="flex min-w-0 flex-1 flex-col items-center justify-center overflow-auto px-7 py-8">
       <div className="mb-4.5 flex w-full max-w-150 items-center gap-3">

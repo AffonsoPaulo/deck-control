@@ -33,13 +33,18 @@ describe("grade", () => {
 
 describe("soltar", () => {
   it("tecla em outra casa: troca; em casa de bloco: troca com o canto do bloco", () => {
-    expect(resolveDrop({ kind: "key", key: "4" }, "9", KEYS_P)).toEqual({ op: "swap", a: "4", b: "9" });
-    expect(resolveDrop({ kind: "key", key: "4" }, "7", KEYS_P)).toEqual({ op: "swap", a: "4", b: "1" });
+    expect(resolveDrop({ kind: "key", key: "4" }, "9", "9", KEYS_P)).toEqual({ op: "swap", a: "4", b: "9" });
+    expect(resolveDrop({ kind: "key", key: "4" }, "1", "7", KEYS_P)).toEqual({ op: "swap", a: "4", b: "1" });
   });
-  it("na própria casa, de tecla vazia ou de outro tipo: nada", () => {
-    expect(resolveDrop({ kind: "key", key: "4" }, "4", KEYS_P)).toEqual({ op: "none" });
-    expect(resolveDrop({ kind: "key", key: "9" }, "4", KEYS_P)).toEqual({ op: "none" });
-    expect(resolveDrop({ kind: "new", type: "keys" }, "9", KEYS_P)).toEqual({ op: "none" });
+  it("na própria casa ou de tecla vazia: nada", () => {
+    expect(resolveDrop({ kind: "key", key: "4" }, "4", "4", KEYS_P)).toEqual({ op: "none" });
+    expect(resolveDrop({ kind: "key", key: "9" }, "4", "4", KEYS_P)).toEqual({ op: "none" });
+  });
+  it("ação vale a tecla (o canto, num bloco); widget grande começa na casa sob o ponteiro", () => {
+    expect(resolveDrop({ kind: "new", type: "hotkey", label: "x" }, "1", "7", KEYS_P)).toEqual({ op: "assign", key: "1", type: "hotkey" });
+    const w = { kind: "widget", widget: "app.clock", size: "2x2", label: "x", cols: 2, rows: 2 } as const;
+    expect(resolveDrop(w, "1", "7", KEYS_P)).toEqual({ op: "widget", anchor: "7", widget: "app.clock", size: "2x2" });
+    expect(resolveDrop({ kind: "saved", index: 0, label: "x", cols: 1, rows: 1 }, "1", "6", KEYS_P)).toEqual({ op: "saved", anchor: "1", index: 0 });
   });
   it("trocar com vazia move; a seleção acompanha a tecla", () => {
     const k: PageKeys = { "4": { icon: "A" } };

@@ -40,3 +40,19 @@ export function useInitialConfig() {
 export function useSchema() {
   return useQuery({ queryKey: ["schema"], queryFn: () => api("GET /api/schema") });
 }
+
+/** Cenas e fontes de áudio do OBS (para os passos novos e os campos). Lido uma vez; sem o OBS, listas vazias. */
+export function useObs() {
+  const q = useQuery({
+    queryKey: ["obs"],
+    queryFn: async () => {
+      try {
+        const r = await api("GET /api/obs");
+        return r.connected ? r : { connected: false as const, scenes: [], inputs: [], sources: {} };
+      } catch {
+        return { connected: false as const, scenes: [], inputs: [], sources: {} };
+      }
+    },
+  });
+  return q.data ?? { connected: false as const, scenes: [] as string[], inputs: [] as string[], sources: {} as Record<string, string[]> };
+}

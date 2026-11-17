@@ -96,22 +96,47 @@ export function cellAt(k: string, spec: unknown, rect: { left: number; top: numb
 
 // ---------------------------------------------------------------------------- o que se arrasta e onde cai
 
-/** O que está sendo arrastado. Esta parte só faz `key`; as outras chegam com a biblioteca. */
+/** O que está sendo arrastado: uma tecla da grade, uma ação da biblioteca, um widget num tamanho ou uma tecla
+ * guardada. `cols`/`rows`: quantas casas a peça ocupa (1×1 para tecla e ação). */
 export type DragPayload =
   | { kind: "key"; key: string }
-  | { kind: "new"; type: string }
-  | { kind: "widget"; widget: string; size: string }
-  | { kind: "saved"; id: string };
+  | { kind: "new"; type: string; label: string }
+  | { kind: "widget"; widget: string; size: string; label: string; cols: number; rows: number }
+  | { kind: "saved"; index: number; label: string; cols: number; rows: number };
 
-export type DropResult = { op: "swap"; a: string; b: string } | { op: "none" };
+export const pieceSize = (p: DragPayload): [number, number] => (p.kind === "widget" || p.kind === "saved" ? [p.cols, p.rows] : [1, 1]);
 
-/** O que soltar `payload` na casa `cell` faz (sem mexer em nada). */
-export function resolveDrop(payload: DragPayload, cell: string, keys: PageKeys): DropResult {
-  if (payload.kind !== "key") return { op: "none" };
-  // solta em cima de uma casa de bloco: vale o canto do bloco
-  const target = coverMap(keys)[cell]?.[0] ?? cell;
-  if (target === payload.key || !keys[payload.key]) return { op: "none" };
-  return { op: "swap", a: payload.key, b: target };
+export type DropResult =
+  | { op: "swap"; a: string; b: string }
+  | { op: "assign"; key: string; type: string }
+  | { op: "widget"; anchor: string; widget: string; size: string }
+  | { op: "saved"; anchor: string; index: number }
+  | { op: "none" };
+
+/** Onde a peça encaixa: peça de uma casa vale a tecla (o canto, num bloco); peça maior vale a casa sob o
+ * ponteiro (a peça começa ali). */
+export function dropAnchor(payload: DragPayload, target: string, cell: string): string {
+  const [cols, rows] = pieceSize(payload);
+  return cols * rows > 1 ? cell : target;
+}
+
+/** O que soltar `payload` na tecla `target` (casa `cell` sob o ponteiro) faz, sem mexer em nada. */
+export function resolveDrop(payload: DragPayload, target: string, cell: string, keys: PageKeys): DropResult {
+  const anchor = dropAnchor(payload, target, cell);
+  switch (payload.kind) {
+    case "key": {
+      // solta em cima de uma casa de bloco: vale o canto do bloco
+      const b = coverMap(keys)[target]?.[0] ?? target;
+      if (b === payload.key || !keys[payload.key]) return { op: "none" };
+      return { op: "swap", a: payload.key, b };
+    }
+    case "new":
+      return { op: "assign", key: anchor, type: payload.type };
+    case "widget":
+      return { op: "widget", anchor, widget: payload.widget, size: payload.size };
+    case "saved":
+      return { op: "saved", anchor, index: payload.index };
+  }
 }
 
 /** Troca duas teclas de lugar no rascunho (a vazia vai junto: some de onde estava). */

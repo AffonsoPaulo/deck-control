@@ -1036,5 +1036,12 @@
  "Paint the keys {0} for {1} s": "Pintar as teclas de {0} por {1} s",
  "Paint the keys##card": "Pintar as teclas de",
  "Shrink the key when pressed": "Encolher a tecla ao apertar",
- "While you hold a key, its screen gets a bit smaller, like a real button.": "Enquanto você segura uma tecla, a tela dela fica um pouco menor, como um botão de verdade."
+ "While you hold a key, its screen gets a bit smaller, like a real button.": "Enquanto você segura uma tecla, a tela dela fica um pouco menor, como um botão de verdade.",
+ "replaces": "substitui",
+ "To pick up a key or a piece, press the space bar. Use the arrow keys to move it one key at a time. Press space again to drop it, or Escape to cancel.": "Para pegar uma tecla ou peça, aperte a barra de espaço. Use as setas para andar uma tecla por vez. Aperte espaço de novo para soltar, ou Esc para desistir.",
+ "Picked up {0}.": "Pegou {0}.",
+ "{0} is over key {1}.": "{0} está sobre a tecla {1}.",
+ "{0} is outside the Deck.": "{0} está fora do Deck.",
+ "{0} was dropped on key {1}.": "{0} foi solta na tecla {1}.",
+ "{0}: moving canceled.": "{0}: arrasto cancelado."
 }

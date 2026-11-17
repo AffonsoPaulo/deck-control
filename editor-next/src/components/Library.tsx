@@ -3,7 +3,7 @@
 // base (`--cat-<matiz>`) e as fórmulas do tema fazem o resto (chip, tinta, bloco).
 import type { LucideIcon } from "lucide-react";
 import { Bookmark, ChevronRight, LayoutGrid, Plug } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, ReactNode, Ref } from "react";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/core/cn";
 
@@ -88,13 +88,15 @@ interface SizeTileProps {
   compact?: boolean; // na biblioteca (.pieces): mais justo e estica para ocupar a linha
   onClick?: () => void;
   children: ReactNode; // a miniatura (a de verdade, renderizada pelo app)
+  ref?: Ref<HTMLButtonElement>; // para arrastar a peça
 }
 
 /** Peça de tamanho do widget: a miniatura em cima e o tamanho embaixo (biblioteca, inspetor, página do plugin). */
-export function SizeTile({ label, rows, unit = 20, pressed, disabled, note, title, compact, onClick, children }: SizeTileProps) {
+export function SizeTile({ label, rows, unit = 20, pressed, disabled, note, title, compact, onClick, children, ref }: SizeTileProps) {
   const r = Math.max(2, rows);
   return (
     <button
+      ref={ref}
       type="button"
       aria-pressed={pressed}
       disabled={disabled}

@@ -8,15 +8,17 @@ import { cn } from "@/core/cn";
 export interface SelectOption {
   value: string;
   label: string;
+  group?: string; // opções com o mesmo grupo ficam juntas, debaixo do nome dele (optgroup)
 }
 
-interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "onChange"> {
+interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "onChange" | "size"> {
   options: SelectOption[];
   onChange: (value: string) => void;
+  size?: "md" | "sm"; // sm: 32 px (filtro da biblioteca)
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { options, onChange, className, ...rest },
+  { options, onChange, className, size = "md", ...rest },
   ref,
 ) {
   return (
@@ -24,16 +26,29 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
       <select
         ref={ref}
         onChange={(e) => onChange(e.target.value)}
-        className="h-control-lg w-full cursor-pointer appearance-none rounded-md border border-border-strong bg-sunken pr-7.5 pl-2.75 text-base text-fg outline-none focus:border-accent focus:ring-3 focus:ring-accent-ring disabled:cursor-default disabled:opacity-45"
+        className={cn(
+          size === "sm" ? "h-control-md" : "h-control-lg",
+          "w-full cursor-pointer appearance-none rounded-md border border-border-strong bg-sunken pr-7.5 pl-2.75 text-base text-fg outline-none focus:border-accent focus:ring-3 focus:ring-accent-ring disabled:cursor-default disabled:opacity-45",
+        )}
         {...rest}
       >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
+        {options.map((o, i) => {
+          if (o.group === undefined) return <Option key={o.value} o={o} />;
+          if (options[i - 1]?.group === o.group) return null; // o grupo já saiu inteiro
+          return (
+            <optgroup key={`g:${o.group}`} label={o.group}>
+              {options.filter((x) => x.group === o.group).map((x) => (
+                <Option key={x.value} o={x} />
+              ))}
+            </optgroup>
+          );
+        })}
       </select>
       <Icon icon={ChevronDown} size="xs" className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-fg-muted" />
     </span>
   );
 });
+
+function Option({ o }: { o: SelectOption }) {
+  return <option value={o.value}>{o.label}</option>;
+}
