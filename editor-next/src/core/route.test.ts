@@ -61,3 +61,23 @@ describe("endereço legível", () => {
     expect(readToken({ pathname: B, hash: "" })).toBeNull();
   });
 });
+
+describe("sincronia do endereço", () => {
+  it("com token antigo (comprido) o endereço não é reescrito", async () => {
+    const { startUrlSync } = await import("@/core/store/ui");
+    const long = "x".repeat(32);
+    window.history.replaceState(null, "", `/#t=${long}&p=main`);
+    const stop = startUrlSync();
+    expect(window.location.hash).toBe(`#t=${long}&p=main`);
+    stop();
+  });
+  it("com token novo, o link antigo vira o caminho legível", async () => {
+    const { startUrlSync, useUi } = await import("@/core/store/ui");
+    window.history.replaceState(null, "", `/#t=${T}&p=main&k=4&tab=look`);
+    useUi.setState({ section: "keys", page: "main", key: "4", tab: "look" });
+    const stop = startUrlSync();
+    expect(window.location.pathname).toBe(`${B}${T}/teclas/main/4/aparencia`);
+    expect(window.location.hash).toBe("");
+    stop();
+  });
+});

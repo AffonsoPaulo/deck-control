@@ -2,7 +2,7 @@
 // (/next/XXXX-XXXX-XXXX/teclas/main/4/aparencia; ver core/route.ts).
 import { create } from "zustand";
 import { DEFAULT_PLACE, parsePlace, type Place } from "@/core/hash";
-import { formatRoute, parseRoute } from "@/core/route";
+import { TOKEN_RE, formatRoute, parseRoute } from "@/core/route";
 import { readToken } from "@/core/token";
 
 /** O lugar do endereço de agora (um link no formato antigo, #t=...&p=..., também vale). */
@@ -25,7 +25,9 @@ export const useUi = create<UiStore>()((set) => ({
  * um link no formato antigo pelo novo. */
 export function startUrlSync(): () => void {
   const token = readToken();
-  if (!token) return () => {};
+  // token no formato antigo (comprido, de um servidor que ainda não reiniciou): o endereço novo não abriria
+  // nesse servidor; fica o link como veio
+  if (!token || !TOKEN_RE.test(token)) return () => {};
   const write = (p: Place) => {
     const url = formatRoute(p, token);
     const now = window.location.pathname + window.location.search + window.location.hash;
