@@ -263,5 +263,12 @@
  "Animate the change": "Animar a virada",
  "the widget '{name}': '$opt' points to the option '{option}', which doesn't exist": "o widget '{name}': '$opt' aponta para a opção '{option}', que não existe",
  "pages.{page}: expected an object (key number: key)": "pages.{page}: esperado um objeto (número da tecla: tecla)",
- "brightness: a number from {lo} to {hi}": "brightness: um número de {lo} a {hi}"
+ "brightness: a number from {lo} to {hi}": "brightness: um número de {lo} a {hi}",
+ "'runtime' must be \"exe\" or \"deck-python\"": "'runtime' deve ser \"exe\" ou \"deck-python\"",
+ "'protocol' must be a whole number: the version of the plugin protocol (e.g.: 1)": "'protocol' deve ser um número inteiro: a versão do protocolo dos plugins (ex.: 1)",
+ "this plugin needs version {need} of the plugin protocol, and this Deck only has version {have}. Update the Deck to use it.": "este plugin precisa da versão {need} do protocolo dos plugins, e este Deck só tem a versão {have}. Atualize o Deck para usar.",
+ "'run' has -m without the module name (e.g.: [\"-m\", \"my_plugin\"])": "'run' tem -m sem o nome do módulo (ex.: [\"-m\", \"meu_plugin\"])",
+ "'run' uses the Python option {option}, which the Deck doesn't run (only -m, -u and -B)": "'run' usa a opção {option} do Python, que o Deck não roda (só -m, -u e -B)",
+ "'run' needs the plugin's Python script (e.g.: [\"main.py\"])": "'run' precisa do script Python do plugin (ex.: [\"main.py\"])",
+ "this plugin's runtime isn't \"deck-python\"": "o runtime deste plugin não é \"deck-python\""
 }

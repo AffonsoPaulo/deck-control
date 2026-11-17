@@ -1,7 +1,9 @@
 """Plugins de terceiros: um programa separado que conversa com o app por JSON, uma mensagem por linha.
 
-O app abre o programa ('run' do plugin.json, na pasta do plugin) e escreve no stdin dele;
-o plugin responde no stdout. O stderr vai para o log do app. Protocolo (versão 1):
+O app abre o programa (command(): o 'run' do plugin.json, na pasta do plugin; em Python, pelo modo
+--run-plugin do app, ver runner.py) e escreve no stdin dele; o plugin responde no stdout. O stderr vai
+para o log do app. O "protocol" do manifesto diz a versão que o plugin pede (manifest.PROTOCOL é a do
+app). Protocolo (versão 1), documentado no PLUGINS.md:
 
   app -> plugin
     {"type": "hello", "protocol": 1, "plugin": "<id>", "locale": "pt-BR", "settings": {...}}
@@ -14,7 +16,7 @@ o plugin responde no stdout. O stderr vai para o log do app. Protocolo (versão 
     {"type": "result", "id": 7, "ok": true}                  (ou "ok": false, "error": "texto")
     {"type": "state", "name": "<id>.<nome>", "value": true}  liga/desliga um estado (troca o ícone da tecla)
     {"type": "status", "state": "ok|wait|error", "label": "Conectado"}
-    {"type": "log", "message": "texto"}
+    {"type": "log", "message": "texto", "level": "info"}     level: debug | info | warn | error (padrão info)
     {"type": "value", "name": "<id>.<nome>", "value": 28}     publica um valor (teclas, regras, automações)
 
 Isolamento: o plugin roda em outro processo, então se ele travar ou cair o app continua
@@ -30,19 +32,40 @@ import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING
-from app import logs
+from app import logs, paths
 from app.i18n import tr
 from app.plugins.api import PluginAPI
+from app.plugins.manifest import PROTOCOL, runtime_of
 
 if TYPE_CHECKING:
     from app.plugins import Plugin, PluginManager
 
-PROTOCOL = 1
 ACTION_TIMEOUT = 10.0
 MAX_RESTARTS = 3  # por minuto
 HEALTHY_AFTER = 15.0  # s vivo depois de reiniciar: o problema "parou" se resolve
 LOG_LEVELS = {"debug": 10, "info": 20, "warn": 30, "warning": 30, "error": 40}
+
+
+def command(manifest: dict, folder: Path, *, frozen: bool | None = None, executable: str | None = None) -> list[str]:
+    """A linha de comando que abre o plugin (sempre com a pasta dele como pasta de trabalho).
+
+    deck-python: o próprio app roda o plugin (`--run-plugin`, ver runner.py), com o Python do app; no executável,
+    o Deck.exe. exe: o run como está; com "runtime": "exe" escrito, um programa que está na pasta do plugin é
+    aberto de lá (o Windows não procura o programa na pasta de trabalho do processo novo).
+    """
+    frozen = paths.FROZEN if frozen is None else frozen
+    executable = sys.executable if executable is None else executable
+    if runtime_of(manifest) == "deck-python":
+        if frozen:
+            return [executable, "--run-plugin", str(folder)]
+        python = executable.replace("pythonw.exe", "python.exe")  # o mesmo Python do app, com stdin/stdout
+        return [python, str(paths.MAIN_SCRIPT), "--run-plugin", str(folder)]
+    cmd = [str(x) for x in manifest["run"]]
+    if manifest.get("runtime") == "exe" and (folder / cmd[0]).is_file():
+        cmd[0] = str(folder / cmd[0])
+    return cmd
 
 
 class ExternalPlugin:
@@ -108,10 +131,7 @@ class ExternalPlugin:
 
     # -- processo
     def _command(self) -> list[str]:
-        cmd = list(self.p.manifest["run"])
-        if cmd and cmd[0] in ("python", "python3", "pythonw"):
-            cmd[0] = sys.executable.replace("pythonw.exe", "python.exe")  # o mesmo Python do app
-        return cmd
+        return command(self.p.manifest, self.p.path)
 
     def _spawn(self) -> None:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)

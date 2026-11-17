@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from typing import Any
 
 from app import i18n
 from app import logs
@@ -17,6 +18,26 @@ from app.i18n import tr
 log = logs.get("plugins")
 ID_RE = re.compile(r"^[a-z][a-z0-9_-]{1,39}$")
 SETTING_KINDS = ("text", "password", "number", "bool", "enum", "shortcut")
+
+# Plugins de terceiros (ver PLUGINS.md):
+PROTOCOL = 1  # a versão do protocolo (app/plugins/external.py) que este app fala; o "protocol" do manifesto pede
+RUNTIMES = ("exe", "deck-python")  # "exe": o run é um programa que o plugin traz; "deck-python": o app roda o Python
+PYTHON = ("python", "python3", "pythonw")  # um run que começa assim, sem "runtime", é deck-python (manifesto antigo)
+
+
+def runtime_of(m: dict[str, Any]) -> str:
+    """Como o plugin de terceiros roda: o "runtime" do manifesto ou, sem ele, pelo run (python… = deck-python)."""
+    rt = m.get("runtime")
+    if rt in RUNTIMES:
+        return str(rt)
+    run = m.get("run") or []
+    return "deck-python" if run and run[0] in PYTHON else "exe"
+
+
+def python_run(m: dict[str, Any]) -> list[str]:
+    """deck-python: o run sem o "python" da frente (o script, ou -m módulo, e os argumentos)."""
+    run = [str(x) for x in m.get("run") or []]
+    return run[1:] if run and run[0] in PYTHON else run
 
 
 # ---------------------------------------------------------------------------- idiomas
@@ -131,6 +152,7 @@ def check_manifest(m: dict, builtin: bool) -> None:
             raise PluginError(tr('\'run\' must be the plugin\'s command line, as a list (e.g.: ["python", "main.py"])'))
         if m.get("config_key"):
             raise PluginError(tr("'config_key' is only for built-in plugins"))
+        check_runtime(m)
     acts = m.get("actions", {})
     if not isinstance(acts, dict):
         raise PluginError(tr("'actions' must be an object (action type: description)"))
@@ -186,3 +208,26 @@ def check_manifest(m: dict, builtin: bool) -> None:
             raise PluginError(
                 tr("invalid 'shortcut_rules': use {example}", example='{"keys": "f13-f24", "modifiers": ["", "shift"]}')
             ) from None
+
+
+def check_runtime(m: dict[str, Any]) -> None:
+    """O "runtime" e o "protocol" de um plugin de terceiros. Os dois são opcionais: sem eles, vale o de sempre."""
+    rt = m.get("runtime")
+    if rt is not None and rt not in RUNTIMES:
+        raise PluginError(tr('\'runtime\' must be "exe" or "deck-python"'))
+    need = m.get("protocol", 1)
+    if not isinstance(need, int) or isinstance(need, bool) or need < 1:
+        raise PluginError(tr("'protocol' must be a whole number: the version of the plugin protocol (e.g.: 1)"))
+    if need > PROTOCOL:
+        raise PluginError(
+            tr(
+                "this plugin needs version {need} of the plugin protocol, and this Deck only has version {have}. "
+                "Update the Deck to use it.",
+                need=need,
+                have=PROTOCOL,
+            )
+        )
+    if rt == "deck-python":
+        from app.plugins.runner import parse_run  # confere o script (ou -m módulo) e as opções do Python
+
+        parse_run(python_run(m))

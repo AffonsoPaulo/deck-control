@@ -105,8 +105,12 @@ files = [
     "app/engine/input.py",
     "app/engine/leds.py",
     "app/engine/engine.py",
-    # plugins (Fase 6): a API entregue ao plugin; manager.py e external.py ainda não
+    # plugins (Fase 6): a API, o manifesto e o modo --run-plugin; manager.py e external.py ainda não (o import do
+    # plugin embutido e a espera das ações precisariam mudar de código para os tipos fecharem). O manifest.py fica
+    # fora do estrito: localize() e missing_keys() são as de antes, sem tipos.
     "app/plugins/api.py",
+    "app/plugins/manifest.py",
+    "app/plugins/runner.py",
 ]
 follow_imports = "silent"
 warn_unused_ignores = true
@@ -135,6 +139,7 @@ module = [
     "app.engine.drawing",
     "app.engine.input",
     "app.plugins.api",
+    "app.plugins.runner",
 ]
 # o "strict" do mypy só vale para o projeto inteiro; estas são as partes dele que funcionam por módulo
 disallow_untyped_defs = true

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from app import actions, logs
+from app import actions, logs, paths
 from app.plugins import MANAGER, Plugin, external
 from app.plugins.external import ExternalPlugin
 
@@ -215,7 +215,10 @@ def test_a_program_that_does_not_open(tmp_path, monkeypatch):
 
 
 def test_python_runs_with_the_apps_python(probe):
-    assert probe.ext._command() == [sys.executable.replace("pythonw.exe", "python.exe"), "main.py"]
+    # antes da Fase 6: [python do app, "main.py"]; agora pelo --run-plugin do app (tests/test_plugins_runtime.py
+    # confere que o plugin vê o mesmo que via antes)
+    python = sys.executable.replace("pythonw.exe", "python.exe")
+    assert probe.ext._command() == [python, str(paths.MAIN_SCRIPT), "--run-plugin", str(probe.folder)]
     probe.ext.p.manifest = {**MANIFEST, "run": ["node", "main.js"]}
     assert probe.ext._command() == ["node", "main.js"]
 
@@ -223,14 +226,20 @@ def test_python_runs_with_the_apps_python(probe):
 EXAMPLE = Path(__file__).resolve().parent.parent / "examples" / "plugins" / "pomodoro"
 
 
-def test_the_example_installs_and_starts_after_reload(monkeypatch):
+def test_the_example_installs_and_starts_after_reload(monkeypatch, caplog):
     """O exemplo do repositório, sem mudar nada: instalar religa o que o config liga (o engine está rodando)."""
+    caplog.set_level(logging.INFO, logger="deck.plugins")
     engine = FakeEngine()
     monkeypatch.setattr(MANAGER, "engine", engine)
     monkeypatch.setattr(MANAGER, "_cfg", {"discord": {"enabled": False}, "plugins": {"pomodoro": {"enabled": True}}})
     p = MANAGER.install(EXAMPLE)
     try:
         assert p.running and p.builtin is False
+        # Fase 6: o log registra de onde veio e o que roda
+        assert (
+            "Plugin installed: pomodoro 1.0.0 by Deck example (homepage: none); "
+            "runtime deck-python, runs ['python', 'main.py']"
+        ) in caplog.messages
         wait_until(lambda: MANAGER.status()["pomodoro"]["label"] == "Ready")
         wait_until(lambda: engine.states.get("pomodoro.running") is False)
         ctx = actions.Context(engine=engine, page="main", key=0)  # type: ignore[arg-type]

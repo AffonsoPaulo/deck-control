@@ -17,7 +17,7 @@ from app import paths
 from app.errors import PluginError
 from app.i18n import tr
 from app.plugins.api import PluginAPI
-from app.plugins.manifest import localize, missing_keys, read_locales, read_manifest
+from app.plugins.manifest import localize, missing_keys, read_locales, read_manifest, runtime_of
 from app.values import VALUES, Values
 
 if TYPE_CHECKING:
@@ -430,7 +430,19 @@ class PluginManager:
             shutil.rmtree(dest)
         shutil.copytree(folder, dest)
         self.reload()
-        return self.plugins[m["id"]]
+        p = self.plugins[m["id"]]
+        # o registro de onde veio e do que vai rodar no PC (o editor mostrou e a pessoa confirmou antes)
+        log.info(
+            "Plugin installed: %s %s by %s (homepage: %s); runtime %s, runs %s",
+            p.id,
+            m.get("version") or "?",
+            p.text().get("author") or "?",
+            m.get("homepage") or "none",
+            runtime_of(m),
+            m.get("run"),
+            extra={"ctx": {"plugin": p.id, "folder": str(dest), "replaced": replace}},
+        )
+        return p
 
     def remove(self, plugin_id: str) -> None:
         p = self.plugins.get(plugin_id)

@@ -339,7 +339,7 @@ def test_obs(api, api_engine):
     assert api_engine.get("/api/obs") == {"connected": False, "scenes": [], "inputs": [], "sources": {}}
 
 
-def _plugin_zip(pid="meu-plugin", nested=False) -> str:
+def _plugin_zip(pid="meu-plugin", nested=False, **extra) -> str:
     buf = io.BytesIO()
     manifest = {
         "id": pid,
@@ -347,6 +347,7 @@ def _plugin_zip(pid="meu-plugin", nested=False) -> str:
         "version": "1.2.3",
         "run": ["python", "main.py"],
         "actions": {f"{pid}.go": {"label": "Go"}},
+        **extra,
     }
     prefix = f"{pid}/" if nested else ""
     with zipfile.ZipFile(buf, "w") as z:
@@ -388,6 +389,14 @@ def test_plugin_zip_problems(api):
     assert status == 500 and r["error"] == "PluginError: the file isn't a valid .zip"
     status, r = api.request("POST", "/api/plugins/install", {"data": _plugin_zip("obs")})
     assert status == 500 and "built-in plugin" in r["error"]
+    # Fase 6: o plugin pede uma versão do protocolo que o app não tem (o editor mostra o erro ao escolher o .zip)
+    for route in ("inspect", "install"):
+        status, r = api.request("POST", f"/api/plugins/{route}", {"data": _plugin_zip(protocol=2)})
+        assert (
+            status == 500 and "needs version 2 of the plugin protocol" in r["error"] and "Update the Deck" in r["error"]
+        )
+    status, r = api.request("POST", "/api/plugins/inspect", {"data": _plugin_zip(runtime="node")})
+    assert status == 500 and "'runtime' must be" in r["error"]
 
 
 def test_press_and_show(api, api_engine, no_side_effects):

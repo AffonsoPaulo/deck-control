@@ -5,6 +5,7 @@ python -m app --tray          ícone na bandeja, sem janela (use pythonw para n�
 python -m app --debug         log detalhado de tudo (teclas, estados, desenho, plugins, editor)
 python -m app --check         só valida o config
 python -m app --autostart on|off   liga/desliga iniciar com o Windows (modo bandeja)
+python app/__main__.py --run-plugin <pasta>   vira o processo de um plugin deck-python (quem usa é o próprio app)
 """
 
 from __future__ import annotations
@@ -15,15 +16,23 @@ import webbrowser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+_ADDED_TO_PATH: list[str] = []  # o que este arquivo pôs no sys.path (o --run-plugin tira antes de rodar o plugin)
 # Rodando como script (autostart), a pasta app/ vira sys.path[0] e módulos como
 # app/config.py poderiam ser importados como "config"; tira ela do caminho.
 if sys.path and Path(sys.path[0] or ".").resolve() == Path(__file__).resolve().parent:
     sys.path.pop(0)
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+    _ADDED_TO_PATH.append(str(ROOT))
 
 
 def main() -> int:
+    if "--run-plugin" in sys.argv[1:]:
+        # antes de tudo: este processo é um plugin, não o app (sem log, sem "já está rodando", sem plugins)
+        from app.plugins.runner import main as run_plugin
+
+        return run_plugin(sys.argv[1:], _ADDED_TO_PATH)
+
     from app.i18n import tr
 
     ap = argparse.ArgumentParser(prog="python -m app")
@@ -38,6 +47,9 @@ def main() -> int:
     ap.add_argument("--editor", action="store_true", help="abre o editor no navegador ao iniciar")
     ap.add_argument("--port", type=int, default=8765, help="porta do editor (padrão 8765)")
     ap.add_argument("--autostart", choices=["on", "off"], help="liga/desliga iniciar com o Windows")
+    ap.add_argument(
+        "--run-plugin", metavar="PASTA", help="roda o plugin deck-python da pasta (quem usa é o próprio app)"
+    )
     args = ap.parse_args()
 
     from app import logs, winutil
