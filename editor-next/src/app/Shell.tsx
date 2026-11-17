@@ -19,6 +19,7 @@ import { Toaster } from "@/components/Toaster";
 // cada seção num pedaço próprio do build: só carrega quando abre
 const KeysSection = lazy(() => import("@/features/keys/KeysSection").then((m) => ({ default: m.KeysSection })));
 const AutoSection = lazy(() => import("@/features/auto/AutoSection").then((m) => ({ default: m.AutoSection })));
+const LogsSection = lazy(() => import("@/features/logs/LogsSection").then((m) => ({ default: m.LogsSection })));
 const LightSection = lazy(() => import("@/features/light/LightSection").then((m) => ({ default: m.LightSection })));
 
 const TITLES: Record<Section, string> = {
@@ -75,12 +76,13 @@ export function Shell() {
 
   return (
     <div className="flex h-dvh bg-canvas text-fg">
-      <Rail current={section} showLogs={showLogs} brand={brand} onSelect={(s) => place.go({ section: s })} />
+      <Rail current={section} showLogs={showLogs} brand={brand} onSelect={(s) => place.go({ section: s })} newErrors={status.logs.new_errors} />
       <div className="flex h-dvh min-w-0 flex-1 flex-col">
         <TopBar
           title={t(TITLES[section])}
           status={status}
           showObs={showObs}
+          showLogsTab={showLogs}
           saveState={saveState}
           canUndo={canUndo}
           canRedo={canRedo}
@@ -88,7 +90,7 @@ export function Shell() {
           onRedo={redo}
         />
         <Suspense>
-          {section === "keys" ? <KeysSection /> : section === "light" ? <LightSection /> : section === "auto" ? <AutoSection /> : <SectionPlaceholder place={{ ...place, section }} />}
+          {section === "keys" ? <KeysSection /> : section === "light" ? <LightSection /> : section === "auto" ? <AutoSection /> : section === "logs" ? <LogsSection /> : <SectionPlaceholder place={{ ...place, section }} />}
         </Suspense>
       </div>
       <Toaster />

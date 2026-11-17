@@ -1,6 +1,7 @@
 // Grupo de estado do topo: o Deck (e o OBS, se ligado) e se está tudo salvo. Cada parte com ícone e texto;
 // cor só quando precisa de atenção (como no editor atual).
-import { Check, CircleAlert, Radio, RefreshCw, Usb, type LucideIcon } from "lucide-react";
+import { Check, CircleAlert, Radio, RefreshCw, ScrollText, TriangleAlert, Usb, type LucideIcon } from "lucide-react";
+import { api } from "@/core/api";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/core/cn";
 import { useT } from "@/core/i18n";
@@ -40,10 +41,14 @@ interface StatusGroupProps {
   showObs: boolean;
   saveState: SaveState;
   onSaveErrorClick?: () => void;
+  showLogsTab?: boolean; // com a tela Logs escondida, os erros novos e os problemas aparecem aqui
 }
 
-export function StatusGroup({ status, showObs, saveState, onSaveErrorClick }: StatusGroupProps) {
+export function StatusGroup({ status, showObs, saveState, onSaveErrorClick, showLogsTab = false }: StatusGroupProps) {
   const t = useT();
+  const n = status.logs.new_errors;
+  const probs = status.problems;
+  const logItem = !showLogsTab && (n > 0 || probs.length > 0);
   const save: Record<SaveState, [LucideIcon, string, string]> = {
     saved: [Check, t("Saved"), t("All saved. The Deck already has this version.")],
     pending: [RefreshCw, t("Saving…"), ""],
@@ -85,6 +90,20 @@ export function StatusGroup({ status, showObs, saveState, onSaveErrorClick }: St
           bad
           title={t("The Deck app is not running: you can edit, but the Deck won't update.")}
         />
+      )}
+      {logItem && (
+        <button
+          type="button"
+          title={[...probs.map((p) => p.text), n ? t("{0} new errors in the log.", [n]) : null].filter(Boolean).join("\n")}
+          onClick={() => void api("POST /api/open", { what: "log" }).catch(() => {})}
+          className="inline-flex h-5.5 cursor-pointer items-center gap-2 border-l border-border-strong px-3 focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          <Icon icon={probs.length ? TriangleAlert : ScrollText} className="text-danger-fg" />
+          <b className="font-semibold text-fg">{t("Log")}</b>
+          <span className="text-danger-fg">
+            {probs.length ? (probs.length === 1 ? t("1 problem") : t("{0} problems", [probs.length])) : n === 1 ? t("1 error") : t("{0} errors", [n])}
+          </span>
+        </button>
       )}
       <Item
         icon={saveIcon}

@@ -24,9 +24,10 @@ interface RailProps {
   showLogs: boolean;
   brand: string; // favicon aceso (Deck conectado) ou apagado
   onSelect: (s: Section) => void;
+  newErrors?: number; // erros novos no log (selo no botão Logs, fora da tela Logs)
 }
 
-export function Rail({ current, showLogs, brand, onSelect }: RailProps) {
+export function Rail({ current, showLogs, brand, onSelect, newErrors = 0 }: RailProps) {
   const t = useT();
   return (
     <nav
@@ -50,6 +51,14 @@ export function Rail({ current, showLogs, brand, onSelect }: RailProps) {
           >
             <Icon icon={i.icon} size="lg" className={on ? "text-accent" : undefined} />
             <span>{t(i.label)}</span>
+            {i.section === "logs" && newErrors > 0 && !on && (
+              <span
+                aria-label={t("{0} new errors", [newErrors])}
+                className="absolute top-1 right-2.5 h-4.5 min-w-4.5 rounded-md bg-danger-solid px-1.25 text-center text-2xs leading-4.5 font-bold text-on-danger"
+              >
+                {newErrors > 99 ? "99+" : newErrors}
+              </span>
+            )}
           </button>
         );
       })}

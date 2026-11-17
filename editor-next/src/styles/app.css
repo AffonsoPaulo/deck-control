@@ -71,6 +71,11 @@
   --grid-template-columns-picker: repeat(auto-fill, minmax(220px, 1fr));
   /* opção do widget: rótulo e controle (o 110px 1fr do .opt-row do editor atual) */
   --grid-template-columns-opt: 110px 1fr;
+  /* linha do log: hora, nível, área, mensagem, seta (sem a área na tela estreita) */
+  --grid-template-columns-log: 96px 70px 104px minmax(0, 1fr) 24px;
+  --grid-template-columns-log-narrow: 80px 64px minmax(0, 1fr) 20px;
+  /* detalhe do log: nome e valor */
+  --grid-template-columns-kv: 110px minmax(0, 1fr);
 
   --text-2xs: var(--text-2xs);
   --text-2xs--line-height: var(--text-2xs--line-height);
@@ -128,7 +133,8 @@
   --color-danger-bg: var(--danger-bg);
   --color-danger-border: var(--danger-border);
   --color-danger-solid: var(--danger-solid);
-  --color-danger-solid-hover: color-mix(in srgb, var(--danger-solid) 85%, var(--on-danger)); /* .btn.solid-danger:hover */
+  --color-danger-solid-hover: color-mix(in srgb, var(--danger-solid) 85%, var(--on-danger)); /* .btn.solid-danger:hover */
+
   /* ícone claro sobre cor qualquer (o .swatch.custom.set do editor atual) */
   --drop-shadow-halo: 0 0 1px var(--icon-halo);
   --color-on-danger: var(--on-danger);
