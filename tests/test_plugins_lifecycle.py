@@ -135,7 +135,7 @@ def test_start_failure_marks_the_plugin_and_retries_on_the_next_sync(plugin, cap
     plugin.instance.fail_start = None
     MANAGER.sync(ON)
     assert plugin.running is True and plugin.error is None
-    assert plugin.status == {"state": "error", "label": "Didn't start"}  # o "On" só entra saindo de "off"
+    assert plugin.status == {"state": "ok", "label": "On"}  # ligou na segunda: o "Didn't start" sai
 
 
 class FailsOnce:
@@ -150,11 +150,6 @@ class FailsOnce:
             raise RuntimeError("no network")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="bug: ligou na segunda tentativa, mas o status continua 'Didn't start' (o 'On' só entra saindo de "
-    "'off'); hoje só aparece num plugin sem current_status(), e os embutidos e os externos têm",
-)
 def test_status_after_a_successful_retry(plugin):
     plugin.instance = FailsOnce()
     MANAGER.sync(ON)

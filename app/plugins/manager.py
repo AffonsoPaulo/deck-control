@@ -90,6 +90,11 @@ class Plugin:
 # ---------------------------------------------------------------------------- gerenciador
 
 
+def _didnt_start() -> dict:
+    """O status que o gerenciador põe quando o plugin falha ao ligar ou atualizar."""
+    return {"state": "error", "label": tr("Didn't start")}
+
+
 class PluginManager:
     """Os plugins do app e o ciclo de vida de cada um:
 
@@ -213,7 +218,7 @@ class PluginManager:
                         self._stop(p)
                 except Exception as e:  # inclusive ao atualizar: o status vira "Didn't start" (como sempre foi)
                     p.error = str(e)
-                    p.status = {"state": "error", "label": tr("Didn't start")}
+                    p.status = _didnt_start()
                     log.error(
                         "Plugin %s didn't start: %s",
                         p.id,
@@ -227,7 +232,9 @@ class PluginManager:
         if hasattr(p.instance, "start"):
             p.instance.start(settings)
         p.running = True
-        if p.status.get("state") == "off":
+        # saindo de desligado, ou do "Didn't start" de uma tentativa que falhou antes (o status que o próprio
+        # plugin pôs continua valendo)
+        if p.status.get("state") == "off" or p.status == _didnt_start():
             p.status = {"state": "ok", "label": tr("On")}
         log.info(
             "Plugin started: %s %s%s",
