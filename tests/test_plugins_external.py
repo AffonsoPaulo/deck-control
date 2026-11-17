@@ -70,7 +70,7 @@ class Probe:
 
 def make_probe(tmp_path: Path, monkeypatch, **manifest) -> Probe:
     folder = tmp_path / "probe"
-    folder.mkdir()
+    folder.mkdir(parents=True)
     shutil.copy(PROBE, folder / "main.py")
     m = {**MANIFEST, **manifest}
     (folder / "plugin.json").write_text(json.dumps(m), encoding="utf-8")
@@ -212,6 +212,26 @@ def test_a_program_that_does_not_open(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="couldn't open the plugin"):
         pr.ext.start({})
     assert pr.ext.current_status() == {"state": "error", "label": "Didn't open"}
+
+
+def test_a_program_the_plugin_brings(tmp_path, monkeypatch):
+    """runtime "exe" com um programa da pasta do plugin (aqui um .cmd que chama a sonda). Sem o runtime escrito, o
+    mesmo run não abre: o Windows não procura o programa na pasta de trabalho do processo novo (como antes)."""
+    python = sys.executable.replace("pythonw.exe", "python.exe")
+    for runtime in ("exe", None):
+        pr = make_probe(tmp_path / str(runtime), monkeypatch, run=["deck-probe.cmd"])
+        (pr.folder / "deck-probe.cmd").write_text(f'@"{python}" "%~dp0main.py" %*\r\n', encoding="utf-8")
+        if runtime:
+            pr.ext.p.manifest["runtime"] = runtime
+            try:
+                pr.ext.start({})
+                wait_until(lambda pr=pr: pr.ext.current_status()["label"] == "Ready ✓")
+                pr.act(do="ok")
+            finally:
+                pr.ext.stop()
+        else:
+            with pytest.raises(RuntimeError, match="couldn't open the plugin"):
+                pr.ext.start({})
 
 
 def test_python_runs_with_the_apps_python(probe):
