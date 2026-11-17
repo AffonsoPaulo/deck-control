@@ -40,7 +40,14 @@ def fail(msg: str) -> None:
 
 def run(exe: Path, env: dict[str, str], *args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
     r = subprocess.run(
-        [str(exe), *args], env=env, cwd=cwd, capture_output=True, text=True, encoding="utf-8", timeout=120
+        [str(exe), *args],
+        env=env,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=120,
     )
     print(f"$ Deck.exe {' '.join(args)}  -> {r.returncode}\n{r.stdout}{r.stderr}")
     return r
