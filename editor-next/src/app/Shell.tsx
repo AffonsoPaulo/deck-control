@@ -18,6 +18,7 @@ import { Toaster } from "@/components/Toaster";
 
 // cada seção num pedaço próprio do build: só carrega quando abre
 const KeysSection = lazy(() => import("@/features/keys/KeysSection").then((m) => ({ default: m.KeysSection })));
+const AutoSection = lazy(() => import("@/features/auto/AutoSection").then((m) => ({ default: m.AutoSection })));
 const LightSection = lazy(() => import("@/features/light/LightSection").then((m) => ({ default: m.LightSection })));
 
 const TITLES: Record<Section, string> = {
@@ -87,7 +88,7 @@ export function Shell() {
           onRedo={redo}
         />
         <Suspense>
-          {section === "keys" ? <KeysSection /> : section === "light" ? <LightSection /> : <SectionPlaceholder place={{ ...place, section }} />}
+          {section === "keys" ? <KeysSection /> : section === "light" ? <LightSection /> : section === "auto" ? <AutoSection /> : <SectionPlaceholder place={{ ...place, section }} />}
         </Suspense>
       </div>
       <Toaster />

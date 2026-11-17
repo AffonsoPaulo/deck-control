@@ -1046,5 +1046,7 @@
  "{0}: moving canceled.": "{0}: arrasto cancelado.",
  "draggable key": "tecla arrastável",
  "adjusted": "ajustado",
- "This link no longer opens the editor": "Este link não abre mais o editor"
+ "This link no longer opens the editor": "Este link não abre mais o editor",
+ "{0}: position {1} in the list.": "{0}: posição {1} na lista.",
+ "{0} went to position {1} in the list.": "{0} foi para a posição {1} da lista."
 }

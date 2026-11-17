@@ -9,17 +9,21 @@ interface SwitchProps {
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   className?: string;
+  hideLabel?: boolean; // só o interruptor (o rótulo vira o nome para o leitor de tela), como nas Automações
 }
 
-export function Switch({ label, checked, onChange, disabled, className }: SwitchProps) {
+export function Switch({ label, checked, onChange, disabled, className, hideLabel }: SwitchProps) {
   const id = useId();
   return (
     <div className={cn("flex min-h-7.5 items-center gap-3 text-base font-semibold text-fg-label", className)}>
-      <label htmlFor={id} className="flex-1 cursor-pointer">
-        {label}
-      </label>
+      {!hideLabel && (
+        <label htmlFor={id} className="flex-1 cursor-pointer">
+          {label}
+        </label>
+      )}
       <BaseSwitch.Root
         id={id}
+        aria-label={hideLabel ? label : undefined}
         checked={checked}
         onCheckedChange={(on) => onChange(on)}
         disabled={disabled}

@@ -45,7 +45,7 @@ import { fillBinds } from "@/features/keys/place";
 type T = ReturnType<typeof useT>;
 
 /** Mexer nas listas da tecla: monta o modelo, muda e grava de volta (com as regras do commitModel). */
-function useLogic(page: string, k: string) {
+function useLogic(page: string, k: string): Logic {
   const t = useT();
   const schema = useSchema().data;
   const edit = useConfig((s) => s.edit);
@@ -66,33 +66,33 @@ function useLogic(page: string, k: string) {
   return { change, setSpec, defs, schema };
 }
 
-type Logic = ReturnType<typeof useLogic>;
+/** Onde as listas de passos gravam: a tecla (useLogic) ou uma automação (o "do" dela, só a lista "action"). */
+export interface Logic {
+  change: (fn: (m: Model, spec: KeySpec) => void, tag?: string) => void;
+  setSpec: (fn: (spec: KeySpec) => void, tag?: string) => void;
+  defs: Record<string, ActionDef>;
+  schema: ReturnType<typeof useSchema>["data"];
+}
 
 interface Ctx {
   page: string;
-  k: string;
   logic: Logic;
   pick: (path: ListPath, index: number) => void;
   wide: boolean; // na visão ampliada: a frase um pouco maior
 }
 
-export function DoTab({ page, k, spec, wide }: { page: string; k: string; spec: KeySpec; wide?: boolean }) {
+/** O que toda lista de passos precisa: escolher uma ação para pôr num lugar, e receber o que cai nela (ação da
+ * biblioteca ou passo arrastado). Devolve o contexto dos blocos e o diálogo de escolher ação. */
+export function useSteps(page: string, logic: Logic, wide = false): { ctx: Ctx; picker: ReactNode } {
   const t = useT();
-  const logic = useLogic(page, k);
-  const doubleMs = useConfig((s) => Number(s.cfg?.double_tap_ms) || 250);
   const [picking, setPicking] = useState<{ path: ListPath; index: number } | null>(null);
-  const model = modelOf(spec);
+  const obs = useObs();
   const insert = async (path: ListPath, index: number, type: string) => {
     const cfg = useConfig.getState().cfg;
-    const step = newStep(logic.defs, type, { pages: pageNames(cfg), page, scenes: obsScenes() });
+    const step = newStep(logic.defs, type, { pages: pageNames(cfg), page, scenes: obs.scenes });
     await fillBinds([step], t, logic.schema);
     logic.change((m) => void listAt(m, path).splice(index, 0, step));
   };
-  const obs = useObs();
-  const obsScenes = () => obs.scenes;
-  const ctx: Ctx = { page, k, logic, pick: (path, index) => setPicking({ path, index }), wide: !!wide };
-
-  // o que cai numa lista de passos (ação da biblioteca ou passo arrastado)
   useEffect(() => {
     logicDrop.current = async (payload: DragPayload, target: string) => {
       const [, raw, idx] = target.split("|");
@@ -119,6 +119,17 @@ export function DoTab({ page, k, spec, wide }: { page: string; k: string; spec: 
       logicDrop.current = null;
     };
   });
+  const ctx: Ctx = { page, logic, pick: (path, index) => setPicking({ path, index }), wide };
+  const picker = <ActionPicker open={picking !== null} onOpenChange={(o) => !o && setPicking(null)} onPick={(type) => picking && void insert(picking.path, picking.index, type)} />;
+  return { ctx, picker };
+}
+
+export function DoTab({ page, k, spec, wide }: { page: string; k: string; spec: KeySpec; wide?: boolean }) {
+  const t = useT();
+  const logic = useLogic(page, k);
+  const doubleMs = useConfig((s) => Number(s.cfg?.double_tap_ms) || 250);
+  const model = modelOf(spec);
+  const { ctx, picker } = useSteps(page, logic, !!wide);
 
   const NAMES: Record<Moment, string> = { action: t("On press"), double: t("On double tap"), hold: t("On hold"), release: t("On release") };
   const pressRepeats = spec.repeat === "press";
@@ -171,7 +182,7 @@ export function DoTab({ page, k, spec, wide }: { page: string; k: string; spec: 
           </section>
         );
       })}
-      <ActionPicker open={picking !== null} onOpenChange={(o) => !o && setPicking(null)} onPick={(type) => picking && void insert(picking.path, picking.index, type)} />
+      {picker}
     </div>
   );
 }
@@ -245,7 +256,7 @@ function Slot({ path, index }: { path: ListPath; index: number }) {
   );
 }
 
-function Flow({ ctx, path, list, top }: { ctx: Ctx; path: ListPath; list: Obj[]; top?: boolean }) {
+export function Flow({ ctx, path, list, top }: { ctx: Ctx; path: ListPath; list: Obj[]; top?: boolean }) {
   const t = useT();
   const { ref, isDropTarget } = useDroppable({ id: slotId(path, 0) + (list.length ? "|unused" : "") });
   if (!list.length) {
