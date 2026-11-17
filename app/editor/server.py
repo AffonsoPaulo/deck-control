@@ -33,6 +33,11 @@ STATIC = paths.STATIC
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("image/svg+xml", ".svg")
 mimetypes.add_type("font/ttf", ".ttf")
+# o Windows lê os tipos do registro, e alguns PCs dizem text/plain para .js: o navegador recusa módulos assim
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
+mimetypes.add_type("application/json", ".map")
+NEXT_PREFIX = "/next"  # o editor novo (React), enquanto não substitui o atual
 log = logs.get("editor")
 _GONE = (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)
 
@@ -209,10 +214,13 @@ def _make_handler(server: EditorServer):
                     return self._json(500, {"error": f"{type(e).__name__}: {e}"})
             if method != "GET":
                 return self._send(405, b"", "text/plain")
-            # arquivos estáticos
-            rel = "index.html" if path in ("/", "") else path.lstrip("/")
-            target = (STATIC / rel).resolve()
-            if STATIC.resolve() not in target.parents or not target.is_file():
+            # arquivos estáticos: o editor atual em /, o novo em /next (o build do editor-next/)
+            if path == NEXT_PREFIX or path.startswith(NEXT_PREFIX + "/"):
+                root, rel = paths.EDITOR_NEXT, path[len(NEXT_PREFIX) :].lstrip("/") or "index.html"
+            else:
+                root, rel = STATIC, "index.html" if path in ("/", "") else path.lstrip("/")
+            target = (root / rel).resolve()
+            if root.resolve() not in target.parents or not target.is_file():
                 return self._send(404, b"not found", "text/plain")
             ctype = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
             if ctype.startswith("text/") or ctype.endswith("javascript"):

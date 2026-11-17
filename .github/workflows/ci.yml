@@ -25,3 +25,24 @@ jobs:
         run: python -m mypy
       - name: Testes (pytest)
         run: python -m pytest
+
+  web:
+    # o editor novo (React): lint (inclui as regras do design system), tipos, contrato em dia e build
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: editor-next
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: editor-next/package-lock.json
+      - name: Dependências
+        run: npm ci
+      - name: Lint, tipos e contrato
+        run: npm run check
+      - name: Build
+        run: npx vite build
+

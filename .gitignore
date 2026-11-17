@@ -15,13 +15,21 @@ __pycache__/
 build/
 venv/
 
+# Editor novo (React): dependências, build e prints de referência (gerados na máquina de quem testa)
+node_modules/
+editor-next/dist/
+editor-next/reference/
+editor-next/test-results/
+editor-next/playwright-report/
+
 # Saídas de teste e fotos locais
 *.jpg
 *.jpeg
 *.png
 teste-animado.gif
 
-# Sistema / editores
+# Sistema / editores (e as cópias de trabalho temporárias do Claude Code)
+.claude/worktrees/
 Thumbs.db
 desktop.ini
 .vscode/

@@ -1,0 +1,32 @@
+// Editor novo. Em produção o Python serve o dist/ em /next (mesmo token, mesma API).
+// Em desenvolvimento (npm run dev), a /api vai para o servidor de teste na porta 8799, nunca para o app real.
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
+
+const src = fileURLToPath(new URL("./src", import.meta.url));
+const tokens = fileURLToPath(new URL("../app/editor/static/tokens.css", import.meta.url));
+
+export default defineConfig({
+  base: "/next/",
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": src,
+      // a fonte única dos tokens é a do editor atual (app/editor/static/tokens.css)
+      "deck-tokens.css": tokens,
+    },
+  },
+  server: {
+    host: "127.0.0.1", // só esta máquina, como o servidor do editor
+    port: 5173,
+    strictPort: true,
+    proxy: {
+      // changeOrigin troca o Host para 127.0.0.1:8799, que é o que o servidor confere
+      "/api": { target: "http://127.0.0.1:8799", changeOrigin: true },
+    },
+    fs: { allow: [".", "../app/editor/static"] },
+  },
+  build: { outDir: "dist", emptyOutDir: true, sourcemap: true },
+});

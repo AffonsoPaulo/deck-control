@@ -56,6 +56,18 @@ python -m mypy             # tipos (só os módulos listados no pyproject.toml, 
 
 A CI do GitHub (`.github/workflows/ci.yml`) roda os quatro a cada push, no Windows.
 
+Editor novo (React, em construção, em `editor-next/`; precisa do Node 22 ou mais novo):
+
+```
+cd editor-next
+npm ci
+npm run dev           # http://127.0.0.1:5173/next/#t=<token> (a /api vai para o servidor de teste, porta 8799)
+npm run check         # lint (inclui as regras do design system), tipos e contrato em dia
+npx vite build        # gera editor-next/dist, que o app serve em /next
+npm run gen:api       # tipos da API, depois de mudar app/editor/contract.py
+npm run ref:capture   # prints de referência do editor atual (editor-next/reference/)
+```
+
 ## Ferramentas de teste do aparelho
 
 Falam com o D6 de verdade (por isso ficam fora do pytest):

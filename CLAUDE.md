@@ -16,6 +16,15 @@
 - Apareceu em dois lugares: vira componente na hora.
 - Mudança visual passa primeiro pelo canvas (artifact "Editor do D6", página "Design system").
 
+## Editor novo (React, `editor-next/`)
+- Vite + React 19 + TypeScript 6 (estrito) + Tailwind v4. O Python serve o build em `/next` (mesmo token).
+  Em desenvolvimento, `npm run dev` (porta 5173) manda a `/api` para o servidor de teste (8799), nunca para o app real.
+- Tailwind só com os tokens do `app/editor/static/tokens.css` (importado, nunca copiado), em `src/styles/app.css`.
+  O lint barra valor escrito direto (`rounded-[7px]`) e classe que não é token (`bg-blue-500`).
+- Tipos da API gerados do contrato: `npm run gen:api` (depois de `python -m app.editor.contract`).
+- Antes de commitar: `npm run check` (lint, tipos, contrato em dia) e `npx vite build`.
+- Versões exatas no `package.json`, instaladas com `npm install --before=<data de 2 semanas atrás>`.
+
 ## Python
 - Testes: `python -m pytest` (só a pasta `tests/`; os scripts de `tools/` falam com o D6 de verdade).
   Teste novo nunca usa o `config.yaml` de verdade: config sintético ou o `config.example.yaml`, em `tmp_path`.

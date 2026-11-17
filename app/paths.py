@@ -30,6 +30,7 @@ APP = ROOT / "app"
 STATIC = APP / "editor" / "static"  # o editor (HTML, CSS, JS, fontes, traduções do editor)
 LOCALES = APP / "locales"  # traduções do Python
 BUILTIN_PLUGINS = APP / "plugins" / "builtin"
+EDITOR_NEXT = ROOT / "editor-next" / "dist"  # o editor novo (React), servido em /next depois do npm run build
 MAIN_SCRIPT = APP / "__main__.py"  # o que o "iniciar com o Windows" roda (fora do executável)
 EXAMPLE_CONFIG = ROOT / "config.example.yaml"
 

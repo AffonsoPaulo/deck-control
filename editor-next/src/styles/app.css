@@ -1,0 +1,139 @@
+/*
+  Tailwind só com os tokens do Deck (app/editor/static/tokens.css, a fonte única).
+
+  Os nomes de escala do tokens.css já são os nomes que o Tailwind usa (--radius-md, --text-sm, --spacing,
+  --font-sans, --shadow-*, --ease-*). Declarar "--radius-md: var(--radius-md)" num @theme normal criaria uma
+  variável que aponta para ela mesma; com @theme inline o utilitário usa o valor direto (var(--radius-md),
+  definido no tokens.css) e o Tailwind não emite a variável.
+  Tudo que é do Tailwind e não é nosso começa zerado (initial): rounded-lg, bg-blue-500, shadow-xl não existem.
+*/
+@import "tailwindcss";
+@import "deck-tokens.css";
+
+@theme inline reference {
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --text-*: initial;
+  --font-*: initial;
+  --ease-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --blur-*: initial;
+  --perspective-*: initial;
+  --aspect-*: initial;
+  --container-*: initial;
+  --font-weight-*: initial;
+  --tracking-*: initial;
+  --leading-*: initial;
+  --animate-*: initial;
+
+  --spacing: var(--spacing);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-glyph: var(--font-glyph);
+
+  --text-2xs: var(--text-2xs);
+  --text-2xs--line-height: var(--text-2xs--line-height);
+  --text-xs: var(--text-xs);
+  --text-xs--line-height: var(--text-xs--line-height);
+  --text-sm: var(--text-sm);
+  --text-sm--line-height: var(--text-sm--line-height);
+  --text-base: var(--text-base);
+  --text-base--line-height: var(--text-base--line-height);
+  --text-md: var(--text-md);
+  --text-md--line-height: var(--text-md--line-height);
+  --text-lg: var(--text-lg);
+  --text-lg--line-height: var(--text-lg--line-height);
+  --text-xl: var(--text-xl);
+  --text-xl--line-height: var(--text-xl--line-height);
+  --text-2xl: var(--text-2xl);
+  --text-2xl--line-height: var(--text-2xl--line-height);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-popover: var(--shadow-popover);
+  --shadow-dialog: var(--shadow-dialog);
+  --shadow-drawer: var(--shadow-drawer);
+
+  --ease-out: var(--ease-out);
+  --ease-in: var(--ease-in);
+
+  /* cores da interface (mudam com o tema) */
+  --color-canvas: var(--canvas);
+  --color-field: var(--field);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-raised: var(--raised);
+  --color-selected: var(--selected);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-track: var(--track);
+  --color-fg: var(--fg);
+  --color-fg-label: var(--fg-label);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ring: var(--accent-ring);
+  --color-accent-glow: var(--accent-glow);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-border: var(--danger-border);
+  --color-danger-solid: var(--danger-solid);
+  --color-on-danger: var(--on-danger);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-bg: var(--warning-bg);
+  --color-success-fg: var(--success-fg);
+  --color-success-bg: var(--success-bg);
+  --color-info-fg: var(--info-fg);
+  --color-info-bg: var(--info-bg);
+  --color-scrim: var(--scrim);
+  --color-tint-hover: var(--tint-hover);
+  --color-tint-line: var(--tint-line);
+
+  /* cor base de cada categoria (chip, ícone e bloco saem dela com color-mix, nos componentes) */
+  --color-cat-blue: var(--cat-blue);
+  --color-cat-green: var(--cat-green);
+  --color-cat-teal: var(--cat-teal);
+  --color-cat-indigo: var(--cat-indigo);
+  --color-cat-violet: var(--cat-violet);
+  --color-cat-orange: var(--cat-orange);
+  --color-cat-pink: var(--cat-pink);
+  --color-cat-sky: var(--cat-sky);
+  --color-cat-gray: var(--cat-gray);
+
+  /* paleta das teclas (vai para o Deck; não muda com o tema) */
+  --color-key-graphite: var(--key-graphite);
+  --color-key-blue: var(--key-blue);
+  --color-key-sky: var(--key-sky);
+  --color-key-green: var(--key-green);
+  --color-key-amber-dark: var(--key-amber-dark);
+  --color-key-red: var(--key-red);
+  --color-key-violet: var(--key-violet);
+  --color-key-discord: var(--key-discord);
+  --color-key-amber: var(--key-amber);
+  --color-key-black: var(--key-black);
+  --color-key-fg: var(--key-fg);
+  --color-key-fg-dark: var(--key-fg-dark);
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--canvas);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+}

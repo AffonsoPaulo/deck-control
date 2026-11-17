@@ -54,7 +54,7 @@ addopts = "-ra"
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-extend-exclude = ["scratch", "examples"]
+extend-exclude = ["scratch", "examples", ".claude", "editor-next/node_modules"]
 
 [tool.ruff.lint]
 # Sem "I" (ordem dos imports) por enquanto: a ordem importa até a Fase 1 acabar com o ciclo actions <-> plugins.

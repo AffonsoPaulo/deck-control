@@ -587,3 +587,41 @@ def test_optional_keys_are_optional():
     check_contract("error", "", {"error": "token inválido", "code": "token"})
     with pytest.raises(AssertionError):
         check_contract("error", "", {"error": "x", "code": "outro"})
+
+
+# ---------------------------------------------------------------------------- o editor novo em /next
+
+
+def test_next_editor_is_served_from_its_build(api, tmp_path, monkeypatch):
+    from app import paths
+
+    dist = tmp_path / "dist"
+    (dist / "assets").mkdir(parents=True)
+    (dist / "index.html").write_text("<!doctype html><title>novo</title>", encoding="utf-8")
+    (dist / "assets" / "app.js").write_text("export {}", encoding="utf-8")
+    (dist / "assets" / "app.css").write_text("body{}", encoding="utf-8")
+    monkeypatch.setattr(paths, "EDITOR_NEXT", dist)
+    for path in ("/next", "/next/"):
+        status, body = api.request("GET", path)
+        assert status == 200 and b"novo" in body, path
+    conn = http.client.HTTPConnection("127.0.0.1", api.srv.port, timeout=10)
+    conn.request("GET", "/next/assets/app.js", headers={"Host": f"127.0.0.1:{api.srv.port}"})
+    r = conn.getresponse()
+    r.read()
+    assert r.status == 200
+    assert r.getheader("Content-Type") == "text/javascript; charset=utf-8"  # módulo: o navegador exige JS
+    conn.close()
+    for path in ("/next/../config.yaml", "/next/../../app/paths.py", "/next/nada.js"):
+        status, _ = api.request("GET", path)
+        assert status == 404, path
+    # o editor atual continua em /
+    status, body = api.request("GET", "/")
+    assert status == 200 and b"novo" not in body
+
+
+def test_next_without_build_is_404(api, tmp_path, monkeypatch):
+    from app import paths
+
+    monkeypatch.setattr(paths, "EDITOR_NEXT", tmp_path / "nao-existe")
+    status, _ = api.request("GET", "/next/")
+    assert status == 404
