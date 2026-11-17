@@ -8,6 +8,11 @@ docs/
 __pycache__/
 *.py[cod]
 .venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
 venv/
 
 # Saídas de teste e fotos locais

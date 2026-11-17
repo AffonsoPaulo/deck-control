@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    # Windows: o app usa ctypes/winreg e as fontes do Windows para desenhar as teclas
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Dependências
+        run: python -m pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: python -m ruff check .
+      - name: Formatação (ruff)
+        run: python -m ruff format --check .
+      - name: Tipos (mypy)
+        run: python -m mypy
+      - name: Testes (pytest)
+        run: python -m pytest

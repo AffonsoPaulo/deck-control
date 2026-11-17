@@ -16,6 +16,14 @@
 - Apareceu em dois lugares: vira componente na hora.
 - Mudança visual passa primeiro pelo canvas (artifact "Editor do D6", página "Design system").
 
+## Python
+- Testes: `python -m pytest` (só a pasta `tests/`; os scripts de `tools/` falam com o D6 de verdade).
+  Teste novo nunca usa o `config.yaml` de verdade: config sintético ou o `config.example.yaml`, em `tmp_path`.
+- `python -m ruff check .`, `python -m ruff format .` e `python -m mypy` antes de commitar. Formatação vai em
+  commit separado de mudança de lógica.
+- Bug achado em teste de caracterização: registrar com `xfail(strict=True)` e avisar, sem corrigir junto.
+- Plano da refatoração: `docs/plano-python.md`.
+
 ## Trabalho
 - Responder em português do Brasil.
 - `config.yaml` tem a senha do OBS: nunca mostrar, logar nem commitar. O repositório é público.

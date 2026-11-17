@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deck"
+version = "0.1.0"
+description = "App para o Fifine AmpliGame D6: teclas, luz, widgets e plugins, com editor no navegador."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "hidapi>=0.14",
+    "Pillow>=10",
+    "PyYAML>=6",
+    # o configio mexe em partes internas do ruamel (comentários): versão nova só depois de testar
+    "ruamel.yaml>=0.18,<0.20",
+    "pystray>=0.19",
+    "obsws-python>=1.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    # versões fixas: a formatação e as checagens dão o mesmo resultado aqui e na CI
+    "ruff==0.15.9",
+    "mypy==1.18.2",
+    "types-PyYAML",
+]
+
+[project.scripts]
+deck = "app.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["app*", "d6*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.yaml", "*.html", "*.css", "*.js", "*.ttf", "*.png", "*.ico", "*.svg"]
+
+# ---------------------------------------------------------------------------- testes
+
+[tool.pytest.ini_options]
+# só a pasta tests/: os scripts de tools/ (draw_test.py etc.) falam com o D6 de verdade
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+# ---------------------------------------------------------------------------- lint e formatação
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["scratch", "examples"]
+
+[tool.ruff.lint]
+# Sem "I" (ordem dos imports) por enquanto: a ordem importa até a Fase 1 acabar com o ciclo actions <-> plugins.
+select = ["E4", "E7", "E9", "F", "W", "B"]
+ignore = [
+    "E731",  # lambda curta atribuída a um nome é comum no código
+    "E741",  # nome "l" em laços curtos
+    "B905",  # zip sem strict=
+]
+
+[tool.ruff.lint.per-file-ignores]
+"d6/device.py" = ["E702"]          # montagem dos pacotes HID, uma linha por campo de propósito
+"app/editor/server.py" = ["E702"]
+"tests/*" = ["B011"]
+
+# ---------------------------------------------------------------------------- tipos
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+# Começa leve: só os módulos listados em "files" são checados. Cada módulo refeito entra na lista, já estrito.
+# Próximos: widgets, values e binds (hoje têm avisos de tipo, sem bug conhecido).
+files = ["app/configio.py", "app/i18n.py"]
+follow_imports = "silent"
+warn_unused_ignores = true

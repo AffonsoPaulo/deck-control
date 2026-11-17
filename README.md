@@ -13,6 +13,12 @@ App do zero para o Fifine AmpliGame D6 (USB `3142:0060`), sem o software da Fifi
 
 ## Usar o app
 
+Instalar (Python 3.12 ou mais novo), na pasta do projeto:
+
+```
+pip install -e .
+```
+
 ```
 pythonw -m app --tray    # dia a dia: ícone na bandeja, sem janela (log em %LOCALAPPDATA%\D6Deck\app.log)
 python -m app            # no terminal, com log na tela
@@ -38,10 +44,23 @@ continuam em português.
 Todas as ações, campos de ícone e opções estão documentados no topo de
 `config.example.yaml`. O app recarrega o `config.yaml` sozinho ao salvar.
 
-## Ferramentas de teste
+## Desenvolvimento
 
 ```
-pip install -r requirements.txt
+pip install -e ".[dev]"    # o app mais pytest, ruff e mypy
+python -m pytest           # testes (não precisam do D6 plugado)
+python -m ruff check .     # lint
+python -m ruff format .    # formatação
+python -m mypy             # tipos (só os módulos listados no pyproject.toml, por enquanto)
+```
+
+A CI do GitHub (`.github/workflows/ci.yml`) roda os quatro a cada push, no Windows.
+
+## Ferramentas de teste do aparelho
+
+Falam com o D6 de verdade (por isso ficam fora do pytest):
+
+```
 python tools/listen.py          # aperte as teclas do D6
 python tools/listen.py --raw    # também mostra os bytes crus recebidos
 python tools/draw_test.py       # número colorido em cada tecla
@@ -69,6 +88,7 @@ Envio em lote (uma sessão para todas as teclas) funciona; página inteira em ~1
 - `app/lighting.py` luz do D6: efeitos e reações às teclas no anel de LEDs
 - `app/plugins/` plugins: o OBS e o Discord (embutidos) e os de terceiros (programas separados); ver PLUGINS.md
 - `app/editor/` servidor e interface do editor visual
+- `tests/` testes automáticos (pytest)
 - `app/configio.py` gravação do YAML preservando comentários
 - `app/schema.py` descrição das ações para o editor
 - `app/tray.py`, `app/winutil.py` bandeja, autostart, instância única
