@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 
 import yaml
 
-from app import actions, history, i18n, icons, logs, transfer, values, widgets
+from app import actions, history, i18n, icons, logs, paths, transfer, values, widgets
 from app.config import ConfigError, build_config
 from app.configio import read_plain, save_plain
 from app.schema import schema
@@ -32,8 +32,10 @@ from app.i18n import tr
 
 if TYPE_CHECKING:
     from app.engine import Engine
+    from app.plugins import PluginManager
+    from app.values import Values
 
-STATIC = Path(__file__).parent / "static"
+STATIC = paths.STATIC
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("image/svg+xml", ".svg")
 mimetypes.add_type("font/ttf", ".ttf")
@@ -55,7 +57,21 @@ class _Server(ThreadingHTTPServer):
 
 
 class EditorServer:
-    def __init__(self, config_path: Path, engine: "Engine | None" = None, port: int = 8765):
+    def __init__(
+        self,
+        config_path: Path,
+        engine: "Engine | None" = None,
+        port: int = 8765,
+        plugins: "PluginManager | None" = None,
+        values: "Values | None" = None,
+    ):
+        # plugins/values vêm do app/bootstrap.py; sem eles (código antigo, testes), as mesmas peças globais
+        if plugins is None:
+            from app.plugins import MANAGER as plugins
+        if values is None:
+            from app.values import VALUES as values
+        self.plugins = plugins
+        self.values = values
         self.config_path = Path(config_path)
         self.engine = engine
         self.token = _persistent_token()
@@ -72,14 +88,13 @@ class EditorServer:
             self.engine.apply_log_settings()
             return
         # sem engine (testes): as mesmas regras, lidas direto do arquivo
-        from app.plugins import MANAGER
 
         try:
             raw = yaml.safe_load(self.config_path.read_text(encoding="utf-8")) or {}
         except (OSError, yaml.YAMLError):
             raw = {}
         raw = raw if isinstance(raw, dict) else {}
-        logs.configure(raw.get("logging"), secrets=[*MANAGER.secret_values(raw), self.token])
+        logs.configure(raw.get("logging"), secrets=[*self.plugins.secret_values(raw), self.token])
 
     def _bind(self, port: int) -> ThreadingHTTPServer:
         handler = _make_handler(self)
@@ -179,7 +194,7 @@ class EditorServer:
         out = []
         base = self.config_path.parent
         defaults = body.get("icons") if isinstance(body.get("icons"), dict) else None
-        get = _sample_getter()
+        get = _sample_getter(self.plugins, self.values)
         wdefs = None
         for item in body.get("keys", []):
             if not item:
@@ -239,7 +254,7 @@ class EditorServer:
         """Valor atual de cada valor (para a lista do editor e as etiquetas de prévia)."""
         from app.schema import schema as _schema
 
-        get = _sample_getter()
+        get = _sample_getter(self.plugins, self.values)
         out = {}
         for v in _schema()["values"]:
             val = get(v["id"])
@@ -264,7 +279,6 @@ class EditorServer:
                 "logs": {"new_errors": s["new_errors"], "last": s["last"]},
                 "problems": logs.problems(),
             }
-        from app.plugins import MANAGER
 
         s = logs.summary()
         return {
@@ -272,7 +286,7 @@ class EditorServer:
             "device": e.device_connected,
             "page": e.page,
             "obs": bool(e.obs and e.obs.req is not None),
-            "plugins": MANAGER.status(),
+            "plugins": self.plugins.status(),
             "logs": {"new_errors": s["new_errors"], "last": s["last"]},
             "problems": logs.problems(),
         }
@@ -340,10 +354,9 @@ class EditorServer:
     def api_logs_diagnostics(self, _body):
         """Pacote para pedir ajuda: logs, config sem as senhas, versões, plugins e o aparelho."""
         from app import configio
-        from app.plugins import MANAGER
 
         try:
-            text = configio.without_secrets(self.config_path.read_text(encoding="utf-8"), MANAGER.secret_paths())
+            text = configio.without_secrets(self.config_path.read_text(encoding="utf-8"), self.plugins.secret_paths())
         except OSError as e:
             log.warning("Diagnostics: couldn't read the config: %s", e)
             text = None
@@ -351,7 +364,7 @@ class EditorServer:
         extra = {
             "plugins": [
                 {"id": p.id, "version": p.manifest.get("version"), "running": p.running, "builtin": p.builtin}
-                for p in MANAGER.plugins.values()
+                for p in self.plugins.plugins.values()
             ],
             "device": e.device_info() if e is not None else {"connected": False},
             "page": e.page if e is not None else None,
@@ -397,12 +410,11 @@ class EditorServer:
 
     def api_plugin_inspect(self, body):
         import shutil
-        from app.plugins import MANAGER
         from app.plugins import localize, read_locales
 
         folder, m = self._plugin_zip(body)
         try:
-            existing = MANAGER.plugins.get(m["id"])
+            existing = self.plugins.plugins.get(m["id"])
             m = localize(m, read_locales(folder))
             return {
                 "manifest": {
@@ -428,21 +440,19 @@ class EditorServer:
 
     def api_plugin_install(self, body):
         import shutil
-        from app.plugins import MANAGER
         from app.schema import schema
 
         folder, m = self._plugin_zip(body)
         try:
-            MANAGER.install(folder, replace=bool(body.get("replace")))
+            self.plugins.install(folder, replace=bool(body.get("replace")))
         finally:
             shutil.rmtree(folder if folder.name.startswith("d6plugin-") else folder.parent, ignore_errors=True)
         return {"ok": True, "id": m["id"], "schema": schema()}
 
     def api_plugin_remove(self, body):
-        from app.plugins import MANAGER
         from app.schema import schema
 
-        MANAGER.remove(str(body.get("id", "")))
+        self.plugins.remove(str(body.get("id", "")))
         return {"ok": True, "schema": schema()}
 
     def api_obs(self, _body):
@@ -569,19 +579,17 @@ def _persistent_token() -> str:
     return t
 
 
-def _sample_getter():
+def _sample_getter(plugins: "PluginManager", live: "Values"):
     """Valor atual; sem ele (plugin desligado, app fechado), o exemplo declarado, para a prévia não ficar vazia."""
     samples = {}
     try:
-        from app.plugins import MANAGER
-
-        for v in values.describe() + MANAGER.value_schemas():
+        for v in values.describe() + plugins.value_schemas():
             samples[v["id"]] = v.get("sample")
     except Exception:
         log.debug("Couldn't read the sample values", exc_info=True)
 
     def get(name):
-        v = values.VALUES.get(name)
+        v = live.get(name)
         if v is None and name.startswith("timer."):
             return "05:00" if name.count(".") == 1 else 100 if name.endswith(".pct") else False
         return samples.get(name) if v is None else v

@@ -21,6 +21,8 @@
   Teste novo nunca usa o `config.yaml` de verdade: config sintético ou o `config.example.yaml`, em `tmp_path`.
 - `python -m ruff check .`, `python -m ruff format .` e `python -m mypy` antes de commitar. Formatação vai em
   commit separado de mudança de lógica.
+- Importar um módulo não liga nada. Plugins carregam e as peças compartilhadas saem de `app.bootstrap.services()`;
+  quem precisa recebe por parâmetro (`Engine(..., plugins=, values=)`). Caminhos passam por `app/paths.py`.
 - Bug achado em teste de caracterização: registrar com `xfail(strict=True)` e avisar, sem corrigir junto.
 - Plano da refatoração: `docs/plano-python.md`.
 

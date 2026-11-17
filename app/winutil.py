@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ctypes
-import os
 import sys
 import winreg
 from pathlib import Path
@@ -25,9 +24,9 @@ def single_instance(name: str = "Local\\D6Deck-single-instance") -> bool:
 
 
 def data_dir() -> Path:
-    d = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "D6Deck"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+    from app import paths
+
+    return paths.data_dir()
 
 
 def log_path() -> Path:
@@ -44,7 +43,9 @@ def _pythonw() -> str:
 
 
 def autostart_command(config: Path) -> str:
-    main = Path(__file__).resolve().parent / "__main__.py"
+    from app import paths
+
+    main = paths.MAIN_SCRIPT
     return f'"{_pythonw()}" "{main}" --tray --config "{Path(config).resolve()}"'
 
 

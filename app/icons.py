@@ -33,7 +33,7 @@ from pathlib import Path
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps, ImageSequence
 
-from app import logs
+from app import logs, paths
 from d6 import render
 
 log = logs.get("icons")
@@ -148,7 +148,7 @@ SEGOE_TO_LUCIDE = {
 }
 
 _GLYPH_FONTS = ("SegoeIcons.ttf", "segmdl2.ttf")
-_STATIC = Path(__file__).parent / "editor" / "static"
+_STATIC = paths.STATIC
 _LUCIDE_TTF = _STATIC / "fonts" / "lucide.ttf"
 _lucide_codes: dict[str, int] | None = None
 _font_cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}

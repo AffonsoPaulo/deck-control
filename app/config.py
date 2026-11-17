@@ -9,16 +9,13 @@ import yaml
 
 from app import actions, icons, lighting, logs, widgets
 from d6.device import COLS, KEY_COUNT
+from app.errors import ConfigError  # mora em app/errors.py; continua importável daqui
 from app.i18n import tr
 from app import automations, values
 from app import i18n
 
 DEFAULT_ACTIVE_OVERRIDE = {"bg": "#C62828"}
 LOGGING_FLAGS = ("detail", "show_tab", "key_error", "notify")
-
-
-class ConfigError(ValueError):
-    pass
 
 
 @dataclass

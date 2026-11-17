@@ -50,9 +50,10 @@ def why_not(e: Exception) -> tuple[str, str]:
 class OBS:
     """Mantém a conexão com o OBS (reconecta sozinho) e espelha o estado no engine."""
 
-    def __init__(self, engine: "Engine", cfg: dict):
+    def __init__(self, engine: "Engine", cfg: dict, publish):
         self.engine = engine
         self.cfg = cfg
+        self._publish = publish  # api.set_value do plugin: publica obs.scene, obs.stream_time...
         self.req = None
         self.ev = None
         self._lock = threading.Lock()
@@ -252,15 +253,11 @@ class OBS:
         return f"{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}" if s >= 3600 else f"{s // 60:02d}:{s % 60:02d}"
 
     def _publish_times(self) -> None:
-        from app.values import VALUES
-
-        VALUES.set("obs.stream_time", lambda: self._elapsed("stream"))
-        VALUES.set("obs.record_time", lambda: self._elapsed("record"))
+        self._publish("obs.stream_time", lambda: self._elapsed("stream"))
+        self._publish("obs.record_time", lambda: self._elapsed("record"))
 
     def _set_scene(self, current: str | None) -> None:
-        from app.values import VALUES
-
-        VALUES.set("obs.scene", current)
+        self._publish("obs.scene", current)
         for name in self.engine.states_with_prefix("obs.scene:"):
             self.engine.set_state(name, name == f"obs.scene:{current}")
 
@@ -313,7 +310,7 @@ class _Plugin:
         self.client: OBS | None = None
 
     def start(self, settings: dict) -> None:
-        self.client = OBS(self.api.engine, settings)
+        self.client = OBS(self.api.engine, settings, self.api.set_value)
         self.client.start()
 
     def update(self, settings: dict) -> None:

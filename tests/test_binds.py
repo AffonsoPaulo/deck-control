@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from app import actions  # noqa: F401  (carrega os plugins: usages() lê os atalhos deles)
 from app import binds
 
 

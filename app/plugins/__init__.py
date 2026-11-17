@@ -26,13 +26,16 @@ from typing import TYPE_CHECKING, Any
 from app import actions
 from app import i18n
 from app import logs
+from app import paths
+from app.errors import PluginError  # mora em app/errors.py; continua importável daqui
 from app.i18n import tr
+from app.values import VALUES, Values
 
 if TYPE_CHECKING:
     from app.engine import Engine
 
 log = logs.get("plugins")
-BUILTIN_DIR = Path(__file__).parent / "builtin"
+BUILTIN_DIR = paths.BUILTIN_PLUGINS
 ID_RE = re.compile(r"^[a-z][a-z0-9_-]{1,39}$")
 SETTING_KINDS = ("text", "password", "number", "bool", "enum", "shortcut")
 
@@ -43,10 +46,6 @@ def user_dir() -> Path:
     d = winutil.data_dir() / "plugins"
     d.mkdir(parents=True, exist_ok=True)
     return d
-
-
-class PluginError(ValueError):
-    pass
 
 
 # ---------------------------------------------------------------------------- manifesto
@@ -302,16 +301,15 @@ class PluginAPI:
         if not str(name).startswith(self._p.id + "."):
             logs.get(f"plugins.{self._p.id}").warning("Value '%s' ignored: it must start with '%s.'", name, self._p.id)
             return
-        from app.values import VALUES
-
-        VALUES.set(str(name), value)
+        self._m.values.set(str(name), value)
 
 
 # ---------------------------------------------------------------------------- gerenciador
 
 
 class PluginManager:
-    def __init__(self):
+    def __init__(self, values: Values):
+        self.values = values  # onde os plugins publicam os valores deles
         self.plugins: dict[str, Plugin] = {}
         self.errors: list[dict] = []  # pastas que não carregaram: {folder, error}
         self.engine: "Engine | None" = None
@@ -447,9 +445,7 @@ class PluginManager:
         logs.resolve_prefix(f"plugin.{p.id}.")  # desligado: os problemas dele deixam de valer
         p.running = False
         p.status = {"state": "off", "label": tr("Off")}
-        from app.values import VALUES
-
-        VALUES.forget_prefix(p.id + ".")  # desligado: as teclas mostram "–"
+        self.values.forget_prefix(p.id + ".")  # desligado: as teclas mostram "–"
 
     def stop_all(self) -> None:
         with self._lock:
@@ -638,7 +634,7 @@ class PluginManager:
         self.reload()
 
 
-MANAGER = PluginManager()
+MANAGER = PluginManager(VALUES)  # o app usa o que o app/bootstrap.py entrega (é este mesmo)
 
 
 def run_guard(d: "actions.ActionDef") -> None:

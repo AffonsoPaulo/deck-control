@@ -28,7 +28,9 @@ def main() -> int:
     from app.i18n import tr
 
     ap = argparse.ArgumentParser(prog="python -m app")
-    ap.add_argument("--config", type=Path, default=ROOT / "config.yaml")
+    from app import paths
+
+    ap.add_argument("--config", type=Path, default=paths.default_config())
     ap.add_argument(
         "--debug", action="store_true", help="log detalhado de tudo (teclas, valores, desenho, plugins, editor)"
     )
@@ -66,15 +68,17 @@ def main() -> int:
         return 0
 
     if not config.exists():
-        shutil.copy(ROOT / "config.example.yaml", config)
+        shutil.copy(paths.EXAMPLE_CONFIG, config)
         msg = f"Created {config} from the example. Edit it as you like (it reloads by itself)."
         if cli:
             print(msg)
         else:
             log.info("%s", msg)
 
+    from app.bootstrap import services
     from app.config import ConfigError, load_config
 
+    svc = services()  # carrega os plugins: as ações deles precisam existir para validar o config
     try:
         cfg = load_config(config)
     except ConfigError as e:
@@ -93,8 +97,8 @@ def main() -> int:
     from app.editor.server import EditorServer
     from app.engine import Engine
 
-    engine = Engine(config, debug=args.debug)
-    editor = EditorServer(config, engine, port=args.port)
+    engine = Engine(config, debug=args.debug, plugins=svc.plugins, values=svc.values)
+    editor = EditorServer(config, engine, port=args.port, plugins=svc.plugins, values=svc.values)
     editor.start()
     if args.editor:
         webbrowser.open(editor.url)

@@ -11,12 +11,13 @@ Os logs do app ficam sempre em inglês (app/logs.py); só o que a pessoa vê pas
 from __future__ import annotations
 
 import json
-from pathlib import Path
+
+from app import paths
 
 LANGS = ("pt-BR", "en")
 SOURCE = "en"  # idioma das chaves (o texto no código)
 DEFAULT = "pt-BR"  # se não der para descobrir o do Windows
-_DIR = Path(__file__).parent / "locales"
+_DIR = paths.LOCALES
 _lang: str | None = None
 _catalogs: dict[str, dict] = {}
 

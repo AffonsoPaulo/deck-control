@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-from app import actions  # noqa: F401  (registra as ações do app e dos plugins)
 from app import i18n
 from app.config import ConfigError, build_config
 

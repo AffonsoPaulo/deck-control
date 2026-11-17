@@ -3,7 +3,8 @@
 Roda antes de qualquer import do app:
 - a pasta de dados (plugins da pessoa, logs) vira uma pasta temporária, para os testes não lerem nem gravarem
   nada do app de verdade;
-- o idioma fica fixo em inglês (o texto do código), para as mensagens não dependerem do Windows de quem roda.
+- o idioma fica fixo em inglês (o texto do código), para as mensagens não dependerem do Windows de quem roda;
+- os plugins carregam pelo app/bootstrap.py, como no app de verdade.
 """
 
 from __future__ import annotations
@@ -19,8 +20,10 @@ _DATA = tempfile.mkdtemp(prefix="deck-tests-")
 os.environ["LOCALAPPDATA"] = _DATA
 
 from app import i18n  # noqa: E402
+from app.bootstrap import services  # noqa: E402
 
 i18n.set_language("en")
+services()  # carrega os plugins (OBS, Discord, clima): as ações deles entram na validação do config
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = ROOT / "config.example.yaml"

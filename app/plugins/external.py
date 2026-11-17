@@ -256,9 +256,7 @@ class ExternalPlugin:
             if not name.startswith(self.p.id + "."):
                 self.log.warning("Value '%s' ignored: it must start with '%s.'", name, self.p.id)
                 return
-            from app.values import VALUES
-
-            VALUES.set(name, msg.get("value"))
+            self.m.values.set(name, msg.get("value"))
         elif kind == "log":
             level = LOG_LEVELS.get(str(msg.get("level", "info")).lower(), 20)
             self.log.log(level, "%s", msg.get("message", ""))

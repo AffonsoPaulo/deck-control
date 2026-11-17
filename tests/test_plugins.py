@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from app import actions  # noqa: F401  (importar já carrega os plugins; a Fase 1 tira isso do import)
-from app.plugins import MANAGER, PluginError, check_manifest, read_manifest
+from app import actions
+from app.plugins import MANAGER, PluginAPI, PluginError, check_manifest, read_manifest
 
 OK = {"id": "meu-plugin", "name": "Meu plugin", "run": ["python", "main.py"]}
 
@@ -58,3 +58,37 @@ def test_read_manifest_from_a_folder(tmp_path):
         read_manifest(tmp_path, builtin=False)
     (tmp_path / "plugin.json").write_text(json.dumps(OK), encoding="utf-8")
     assert read_manifest(tmp_path, builtin=False)["id"] == "meu-plugin"
+
+
+def test_plugin_values_go_to_the_shared_values():
+    api = PluginAPI(MANAGER, MANAGER.plugins["obs"])
+    api.set_value("obs.test_value", 7)
+    assert MANAGER.values.get("obs.test_value") == 7
+    api.set_value("other.value", 1)  # fora do prefixo do plugin: ignorado
+    assert MANAGER.values.get("other.value") is None
+    MANAGER.values.forget_prefix("obs.test_value")
+
+
+def test_obs_publishes_scene_and_times_through_the_api():
+    import sys
+
+    obs_mod = sys.modules["d6plugin_obs"]
+
+    class FakeEngine:
+        def states_with_prefix(self, prefix):
+            return [f"{prefix}Jogo", f"{prefix}Pausa"]
+
+        def __init__(self):
+            self.states = {}
+
+        def set_state(self, name, value):
+            self.states[name] = value
+
+    published = {}
+    eng = FakeEngine()
+    client = obs_mod.OBS(eng, {}, lambda name, value: published.__setitem__(name, value))
+    client._set_scene("Jogo")
+    client._publish_times()
+    assert published["obs.scene"] == "Jogo"
+    assert eng.states == {"obs.scene:Jogo": True, "obs.scene:Pausa": False}
+    assert published["obs.stream_time"]() == "00:00"  # parado: o valor é calculado na hora

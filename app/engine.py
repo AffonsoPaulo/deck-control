@@ -13,6 +13,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from app import actions, automations, icons, keys, lighting, logs, values, winutil
 from app.i18n import tr
@@ -20,6 +21,10 @@ from app.actions import Context
 from app.config import Config, load_config
 from d6 import render
 from d6.device import KEY_COUNT, D6
+
+if TYPE_CHECKING:
+    from app.plugins import PluginManager
+    from app.values import Values
 
 log = logs.get("engine")
 klog = logs.get("keys")  # aperto/soltura e a decisão (toque, duplo, segurar, repetir)
@@ -32,7 +37,19 @@ ERROR_MARK_S = 1.0  # quanto tempo a tecla mostra a marca de erro
 
 
 class Engine:
-    def __init__(self, config_path: Path, debug: bool = False):
+    def __init__(
+        self,
+        config_path: Path,
+        debug: bool = False,
+        plugins: "PluginManager | None" = None,
+        values: "Values | None" = None,
+    ):
+        # plugins/values vêm do app/bootstrap.py; sem eles (código antigo, testes), as mesmas peças globais
+        if plugins is None:
+            from app.plugins import MANAGER as plugins
+        if values is None:
+            from app.values import VALUES as values
+        self.plugins = plugins
         self.config_path = config_path
         self.debug = debug  # --debug: tudo detalhado (quem filtra é o logs.py)
         if debug and not logs._force_debug:
@@ -72,10 +89,8 @@ class Engine:
         self._screen_off = False
         self._screen_checked = 0.0
         self._register_states()
-        from app.values import VALUES
-
-        self.values = VALUES
-        VALUES.engine = self
+        self.values = values
+        values.engine = self
         self.automations = automations.Automations(self)
         self.automations.configure(self.cfg.automations)
         self._overlay: dict | None = None  # telas pintadas (resposta temporária)
@@ -97,9 +112,9 @@ class Engine:
 
     def apply_log_settings(self) -> None:
         """config.logging (detalhado, áreas) e as senhas a esconder; a cada leitura do config."""
-        from app.plugins import MANAGER
-
-        logs.configure(self.cfg.raw.get("logging"), secrets=[*MANAGER.secret_values(self.cfg.raw), *self.log_secrets])
+        logs.configure(
+            self.cfg.raw.get("logging"), secrets=[*self.plugins.secret_values(self.cfg.raw), *self.log_secrets]
+        )
 
     def _register_states(self) -> None:
         with self._lock:
@@ -158,17 +173,13 @@ class Engine:
 
     def _sync_plugins(self) -> None:
         """Liga, atualiza ou desliga cada plugin (OBS, Discord, terceiros) conforme o config."""
-        from app.plugins import MANAGER
-
-        MANAGER.attach(self)
-        MANAGER.sync(self.cfg.raw)
+        self.plugins.attach(self)
+        self.plugins.sync(self.cfg.raw)
 
     @property
     def obs(self):
         """Conexão com o OBS (do plugin embutido), ou None se ele estiver desligado."""
-        from app.plugins import MANAGER
-
-        inst = MANAGER.instance("obs")
+        inst = self.plugins.instance("obs")
         return getattr(inst, "client", None)
 
     # -- API usada pelas ações ---------------------------------------------------
@@ -998,9 +1009,7 @@ class Engine:
                     dlog.warning("Deck connection lost (%s); reconnecting", e)
                     self._close_deck()
         finally:
-            from app.plugins import MANAGER
-
-            MANAGER.stop_all()
+            self.plugins.stop_all()
             self._pool.shutdown(wait=False, cancel_futures=True)
             self._close_deck()
             logs.resolve("device.disconnected")

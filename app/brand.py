@@ -14,7 +14,6 @@ regravar editor/static/favicon.svg e favicon-off.svg.
 from __future__ import annotations
 
 import io
-from pathlib import Path
 
 from PIL import Image, ImageDraw
 
@@ -138,7 +137,9 @@ def svg(lit: bool = True) -> str:
 
 
 if __name__ == "__main__":
-    static = Path(__file__).parent / "editor" / "static"
+    from app import paths
+
+    static = paths.STATIC
     (static / "favicon.svg").write_text(svg(True), encoding="utf-8")
     (static / "favicon-off.svg").write_text(svg(False), encoding="utf-8")
     print("favicons rewritten")

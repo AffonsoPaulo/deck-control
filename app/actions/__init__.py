@@ -182,8 +182,5 @@ def run(spec, ctx: Context) -> None:
     log.debug("%s ran on %s (%s) in %d ms", d.name, _where(ctx), ctx.moment, round((time.perf_counter() - t0) * 1000))
 
 
-# registra as ações do app e as dos plugins (OBS, Discord e os de terceiros)
+# registra as ações do app; as dos plugins entram quando o app carrega os plugins (app/bootstrap.py)
 from app.actions import basic  # noqa: E402,F401
-from app.plugins import MANAGER  # noqa: E402
-
-MANAGER.load()
