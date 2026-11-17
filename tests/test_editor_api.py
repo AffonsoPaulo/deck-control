@@ -764,3 +764,26 @@ def test_editor_cannot_be_framed_and_loads_only_from_itself(api, tmp_path, monke
     assert "frame-ancestors 'none'" in csp and "script-src 'self'" in csp
     assert r.getheader("X-Frame-Options") == "DENY"
     conn.close()
+
+
+def test_no_cross_site_access(api):
+    """Um site aberto no navegador não consegue usar a API: o preflight do X-Token falha (sem CORS) e, sem o
+    cabeçalho, a rota recusa. Por isso os 60 bits do token bastam (não há como tentar de fora)."""
+    conn = http.client.HTTPConnection("127.0.0.1", api.srv.port, timeout=10)
+    conn.request(
+        "OPTIONS",
+        "/api/config",
+        headers={
+            "Host": f"127.0.0.1:{api.srv.port}",
+            "Origin": "https://evil.example",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "x-token",
+        },
+    )
+    r = conn.getresponse()
+    r.read()
+    assert r.status >= 400 and r.getheader("Access-Control-Allow-Origin") is None
+    conn.close()
+    # pedido "simples" (sem cabeçalho próprio), como um formulário de outro site faria
+    status, _ = api.request("POST", "/api/config", raw=b"{}", token="")
+    assert status == 403
