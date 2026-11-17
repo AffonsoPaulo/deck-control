@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useConfig } from "@/core/store/config";
 import { useUi } from "@/core/store/ui";
-import { canonCombo, useValidationState } from "@/core/validation";
+import { canonCombo, useValidation, useValidationState } from "@/core/validation";
+import { useToast } from "@/core/toast";
 import { BindField } from "@/features/keys/logic/BindField";
 import { Problems } from "@/features/keys/Problems";
 import { friendlyError } from "@/features/keys/validation";
@@ -109,5 +110,31 @@ describe("conferência", () => {
       expect.objectContaining({ count: 1, rules: null }),
     );
     expect(set).toHaveBeenCalledWith("keys", "ctrl+f14");
+  });
+
+  it("conferência que falha não apaga o resultado nem inventa um atalho repetido novo", async () => {
+    useToast.setState({ current: null, leaving: false });
+    const dup = { combo: "ctrl+f13", places: [] };
+    function Probe() {
+      useValidation();
+      return null;
+    }
+    api.mockResolvedValueOnce({ ok: true, conflicts: [dup] });
+    wrap(<Probe />);
+    await waitFor(() => expect(useValidationState.getState().conflicts).toEqual([dup]));
+    // falha: fica o que estava
+    api.mockRejectedValueOnce(new Error("offline"));
+    act(() => useConfig.getState().edit((d) => void (d.home = "p"), "x"));
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2), { timeout: 2000 });
+    expect(useValidationState.getState().conflicts).toEqual([dup]);
+    // volta com o mesmo atalho repetido: sem aviso
+    api.mockResolvedValueOnce({ ok: true, conflicts: [dup] });
+    act(() => useConfig.getState().edit((d) => void (d.home = "q"), "y"));
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(3), { timeout: 2000 });
+    expect(useToast.getState().current).toBeNull();
+    // outro atalho no lugar dele (a contagem não muda): avisa
+    api.mockResolvedValueOnce({ ok: true, conflicts: [{ combo: "ctrl+f14", places: [] }] });
+    act(() => useConfig.getState().edit((d) => void (d.home = "r"), "z"));
+    await waitFor(() => expect(useToast.getState().current?.bad).toBe(true), { timeout: 2000 });
   });
 });

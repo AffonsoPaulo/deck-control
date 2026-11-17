@@ -39,26 +39,26 @@ export function useValidation(): Validation {
     staleTime: Infinity,
     gcTime: 10_000,
     placeholderData: (prev) => prev,
+    // falhou (app fechado, rede): fica o resultado anterior, como no atual; senão o próximo que der certo
+    // pareceria um atalho repetido novo
     queryFn: async () => {
-      try {
-        const r = await api("POST /api/validate", { config: JSON.parse(body) as Obj });
-        return { errors: r.ok ? [] : r.errors, conflicts: r.conflicts };
-      } catch {
-        return { errors: [], conflicts: [] };
-      }
+      const r = await api("POST /api/validate", { config: JSON.parse(body) as Obj });
+      return { errors: r.ok ? [] : r.errors, conflicts: r.conflicts };
     },
+    retry: false,
   });
   const v = q.data ?? { errors: [], conflicts: [] };
   useEffect(() => {
     if (q.data) useValidationState.setState(q.data);
   }, [q.data]);
-  // surgiu um atalho repetido agora (não ao abrir): avisa
-  const seen = useRef<number | null>(null);
+  // surgiu um atalho repetido agora (não ao abrir): avisa. Compara quais atalhos, não quantos: um repetido
+  // pode trocar de lugar com outro
+  const seen = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (!q.data) return;
-    const n = q.data.conflicts.length;
-    if (seen.current !== null && n > seen.current) toast(t("Two different things now use the same shortcut. See the warning below the shortcut."), { bad: true });
-    seen.current = n;
+    const now = new Set(q.data.conflicts.map((c) => c.combo));
+    if (seen.current && [...now].some((c) => !seen.current?.has(c))) toast(t("Two different things now use the same shortcut. See the warning below the shortcut."), { bad: true });
+    seen.current = now;
   }, [q.data, t]);
   return v;
 }

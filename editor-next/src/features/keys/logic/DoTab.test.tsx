@@ -18,9 +18,10 @@ const SCHEMA = {
     delay: { label: "Wait", group: "Other" },
     if: { label: "If… then… else", group: "Pages and logic" },
     multi: { label: "Seq" },
+    bind: { label: "Exclusive shortcut", group: "Keyboard and text", fields: [{ name: "keys", kind: "bind" }] },
   },
   plugin_groups: {},
-  plugins: [],
+  plugins: [{ id: "obs", name: "OBS Studio", shortcut_rules: { mods: ["ctrl"] } }],
   values: [],
   widgets: {},
   widget_categories: [],
@@ -104,5 +105,16 @@ describe("O que faz", () => {
     await user.selectOptions(screen.getAllByRole("combobox")[0] as HTMLSelectElement, "1");
     expect(key("2")?.repeat).toBeUndefined();
     unsub();
+  });
+
+  it("feito para: grava o programa e o atalho novo que ele aceita, sem perder um ao gravar o outro", async () => {
+    const user = userEvent.setup();
+    useConfig.getState().load({ pages: { p: { "1": { icon: { text: "B" }, action: { type: "bind", keys: "ctrl+shift+alt+f13" } } } } });
+    api.mockResolvedValue({ combos: ["ctrl+f15"] });
+    setup("1");
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Made for" }), "obs");
+    await waitFor(() => expect(key("1")?.action).toEqual({ type: "bind", keys: "ctrl+f15", for: "obs" }));
+    expect(api).toHaveBeenCalledWith("POST /api/free_bind", expect.objectContaining({ rules: { mods: ["ctrl"] } }));
   });
 });
