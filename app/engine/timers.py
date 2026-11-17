@@ -38,7 +38,25 @@ class Timers:
         return self._taps.pop(key, None)
 
     def defer(self, key: int, due: float, action: object) -> None:
+        old = self._deferred.get(key)
+        if old is not None and "release" in old:
+            # apertou de novo antes do aperto adiado rodar: esse aperto se perde (como sempre), mas o soltar
+            # dele, que esperava, roda agora
+            self._submit_release(key, old)
         self._deferred[key] = {"due": due, "action": action}
+
+    def defer_release(self, key: int, action: object, page: str) -> bool:
+        """A tecla soltou com o aperto ainda adiado: o 'release' espera e roda logo depois dele, para a ordem
+        continuar aperto -> soltar. Devolve False se não há aperto adiado (quem chama roda o 'release' já)."""
+        item = self._deferred.get(key)
+        if item is None or action is None:
+            return False
+        item["release"] = action
+        item["release_page"] = page  # a página na hora do soltar, como seria se rodasse agora
+        return True
+
+    def _submit_release(self, key: int, item: dict[str, Any]) -> None:
+        self._submit(item["release"], key, "release", page=item["release_page"])
 
     # -- repetição
     def start_repeat(self, key: int, action: object, first: float, every: float, since: float, moment: str) -> None:
@@ -59,7 +77,9 @@ class Timers:
                     del store[key]
                     if store is self._taps:
                         klog.debug("Key %d: no second tap within %d ms -> single tap", key, self._shared.cfg.double_ms)
-                    self._submit(item["action"], key)
+                    # o 'release' que esperava vai junto, na mesma tarefa: aperto e soltar nunca ao mesmo tempo
+                    then = (item["release"], "release", item["release_page"]) if "release" in item else None
+                    self._submit(item["action"], key, then=then)
         for key, r in list(self._repeat.items()):
             # para se a tecla soltou ou se um "soltou" se perdeu (nunca repetir para sempre)
             if key not in pressed or now - r["since"] > 30:

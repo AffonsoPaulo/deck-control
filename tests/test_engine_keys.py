@@ -7,7 +7,6 @@ As ações dos configs são {type: none, tag: x}: não fazem nada, e o 'tag' diz
 
 from __future__ import annotations
 
-import pytest
 
 STEP = 10  # ms por volta do loop (o app roda o _tick a cada ~10 ms quando há temporizador)
 
@@ -182,7 +181,7 @@ def test_double_tap_within_the_window_runs_double_and_not_the_action(make_engine
 
 def test_single_tap_on_a_double_key_runs_the_action_after_the_window(make_engine):
     """Toque simples numa tecla com 'double': a ação espera double_tap_ms (padrão 250) contados do soltar.
-    O 'release' roda antes, no soltar (mesma inversão do teste xfail de baixo)."""
+    O 'release' roda antes, no soltar (a mesma ordem que o aperto adiado das teclas comuns tinha; aqui não mudou)."""
     rig = make_engine(DOUBLE)
     rig.connect()
     rig.tap(1)
@@ -236,25 +235,73 @@ pages:
 """
 
 
-def test_deferred_press_today_runs_after_its_release(make_engine):
-    """Hoje: o 'release' roda no soltar e o aperto adiado só depois da janela (ver o xfail de baixo)."""
+def test_deferred_press_keeps_its_timing_and_the_release_waits_for_it(make_engine):
+    """O aperto adiado continua esperando a janela (contada do aperto); o 'release' de um toque curto espera junto
+    e roda logo depois dele. Antes o 'release' rodava já no soltar, antes do aperto."""
     rig = make_engine(DEFERRED)
     rig.connect()
-    rig.tap(2)
-    rig.advance(300)
-    assert rig.moments() == [("rb", "release"), ("b", "press")]
+    rig.press(2)
+    t0 = rig.clock.monotonic()
+    rig.release(2)
+    assert rig.moments() == []
+    rig.advance(240)
+    assert rig.moments() == []
+    rig.advance(20)
+    assert rig.moments() == [("b", "press"), ("rb", "release")]
+    assert 250 <= _since(rig, t0) <= 250 + STEP
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="numa página com toque duplo, o aperto adiado roda depois do 'release' da mesma tecla (ordem invertida)",
-)
 def test_deferred_press_runs_before_release(make_engine):
     rig = make_engine(DEFERRED)
     rig.connect()
     rig.tap(2)
     rig.advance(300)
     assert rig.moments() == [("b", "press"), ("rb", "release")]
+
+
+def test_deferred_press_and_its_release_go_in_one_task(make_engine):
+    """O pool do app tem várias threads: aperto e soltar mandados juntos em tarefas separadas poderiam rodar ao
+    mesmo tempo ou invertidos (uma combinação segurada ficaria presa). Vão numa tarefa só, em ordem."""
+    rig = make_engine(DEFERRED)
+    rig.connect()
+    pool = rig.engine._pool
+    tasks: list[object] = []
+    real = pool.submit
+
+    def counting(fn, *args, **kwargs):
+        tasks.append(fn)
+        return real(fn, *args, **kwargs)
+
+    pool.submit = counting  # type: ignore[method-assign]
+    rig.tap(2)
+    rig.advance(300)
+    assert rig.moments() == [("b", "press"), ("rb", "release")]
+    assert len(tasks) == 1
+
+
+def test_release_after_the_deferred_press_runs_on_release(make_engine):
+    """Segurou mais que a janela: o aperto já rodou, o 'release' roda no soltar, como sempre."""
+    rig = make_engine(DEFERRED)
+    rig.connect()
+    rig.press(2)
+    rig.advance(300)
+    assert rig.moments() == [("b", "press")]
+    rig.release(2)
+    assert rig.moments() == [("b", "press"), ("rb", "release")]
+
+
+def test_pressing_again_before_the_deferred_press_keeps_the_first_release(make_engine):
+    """Dois toques seguidos numa tecla comum: o 1º aperto adiado se perde (como sempre), mas o 'release' dele,
+    que antes já tinha rodado no soltar, não some."""
+    rig = make_engine(DEFERRED)
+    rig.connect()
+    rig.tap(2)
+    rig.advance(100)
+    rig.press(2)
+    assert rig.moments() == [("rb", "release")]
+    rig.release(2)
+    rig.advance(300)
+    assert rig.moments() == [("rb", "release"), ("b", "press"), ("rb", "release")]
 
 
 # ---------------------------------------------------------------------------- repetir enquanto segura

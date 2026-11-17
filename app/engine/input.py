@@ -260,6 +260,9 @@ class Input:
             klog.debug("Key %d released after %d ms (hold already ran)", key, ms)
         else:
             klog.debug("Key %d released after %d ms", key, ms)
+        if self._timers.defer_release(key, spec.release, self._nav.page):
+            klog.debug("Key %d: 'release' waits for the deferred press", key)
+            return
         self._submit(spec.release, key, "release")
 
     def check_holds(self) -> None:

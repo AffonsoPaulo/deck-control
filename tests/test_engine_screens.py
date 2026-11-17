@@ -184,15 +184,11 @@ def test_temp_page_passthrough_closes_and_runs_the_pressed_key(make_engine):
     rig.tap(1)
     assert rig.engine.page == "main"
     assert rig.moments() == [("p1", "press")]  # o soltar foi engolido
-    assert rig.ran[0].page == "main"  # hoje: a página de volta, não a popup (ver o xfail de baixo)
+    assert rig.ran[0].page == "popup"  # roda como tecla da popup, mesmo com a página já fechada
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="passthrough roda a ação da tecla da página temporária com ctx.page da página de volta "
-    "(o toggle muda o estado toggle:main:2 em vez de toggle:popup:2)",
-)
 def test_temp_page_passthrough_runs_the_action_as_a_key_of_the_temp_page(make_engine):
+    """Antes rodava com ctx.page da página de volta (o toggle mudava toggle:main:2 em vez de toggle:popup:2)."""
     rig = make_engine(TEMP)
     rig.connect()
     rig.tap(2)

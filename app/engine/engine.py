@@ -75,6 +75,12 @@ dlog = logs.get("device")  # USB: conectar, desconectar, desenhar
 clog = logs.get("config")
 
 
+def _run_in_order(jobs: list[tuple[object, Context]]) -> None:
+    """Roda as ações uma depois da outra na mesma thread (actions.run já segura o erro de cada uma)."""
+    for spec, ctx in jobs:
+        actions.run(spec, ctx)
+
+
 class Engine:
     # Com tecla apertada, deixa redesenhar a que encolheu e as apertadas que não seguram combinação (o resto
     # espera soltar). Desligado = o comportamento antigo (nada redesenha com tecla apertada); só os testes trocam.
@@ -261,12 +267,13 @@ class Engine:
 
     # -- ações das teclas ---------------------------------------------------------
 
-    def _ctx(self, key: int, moment: str = "press", label: str | None = None) -> Context:
+    def _ctx(self, key: int, moment: str = "press", label: str | None = None, page: str | None = None) -> Context:
+        page = self.page if page is None else page
         if label is None and key:
-            sp = self.cfg.spec_at(self.page, key)[0]
+            sp = self.cfg.spec_at(page, key)[0]
             text = (sp.icon or {}).get("text") if sp is not None else None
             label = str(text) if text else None
-        return Context(self, self.page, key, moment, label)
+        return Context(self, page, key, moment, label)
 
     def _remark(self, key: int) -> None:
         """A tecla encolheu ou voltou: redesenha (e o GIF dela recomeça do primeiro quadro)."""
@@ -274,10 +281,26 @@ class Engine:
             self._queue.mark(key)
         self._drawing.restart_animation(key)
 
-    def _submit(self, spec: object, key: int, moment: str = "press", label: str | None = None) -> None:
-        """Manda a ação para o pool (a página do Context é a da tela na hora de mandar)."""
+    def _submit(
+        self,
+        spec: object,
+        key: int,
+        moment: str = "press",
+        label: str | None = None,
+        page: str | None = None,
+        then: tuple[object, str, str | None] | None = None,
+    ) -> None:
+        """Manda a ação para o pool. A página do Context é a da tela na hora de mandar, ou `page`, se veio.
+        `then` (spec, momento, página) roda depois dela na mesma tarefa, para a ordem nunca se inverter."""
+        jobs = []
         if spec is not None:
-            self._pool.submit(actions.run, spec, self._ctx(key, moment, label))
+            jobs.append((spec, self._ctx(key, moment, label, page)))
+        if then is not None and then[0] is not None:
+            jobs.append((then[0], self._ctx(key, then[1], None, then[2])))
+        if len(jobs) == 1:
+            self._pool.submit(actions.run, *jobs[0])
+        elif jobs:
+            self._pool.submit(_run_in_order, jobs)
 
     # -- API usada pelo editor -------------------------------------------------------
 

@@ -18,9 +18,22 @@ class Clock(Protocol):
 
 class Submit(Protocol):
     """Manda uma ação para o pool de ações (Engine._submit). As peças recebem esta função, nunca o pool: os
-    testes trocam o pool depois de o Engine nascer."""
+    testes trocam o pool depois de o Engine nascer.
 
-    def __call__(self, spec: object, key: int, moment: str = "press", label: str | None = None) -> None: ...
+    page: a página da tecla, quando não é mais a da tela (a página temporária que acabou de fechar); None = a
+    página na tela.
+    then: outra ação da mesma tecla (spec, momento, página) que roda logo depois, na mesma tarefa: o pool tem
+    várias threads, e duas tarefas mandadas juntas podem rodar ao mesmo tempo ou fora de ordem."""
+
+    def __call__(
+        self,
+        spec: object,
+        key: int,
+        moment: str = "press",
+        label: str | None = None,
+        page: str | None = None,
+        then: tuple[object, str, str | None] | None = None,
+    ) -> None: ...
 
 
 class Shared:

@@ -142,7 +142,8 @@ class Navigation:
                 spec = self._shared.cfg.spec_at(t["page"], key)[0]
                 self.end_temp()
                 if t["passthrough"] and spec is not None:
-                    self._submit(spec.action, key)
+                    # a página já fechou, mas a tecla apertada é da temporária: roda como tecla dela
+                    self._submit(spec.action, key, page=t["page"])
                 return True
         return False
 
