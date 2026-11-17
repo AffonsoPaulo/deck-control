@@ -122,7 +122,9 @@ def delay(spec: dict, ctx: Context) -> None:
     time.sleep(spec["ms"] / 1000)
 
 
-@action("multi", required=("actions",), children=lambda s: s["actions"])
+# children: as ações de dentro, para validar e percorrer o config. Sem o campo obrigatório, nenhuma: quem avisa
+# da falta é a validação do 'required', e quem percorre um config ainda não validado não pode quebrar.
+@action("multi", required=("actions",), children=lambda s: s.get("actions", []))
 def multi(spec: dict, ctx: Context) -> None:
     """Executa uma lista de ações em sequência."""
     for a in spec["actions"]:
@@ -133,9 +135,11 @@ def _toggle_state(spec: dict, key_id: str) -> str:
     return spec.get("state") or f"toggle:{key_id}"
 
 
-@action(
-    "toggle", required=("on",), state=_toggle_state, children=lambda s: [s["on"]] + ([s["off"]] if "off" in s else [])
-)
+def _toggle_children(spec: dict) -> list:
+    return [spec[f] for f in ("on", "off") if f in spec]
+
+
+@action("toggle", required=("on",), state=_toggle_state, children=_toggle_children)
 def toggle(spec: dict, ctx: Context) -> None:
     """Alterna entre dois estados. Na 1ª vez roda 'on', na 2ª 'off' (ou 'on' de novo se não houver 'off').
     O ícone usa 'active_icon' enquanto estiver ligado. state: nome para compartilhar o estado entre teclas."""

@@ -2725,8 +2725,13 @@ function importConfig(box) {
     reader.onload = async () => {
       const payload = { name: f.name, data: reader.result };
       let summary;
-      try { summary = (await api("/api/import", { ...payload, dry_run: true })).summary; }
-      catch (e) { box.replaceChildren(h("p", { class: "import-error" }, t("Couldn't read the file: ") + e.message)); return; }
+      const unreadable = (msg) => box.replaceChildren(h("p", { class: "import-error" }, t("Couldn't read the file: ") + msg));
+      try {
+        const r = await api("/api/import", { ...payload, dry_run: true });
+        // arquivo que não é config do Deck (sem pages): vem como {ok: false, errors}, não como erro
+        if (r.ok === false) { unreadable(r.errors.join(" ")); return; }
+        summary = r.summary;
+      } catch (e) { unreadable(e.message); return; }
       const run = async (mode) => {
         await flushSave();
         try {

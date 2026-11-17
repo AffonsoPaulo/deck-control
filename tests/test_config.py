@@ -79,17 +79,52 @@ def test_missing_widget_becomes_a_placeholder_block():
     assert cfg.cover["main"] == {2: (1, 1)}  # a tecla 2 é coberta pelo bloco da 1
 
 
-# Problemas conhecidos (a corrigir na Fase 4, validação por seção): hoje quebram com erro do Python.
-@pytest.mark.xfail(raises=AttributeError, strict=True, reason="página que não é um mapa de teclas quebra a validação")
-def test_page_that_is_not_a_map():
-    assert "pages.main" in problems({"pages": {"main": 5}})
+# Antes da Fase 4 (validação por seção), estes quebravam com erro do Python em vez de mensagem.
+@pytest.mark.parametrize("keys", [5, [1], "x"])
+def test_page_that_is_not_a_map(keys):
+    text = problems({"pages": {"main": keys, "other": {1: {"action": "page:main"}}}})
+    assert "pages.main: expected an object (key number: key)" in text
+    assert "page 'main'" not in text and "points to 'main'" not in text  # a página existe (vazia): nada em cascata
 
 
-@pytest.mark.xfail(raises=ValueError, strict=True, reason="brightness que não é número escapa da validação")
-def test_brightness_that_is_not_a_number():
-    assert "brightness" in problems({"brightness": "x", "pages": {"main": {}}})
+@pytest.mark.parametrize("keys", [None, "", []])
+def test_empty_page_is_still_valid(keys):
+    assert build_config({"pages": {"main": keys}}, P).pages == {"main": {}}
 
 
-@pytest.mark.xfail(raises=KeyError, strict=True, reason="toggle sem 'on' quebra a validação (o editor recebe erro 500)")
+def test_page_that_is_not_a_map_in_portuguese():
+    i18n.set_language("pt-BR")
+    assert "pages.main: esperado um objeto (número da tecla: tecla)" in problems({"pages": {"main": 5}})
+
+
+@pytest.mark.parametrize("value", ["x", None, [1], {"a": 1}, float("inf")])
+def test_brightness_that_is_not_a_number(value):
+    assert "brightness: a number from 0 to 100" in problems({"brightness": value, "pages": {"main": {}}})
+
+
+@pytest.mark.parametrize(("value", "brightness"), [(300, 100), (-5, 0), (80, 80), ("80", 80), (80.7, 80), (0, 0)])
+def test_brightness_out_of_range_is_clamped(value, brightness):
+    """Fora de 0 a 100 não é erro (sempre abriu): fica no limite, como o Deck e a ação 'brightness' já faziam."""
+    assert build_config({"brightness": value, "pages": {"main": {}}}, P).brightness == brightness
+
+
+def test_brightness_defaults_to_100():
+    assert build_config({"pages": {"main": {}}}, P).brightness == 100
+
+
 def test_toggle_without_on():
-    assert "needs the field 'on'" in problems({"pages": {"main": {1: {"action": {"type": "toggle"}}}}})
+    assert "pages.main.1.action: action 'toggle' needs the field 'on'" in problems(
+        {"pages": {"main": {1: {"action": {"type": "toggle"}}}}}
+    )
+
+
+@pytest.mark.parametrize("moment", ["action", "double", "hold", "release"])
+def test_toggle_without_on_in_any_moment(moment):
+    text = problems({"pages": {"main": {1: {moment: {"type": "toggle", "off": "page:nope"}}}}})
+    assert f"pages.main.1.{moment}: action 'toggle' needs the field 'on'" in text
+
+
+def test_multi_without_actions():
+    assert "pages.main.1.action: action 'multi' needs the field 'actions'" in problems(
+        {"pages": {"main": {1: {"action": {"type": "multi"}}}}}
+    )

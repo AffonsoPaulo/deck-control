@@ -20,12 +20,18 @@ from pathlib import Path, PurePosixPath
 
 import yaml
 
-from app import configio
-from app.config import build_config
 from app.i18n import tr
+from app.storage import ConfigRepository
 
 IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp"}
 MAX_IMAGE = 5 * 1024 * 1024
+
+
+class NotADeckSetup(ValueError):
+    """O arquivo importado é YAML, mas não tem a seção pages: não é uma configuração do Deck. É um problema do
+    arquivo, não do app: o editor mostra a mensagem como os outros problemas do config."""
+
+
 README = """Configuração do app do Fifine D6.
 
 Para usar em outro PC: abra o editor do D6, vá em Configurações > Backup > Importar
@@ -59,11 +65,12 @@ def referenced_images(plain: dict) -> set[str]:
 
 def export_zip(config_path: Path, include_secrets: bool = False) -> tuple[str, bytes]:
     config_path = Path(config_path)
-    text = config_path.read_text(encoding="utf-8")
+    store = ConfigRepository(config_path)
+    text = store.read_text()
     if not include_secrets:
         from app.plugins import MANAGER
 
-        text = configio.without_secrets(text, MANAGER.secret_paths())
+        text = store.text_without_secrets(MANAGER.secret_paths())
     plain = yaml.safe_load(text) or {}
     base = config_path.parent.resolve()
     buf = io.BytesIO()
@@ -108,7 +115,7 @@ def read_import(name: str, data: bytes) -> tuple[dict, dict[str, bytes]]:
     except yaml.YAMLError as e:
         raise ValueError(tr("the file isn't valid YAML: {error}", error=e)) from None
     if not isinstance(plain, dict) or not isinstance(plain.get("pages"), dict) or not plain["pages"]:
-        raise ValueError(tr("the file doesn't look like a Deck setup (the pages section is missing)"))
+        raise NotADeckSetup(tr("the file doesn't look like a Deck setup (the pages section is missing)"))
     return plain, images
 
 
@@ -173,7 +180,8 @@ def _keep_secrets(current: dict, new: dict) -> None:
 def build_import(config_path: Path, plain: dict, images: dict[str, bytes], mode: str) -> dict:
     """Monta o config resultante (sem gravar). Levanta ConfigError se ficar inválido."""
     config_path = Path(config_path)
-    current = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    store = ConfigRepository(config_path)
+    current = store.read_raw()
     plain = copy.deepcopy(plain)
     _save_images(config_path, plain, images)
     if mode == "replace":
@@ -197,7 +205,7 @@ def build_import(config_path: Path, plain: dict, images: dict[str, bytes], mode:
             new["pages"][renames[str(page)]] = keys
     else:
         raise ValueError(tr("unknown import mode"))
-    build_config(new, config_path)  # valida antes de gravar
+    store.validate(new)  # valida antes de gravar
     return new
 
 

@@ -6,9 +6,8 @@ import base64
 
 import yaml
 
-from app import history, i18n, logs, transfer
-from app.config import ConfigError, build_config
-from app.configio import read_plain, save_plain
+from app import i18n, logs, transfer
+from app.config import ConfigError
 from app.editor.api.context import MAX_BODY, Context
 from app.i18n import tr
 
@@ -16,7 +15,7 @@ log = logs.get("editor")
 
 
 def get_config(ctx: Context, _body: dict):
-    return {"config": read_plain(ctx.config_path), "file": ctx.config_path.name}
+    return {"config": ctx.store.read_plain(), "file": ctx.config_path.name}
 
 
 def save_config(ctx: Context, body: dict):
@@ -26,18 +25,18 @@ def save_config(ctx: Context, body: dict):
     i18n.set_language(cfg.get("language"))
     try:
         # valida exatamente como o app vai ler (PyYAML), antes de gravar
-        build_config(yaml.safe_load(yaml.safe_dump(cfg, allow_unicode=True)), ctx.config_path)
+        ctx.store.validate(yaml.safe_load(yaml.safe_dump(cfg, allow_unicode=True)))
     except ConfigError as e:
         errors = str(e).split("\n  - ")[1:] or [str(e)]
         log.warning("Config not saved: %d problem(s): %s", len(errors), "; ".join(errors))
         return {"ok": False, "errors": errors}
     try:
-        save_plain(ctx.config_path, cfg)
+        ctx.store.save(cfg)
     except Exception as e:
         log.error("Saving the config failed: %s", e, exc_info=True, extra={"ctx": {"file": str(ctx.config_path)}})
         raise
     log.info("Config saved from the editor")
-    history.record(ctx.config_path)
+    ctx.store.record()
     return {"ok": True}
 
 
@@ -51,19 +50,20 @@ def validate(ctx: Context, body: dict):
         log.debug("Shortcut conflict check failed (config being edited)", exc_info=True)
         out = {"conflicts": []}
     try:
-        build_config(raw, ctx.config_path)
+        ctx.store.validate(raw)
         return {"ok": True, **out}
     except ConfigError as e:
         return {"ok": False, "errors": str(e).split("\n  - ")[1:] or [str(e)], **out}
 
 
 def history_list(ctx: Context, _body: dict):
-    return {"entries": history.entries(ctx.config_path)}
+    return {"entries": ctx.store.versions()}
 
 
 def history_restore(ctx: Context, body: dict):
-    when = history.restore(ctx.config_path, str(body["id"]))
-    return {"config": read_plain(ctx.config_path), "when": when}
+    store = ctx.store
+    when = store.restore(str(body["id"]))
+    return {"config": store.read_plain(), "when": when}
 
 
 def export(ctx: Context, body: dict):
@@ -76,7 +76,12 @@ def import_config(ctx: Context, body: dict):
     raw = base64.b64decode(str(body["data"]).split(",", 1)[-1])
     if len(raw) > MAX_BODY:
         raise ValueError(tr("file too large"))
-    plain, images = transfer.read_import(name, raw)
+    try:
+        plain, images = transfer.read_import(name, raw)
+    except transfer.NotADeckSetup as e:
+        # um arquivo que não é config do Deck é problema do arquivo, como os do config: {ok: false}, não erro 500
+        log.warning("Import of %s refused: the file has no pages section", name)
+        return {"ok": False, "errors": [str(e)]}
     if body.get("dry_run"):
         return {"summary": transfer.summarize_import(plain, images)}
     try:
@@ -84,7 +89,8 @@ def import_config(ctx: Context, body: dict):
     except ConfigError as e:
         log.warning("Import of %s refused: the config has problems", name)
         return {"ok": False, "errors": str(e).split("\n  - ")[1:] or [str(e)]}
-    save_plain(ctx.config_path, new)
+    store = ctx.store
+    store.save(new)
     log.info("Config imported from %s (%s)", name, body.get("mode", "replace"))
-    history.record(ctx.config_path, reason=f"Importado de {name}")
-    return {"ok": True, "config": read_plain(ctx.config_path)}
+    store.record(reason=f"Importado de {name}")
+    return {"ok": True, "config": store.read_plain()}

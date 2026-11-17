@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from app.i18n import tr
+from app.storage import ConfigRepository
 
 if TYPE_CHECKING:
     from app.engine import Engine
@@ -22,6 +23,11 @@ class Context:
     engine: "Engine | None"
     plugins: "PluginManager"
     values: "Values"
+
+    @property
+    def store(self) -> ConfigRepository:
+        """O arquivo do config: ler, gravar, histórico (app/storage.py)."""
+        return ConfigRepository(self.config_path)
 
     def need_engine(self) -> "Engine":
         """Para as rotas que só funcionam com o app rodando (testar tecla, gravar atalho)."""

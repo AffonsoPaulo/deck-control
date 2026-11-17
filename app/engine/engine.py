@@ -184,9 +184,10 @@ class Engine:
             self.page,
         )
         try:
-            from app import history
+            from app.storage import ConfigRepository
 
-            history.record(self.config_path)  # pega edições feitas direto no arquivo (o editor já registra as dele)
+            # pega edições feitas direto no arquivo (o editor já registra as dele)
+            ConfigRepository(self.config_path).record()
         except Exception as e:
             logs.get("history").warning("Couldn't save the version in the history: %s", e, exc_info=True)
         self._session.apply_options(self.cfg)

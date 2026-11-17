@@ -214,11 +214,17 @@ def save_plain(path: Path, new_cfg: dict) -> None:
     if to_plain(doc) == to_plain(new_cfg):
         return  # nada mudou: não reescreve o arquivo
     _merge_map(doc, new_cfg)
-    result = _dump(y, doc, text)
+    replace_text(path, _dump(y, doc, text))
+
+
+def replace_text(path: Path, text: str) -> None:
+    """Troca o conteúdo do arquivo: o atual vira o .bak, e o novo entra inteiro (grava num .tmp e troca), para
+    um app fechado no meio nunca deixar o config pela metade. Toda gravação do config passa por aqui."""
+    path = Path(path)
     if path.exists():
         shutil.copy2(path, path.with_suffix(path.suffix + ".bak"))
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(result, encoding="utf-8")
+    tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
 
 

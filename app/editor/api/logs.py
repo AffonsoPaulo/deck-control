@@ -37,10 +37,8 @@ def logs_seen(ctx: Context, body: dict):
 
 def logs_diagnostics(ctx: Context, _body: dict):
     """Pacote para pedir ajuda: logs, config sem as senhas, versões, plugins e o aparelho."""
-    from app import configio
-
     try:
-        text = configio.without_secrets(ctx.config_path.read_text(encoding="utf-8"), ctx.plugins.secret_paths())
+        text = ctx.store.text_without_secrets(ctx.plugins.secret_paths())
     except OSError as e:
         log.warning("Diagnostics: couldn't read the config: %s", e)
         text = None

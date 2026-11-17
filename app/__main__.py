@@ -10,7 +10,6 @@ python -m app --autostart on|off   liga/desliga iniciar com o Windows (modo band
 from __future__ import annotations
 
 import argparse
-import shutil
 import sys
 import webbrowser
 from pathlib import Path
@@ -67,8 +66,10 @@ def main() -> int:
         print("Start with Windows:", "on" if args.autostart == "on" else "off")
         return 0
 
-    if not config.exists():
-        shutil.copy(paths.EXAMPLE_CONFIG, config)
+    from app.storage import ConfigRepository
+
+    store = ConfigRepository(config)
+    if store.create_from(paths.EXAMPLE_CONFIG):
         msg = f"Created {config} from the example. Edit it as you like (it reloads by itself)."
         if cli:
             print(msg)
@@ -76,11 +77,11 @@ def main() -> int:
             log.info("%s", msg)
 
     from app.bootstrap import services
-    from app.config import ConfigError, load_config
+    from app.config import ConfigError
 
     svc = services()  # carrega os plugins: as ações deles precisam existir para validar o config
     try:
-        cfg = load_config(config)
+        cfg = store.load()
     except ConfigError as e:
         if cli:
             print(e)

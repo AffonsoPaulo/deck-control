@@ -465,10 +465,13 @@ def test_export_and_import(api, cfg_path):
     bad = base64.b64encode(b"language: en\npages:\n  main:\n    1: { action: { type: nope } }\n").decode()
     r = api.post("/api/import", {"name": "config.yaml", "data": bad, "mode": "replace"})
     assert r["ok"] is False and r["errors"]
-    # sem a seção pages: hoje vira erro 500 (ValueError), não {"ok": false}
+    # sem a seção pages: o arquivo não é um config do Deck; é um problema do arquivo ({ok: false}), não erro 500,
+    # já na prévia (dry_run, o que o editor manda primeiro) e no importar
     empty = base64.b64encode(b"language: en\n").decode()
-    status, r = api.request("POST", "/api/import", {"name": "config.yaml", "data": empty})
-    assert status == 500 and r["error"].startswith("ValueError: the file doesn't look like a Deck setup")
+    no_pages = ["the file doesn't look like a Deck setup (the pages section is missing)"]
+    for extra in ({"dry_run": True}, {"mode": "replace"}):
+        r = api.post("/api/import", {"name": "config.yaml", "data": empty, **extra})
+        assert r == {"ok": False, "errors": no_pages}
 
 
 # ---------------------------------------------------------------------------- as regras do HTTP

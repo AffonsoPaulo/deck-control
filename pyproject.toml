@@ -79,6 +79,12 @@ ignore_missing_imports = true
 # Próximos: widgets, values e binds (hoje têm avisos de tipo, sem bug conhecido).
 files = [
     "app/configio.py",
+    # o config por seção (Fase 4): o modelo, os validadores e o build_config
+    "app/config.py",
+    "app/configmodel.py",
+    "app/configpages.py",
+    "app/configsections.py",
+    "app/storage.py",
     "app/i18n.py",
     "app/bootstrap.py",
     "app/errors.py",
@@ -108,6 +114,11 @@ warn_unused_ignores = true
 module = [
     "app.bootstrap",
     "app.errors",
+    "app.config",
+    "app.configmodel",
+    "app.configpages",
+    "app.configsections",
+    "app.storage",
     "app.paths",
     "app.editor.contract",
     "app.editor.api",

@@ -95,7 +95,8 @@ Envio em lote (uma sessão para todas as teclas) funciona; página inteira em ~1
 
 - `d6/` driver do D6 (HID, protocolo CRT, imagens)
 - `app/engine/` loop principal: teclas, páginas, estados, redesenho só do que mudou (`engine.py` liga as peças)
-- `app/config.py` leitura/validação do YAML
+- `app/config.py` leitura/validação do YAML (`configmodel.py` o modelo tipado; `configpages.py` e `configsections.py` os validadores de cada seção)
+- `app/storage.py` o arquivo do config: gravar com backup, histórico de versões
 - `app/icons.py` desenho dos ícones (texto, ícones do Lucide, imagens; o Segoe antigo ainda é aceito)
 - `app/lighting.py` luz do D6: efeitos e reações às teclas no anel de LEDs
 - `app/plugins/` plugins: o OBS e o Discord (embutidos) e os de terceiros (programas separados); ver PLUGINS.md

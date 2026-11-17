@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import yaml
 
-from app import history, logs, paths
+from app import logs, paths
 from app.editor.api import MAX_BODY, ROUTES, Context
 
 if TYPE_CHECKING:
@@ -78,7 +78,7 @@ class EditorServer:
         self.httpd = self._bind(port)
         self.port = self.httpd.server_address[1]
         self._thread = threading.Thread(target=self.httpd.serve_forever, daemon=True, name="editor")
-        history.record(self.config_path)  # garante que o estado atual está no histórico
+        self.ctx.store.record()  # garante que o estado atual está no histórico
 
     def _register_token(self) -> None:
         """O token do editor não pode aparecer no log (ele dá permissão de gravar o config)."""

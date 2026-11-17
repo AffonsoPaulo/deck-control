@@ -1,193 +1,49 @@
-"""Leitura e validação do config.yaml."""
+"""Leitura e validação do config.yaml.
+
+load_config lê o arquivo; build_config valida um config já lido (dict) e monta o modelo tipado. A validação é
+por seção, e cada seção devolve a lista dos seus problemas em vez de levantar no primeiro:
+
+- app/configmodel.py      o modelo (Config, KeySpec) e o que se pergunta a um config montado
+- app/configpages.py      pages: as teclas, os blocos e as páginas citadas pelas ações
+- app/configsections.py   as outras seções (widgets, automações, luz, log...)
+
+O arquivo em disco (gravar, backups, histórico) é com o app/storage.py.
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import yaml
 
-from app import actions, icons, lighting, logs, widgets
-from d6.device import COLS, KEY_COUNT
+from app import i18n
+from app.configmodel import Config, KeySpec
+from app.configpages import DEFAULT_ACTIVE_OVERRIDE, build_pages, check_page_refs, cover_blocks
+from app.configsections import (
+    LOGGING_FLAGS,
+    build_automations,
+    build_brightness,
+    build_home,
+    check_double_tap,
+    check_lighting,
+    check_logging,
+    check_widgets,
+    draw_options,
+    temp_pages,
+)
 from app.errors import ConfigError  # mora em app/errors.py; continua importável daqui
 from app.i18n import tr
-from app import automations, values
-from app import i18n
 
-DEFAULT_ACTIVE_OVERRIDE = {"bg": "#C62828"}
-LOGGING_FLAGS = ("detail", "show_tab", "key_error", "notify")
-
-
-@dataclass
-class KeySpec:
-    icon: dict
-    active_icon: dict
-    state: str | None
-    action: object
-    hold: object
-    hold_ms: int
-    release: object
-    light: dict | None = None
-    double: object = None  # toque duplo
-    repeat: str | None = None  # "press" | "hold": repete enquanto a tecla estiver apertada
-    repeat_ms: int = 80  # intervalo da repetição
-    repeat_delay: int = 400  # repeat: press — espera antes de começar a repetir
-    rules: list = field(default_factory=list)  # [{if: condição, icon: {...}}]: a primeira que valer muda a aparência
-    span: tuple = (1, 1)  # bloco: (colunas, linhas) a partir desta tecla (canto de cima à esquerda)
-    cells: list = field(default_factory=list)  # bloco "distribuir": um ícone por tecla, em ordem de leitura
-    mode: str = "split"  # bloco: "split" (cada tecla uma parte) | "image" (uma imagem atravessando as telas)
-    dynamic: bool = False  # mostra valores ou tem regras: o engine redesenha sozinho
-
-
-@dataclass
-class Config:
-    path: Path
-    raw: dict
-    pages: dict[str, dict[int, KeySpec]]
-    home: str
-    brightness: int
-    draw_options: dict = field(default_factory=dict)
-    lighting: dict | None = None
-    double_ms: int = 250  # janela do toque duplo
-    cover: dict = field(default_factory=dict)  # {página: {tecla coberta: (tecla do bloco, índice da célula)}}
-    automations: list = field(default_factory=list)
-    temp_pages: list = field(default_factory=list)
-    _mtime: float = 0.0
-
-    @property
-    def base_dir(self) -> Path:
-        return self.path.parent
-
-    def page_keys(self, page: str) -> dict[int, KeySpec]:
-        return self.pages.get(page, {})
-
-    def spec_at(self, page: str, key: int):
-        """(KeySpec, índice da célula) da tecla, inclusive das cobertas por um bloco; (None, 0) se vazia."""
-        keys = self.pages.get(page, {})
-        if key in keys:
-            return keys[key], 0
-        anchor = self.cover.get(page, {}).get(key)
-        if anchor:
-            return keys.get(anchor[0]), anchor[1]
-        return None, 0
-
-    def all_states(self) -> set[str]:
-        """Estados que o app precisa acompanhar: os dos ícones e os usados em condições ('if')."""
-        states = {k.state for keys in self.pages.values() for k in keys.values() if k.state}
-        for keys in self.pages.values():
-            for k in keys.values():
-                for a in (k.action, k.double, k.hold, k.release):
-                    _collect_if_states(a, states)
-        return states
-
-    def changed_on_disk(self) -> bool:
-        try:
-            return self.path.stat().st_mtime != self._mtime
-        except OSError:
-            return False
-
-    def mark_seen(self) -> None:
-        try:
-            self._mtime = self.path.stat().st_mtime
-        except OSError:
-            pass
-
-
-def _collect_if_states(spec, out: set) -> None:
-    spec = actions.normalize(spec)
-    if not isinstance(spec, dict):
-        return
-    if spec.get("type") == "if" and spec.get("state"):
-        out.add(str(spec["state"]))
-    d = actions.REGISTRY.get(spec.get("type"))
-    if d and d.children:
-        try:
-            for child in d.children(spec):
-                _collect_if_states(child, out)
-        except (KeyError, TypeError):
-            pass
-
-
-def _span(value, n: int, where: str, errors: list) -> tuple:
-    """span: [colunas, linhas]; o bloco tem que caber na grade a partir da tecla n."""
-    if value is None:
-        return (1, 1)
-    try:
-        cols, rows = int(value[0]), int(value[1])
-    except (TypeError, ValueError, IndexError):
-        errors.append(tr("{where}.span: use [columns, rows], e.g. [2, 1]", where=where))
-        return (1, 1)
-    col, row = (n - 1) % COLS, (n - 1) // COLS
-    if cols < 1 or rows < 1 or col + cols > COLS or row + rows > KEY_COUNT // COLS:
-        errors.append(tr("{where}.span: a {w}x{h} block doesn't fit starting at this key", where=where, w=rows, h=cols))
-        return (1, 1)
-    return (cols, rows)
-
-
-def _is_dynamic(k: dict) -> bool:
-    """Mostra valores ({id}), tem regras, barra ou cor por faixa: precisa ser redesenhada sozinha."""
-    if k.get("rules"):
-        return True
-    for icon in [k.get("icon"), k.get("active_icon"), *(k.get("cells") or [])]:
-        if isinstance(icon, dict):
-            if isinstance(icon.get("bar"), dict) or isinstance(icon.get("bg"), dict):
-                return True
-            if any(values.has_tokens(v) for v in icon.values()):
-                return True
-        elif values.has_tokens(icon):
-            return True
-    return False
-
-
-def _icon(value, where: str) -> dict:
-    if value is None:
-        return {}
-    if isinstance(value, str):
-        return {"text": value}
-    if not isinstance(value, dict):
-        raise ConfigError(tr("{where}: the icon must be text or an object with bg/text/lucide/image", where=where))
-    return dict(value)
-
-
-def _page_refs(spec) -> list[str]:
-    """Todas as páginas citadas por ações 'page' (inclusive dentro de multi/toggle)."""
-    spec = actions.normalize(spec)
-    if not isinstance(spec, dict):
-        return []
-    out = []
-    if spec.get("type") == "page":
-        out.append(str(spec.get("page")))
-    d = actions.REGISTRY.get(spec.get("type"))
-    if d and d.children:
-        for child in d.children(spec):
-            out += _page_refs(child)
-    return out
-
-
-def _check_logging(lg) -> list[str]:
-    """logging: {detail, areas, show_tab, key_error, notify} (ver config.example.yaml)."""
-    if lg is None:
-        return []
-    if not isinstance(lg, dict):
-        return [tr("logging: expected an object with detail/areas/show_tab/key_error/notify")]
-    errors = []
-    unknown = set(lg) - {*LOGGING_FLAGS, "areas"}
-    if unknown:
-        errors.append(tr("logging: unknown fields {fields}", fields=sorted(unknown)))
-    for f in LOGGING_FLAGS:
-        if f in lg and not isinstance(lg[f], bool):
-            errors.append(tr("logging.{field}: use true or false", field=f))
-    areas = lg.get("areas")
-    if areas is not None:
-        if not isinstance(areas, list):
-            errors.append(tr("logging.areas: expected a list (use {areas})", areas=", ".join(logs.AREAS)))
-        else:
-            for a in areas:
-                if a not in logs.AREAS:
-                    errors.append(
-                        tr("logging.areas: unknown area '{area}' (use {areas})", area=a, areas=", ".join(logs.AREAS))
-                    )
-    return errors
+__all__ = [
+    "DEFAULT_ACTIVE_OVERRIDE",
+    "LOGGING_FLAGS",
+    "Config",
+    "ConfigError",
+    "KeySpec",
+    "build_config",
+    "load_config",
+]
 
 
 def load_config(path: Path) -> Config:
@@ -203,216 +59,47 @@ def load_config(path: Path) -> Config:
     return cfg
 
 
-def build_config(raw: dict, path: Path) -> Config:
+def build_config(raw: Any, path: Path) -> Config:
     """Valida um config já lido (dict) e monta o objeto. Levanta ConfigError com todos os problemas."""
     path = Path(path)
     if not isinstance(raw, dict):
         raise ConfigError(tr("{file}: the file must be an object (key: value)", file=path.name))
-
     raw_pages = raw.get("pages") or {}
     if not isinstance(raw_pages, dict) or not raw_pages:
         raise ConfigError(tr("define at least one page in 'pages:'"))
 
-    errors: list[str] = []
-    raw_widgets = raw.get("widgets")
-    if raw_widgets is not None and not isinstance(raw_widgets, dict):
-        errors.append(tr("widgets: expected an object (widget id: description)"))
-    for name, wd in (raw_widgets or {}).items() if isinstance(raw_widgets, dict) else ():
-        problem = widgets.check(str(name), wd)
-        if problem:
-            errors.append(problem)
-    wdefs = None  # os modelos só são lidos se alguma tecla usar widget
-    pages: dict[str, dict[int, KeySpec]] = {}
-    for page_name, keys in raw_pages.items():
-        page_name = str(page_name)
-        pages[page_name] = {}
-        for key_id, k in (keys or {}).items():
-            where = f"pages.{page_name}.{key_id}"
-            try:
-                n = int(key_id)
-            except (TypeError, ValueError):
-                errors.append(tr("{where}: the key must be a number from 1 to {n}", where=where, n=KEY_COUNT))
-                continue
-            if not 1 <= n <= KEY_COUNT:
-                errors.append(tr("{where}: the key must be from 1 to {n}", where=where, n=KEY_COUNT))
-                continue
-            if k is None:
-                continue
-            if not isinstance(k, dict):
-                errors.append(tr("{where}: expected an object with icon/action", where=where))
-                continue
-            unknown = set(k) - {
-                "icon",
-                "active_icon",
-                "state",
-                "action",
-                "double",
-                "hold",
-                "hold_ms",
-                "release",
-                "light",
-                "repeat",
-                "repeat_ms",
-                "repeat_delay",
-                "rules",
-                "span",
-                "cells",
-                "mode",
-                "widget",
-                "size",
-                "options",
-                "colors",
-            }
-            if unknown:
-                errors.append(tr("{where}: unknown fields {fields}", where=where, fields=sorted(unknown)))
-            if k.get("widget") is not None:
-                # widget: o desenho vem do modelo, montado agora (span e células); o resto da tecla vale igual
-                if any(f in k for f in ("span", "cells", "mode")):
-                    errors.append(tr("{where}: a widget key can't have span, cells or mode", where=where))
-                if widgets.parse_size(k.get("size")) is None:
-                    errors.append(tr("{where}.size: use rows x columns, e.g. 1x3", where=where))
-                    continue
-                if wdefs is None:
-                    wdefs = widgets.all_defs(raw_widgets)
-                built = widgets.expand(k, wdefs, f"{page_name}-{n}")
-                k = {
-                    **{f: v for f, v in k.items() if f not in ("widget", "size", "options", "colors")},
-                    "span": list(built["span"]),
-                    "cells": built["cells"],
-                    "icon": built["icon"],
-                }
-            for field_name in ("action", "double", "hold", "release"):
-                errors += actions.validate(k.get(field_name), f"{where}.{field_name}")
-            rules = k.get("rules") or []
-            if not isinstance(rules, list):
-                errors.append(tr("{where}.rules: expected a list", where=where))
-                rules = []
-            for ri, rule in enumerate(rules):
-                errors += values.check_cond(
-                    (rule or {}).get("if") if isinstance(rule, dict) else None, f"{where}.rules.{ri + 1}"
-                )
-            span = _span(k.get("span"), n, where, errors)
-            if k.get("mode") not in (None, "split", "image"):
-                errors.append(tr("{where}.mode: use split or image", where=where))
-            if k.get("repeat") not in (None, "press", "hold"):
-                errors.append(tr("{where}.repeat: use press or hold", where=where))
-            for f, lo, hi in (("repeat_ms", 20, 2000), ("repeat_delay", 0, 3000), ("hold_ms", 50, 10000)):
-                v = k.get(f)
-                if v is not None and not (isinstance(v, (int, float)) and lo <= v <= hi):
-                    errors.append(tr("{where}.{field}: a number from {lo} to {hi}", where=where, field=f, lo=lo, hi=hi))
-            errors += lighting.validate_key(k.get("light"), f"{where}.light")
-            try:
-                icon = _icon(k.get("icon"), f"{where}.icon")
-                active_override = _icon(k.get("active_icon"), f"{where}.active_icon") or DEFAULT_ACTIVE_OVERRIDE
-            except ConfigError as e:
-                errors.append(str(e))
-                continue
-            key_id_str = f"{page_name}:{n}"
-            state = k.get("state") or actions.state_of(k.get("action"), key_id_str)
-            pages[page_name][n] = KeySpec(
-                icon=icon,
-                active_icon=icons.merge_icon(icon, active_override),
-                state=state,
-                action=actions.normalize(k.get("action")),
-                hold=actions.normalize(k.get("hold")),
-                hold_ms=int(k.get("hold_ms", 500)),
-                release=actions.normalize(k.get("release")),
-                light=k.get("light") if isinstance(k.get("light"), dict) else None,
-                double=actions.normalize(k.get("double")),
-                repeat=k.get("repeat") if k.get("repeat") in ("press", "hold") else None,
-                repeat_ms=int(k.get("repeat_ms", 80)),
-                repeat_delay=int(k.get("repeat_delay", 400)),
-                rules=[r for r in rules if isinstance(r, dict)],
-                span=span,
-                cells=[c if isinstance(c, dict) else {"text": str(c)} for c in (k.get("cells") or [])],
-                mode=k.get("mode") or "split",
-                dynamic=_is_dynamic(k),
-            )
-
-    # blocos: as teclas cobertas apontam para a do canto; não podem ter nada próprio nem cruzar outro bloco
-    cover: dict = {}
-    for page_name, keys in pages.items():
-        cov = cover.setdefault(page_name, {})
-        for n, k in sorted(keys.items()):
-            cols, rows = k.span
-            if (cols, rows) == (1, 1):
-                continue
-            idx = 0
-            for r in range(rows):
-                for c in range(cols):
-                    other = n + r * COLS + c
-                    if other != n:
-                        if other in keys:
-                            errors.append(
-                                tr(
-                                    "pages.{page}.{key}: the key is inside the {w}x{h} block of key {anchor}",
-                                    page=page_name,
-                                    key=other,
-                                    w=rows,
-                                    h=cols,
-                                    anchor=n,
-                                )
-                            )
-                        elif other in cov:
-                            errors.append(
-                                tr(
-                                    "pages.{page}: blocks of keys {a} and {b} overlap",
-                                    page=page_name,
-                                    a=cov[other][0],
-                                    b=n,
-                                )
-                            )
-                        cov[other] = (n, idx)
-                    idx += 1
-
-    autos = raw.get("automations") or []
-    if not isinstance(autos, list):
-        errors.append(tr("automations: expected a list"))
-        autos = []
-    for ai, a in enumerate(autos):
-        errors += automations.validate(a, f"automations.{ai + 1}")
-    temp_pages = [str(p) for p in (raw.get("temp_pages") or []) if str(p) in pages]
-
-    home = str(raw.get("home") or next(iter(pages)))
-    if home not in pages:
-        errors.append(tr("home: page '{page}' doesn't exist", page=home))
-    for page_name, keys in pages.items():
-        for n, k in keys.items():
-            for ref in sum((_page_refs(a) for a in (k.action, k.double, k.hold, k.release)), []):
-                if ref not in pages and ref not in ("back", "home"):
-                    errors.append(
-                        tr(
-                            "pages.{page}.{key}: 'page' action points to '{ref}', which doesn't exist",
-                            page=page_name,
-                            key=n,
-                            ref=ref,
-                        )
-                    )
-
-    errors += lighting.validate(raw.get("lighting"))
-    dt = raw.get("double_tap_ms")
-    if dt is not None and not (isinstance(dt, (int, float)) and 120 <= dt <= 800):
-        errors.append(tr("double_tap_ms: a number from {lo} to {hi}", lo=120, hi=800))
-
-    errors += _check_logging(raw.get("logging"))
-
+    # a ordem das seções é a ordem das mensagens
+    problems: list[str] = []
+    problems += check_widgets(raw.get("widgets"))
+    pages = build_pages(raw_pages, raw.get("widgets"))
+    problems += pages.problems
+    cover = cover_blocks(pages.value)
+    problems += cover.problems
+    autos = build_automations(raw)
+    problems += autos.problems
+    temp = temp_pages(raw, pages.value)
+    home = build_home(raw, pages.value)
+    problems += home.problems
+    problems += check_page_refs(pages.value)
+    problems += check_lighting(raw)
+    problems += check_double_tap(raw)
+    problems += check_logging(raw.get("logging"))
+    brightness = build_brightness(raw)
+    problems += brightness.problems
     # atalhos repetidos não impedem salvar: o editor avisa (binds.conflicts)
+    if problems:
+        raise ConfigError(tr("problems in the config:") + "\n  - " + "\n  - ".join(problems))
 
-    if errors:
-        raise ConfigError(tr("problems in the config:") + "\n  - " + "\n  - ".join(errors))
-
-    dev = raw.get("device") or {}
-    draw_options = {k: dev[k] for k in ("session", "per_key_session", "key_delay", "pace") if k in dev}
     return Config(
         path=path,
         raw=raw,
-        pages=pages,
-        home=home,
-        brightness=int(raw.get("brightness", 100)),
-        draw_options=draw_options,
+        pages=pages.value,
+        home=home.value,
+        brightness=brightness.value,
+        draw_options=draw_options(raw),
         lighting=raw.get("lighting") if isinstance(raw.get("lighting"), dict) else None,
         double_ms=int(raw.get("double_tap_ms", 250)),
-        cover=cover,
-        automations=[a for a in autos if isinstance(a, dict)],
-        temp_pages=temp_pages,
+        cover=cover.value,
+        automations=autos.value,
+        temp_pages=temp,
     )
