@@ -2,7 +2,7 @@
 // rápidas; tecla com algo, o cabeçalho (miniatura, nome, ferramentas) e as abas (O que faz, Aparência ou Widget,
 // Luz).
 import { BookmarkPlus, Check, ClipboardPaste, Copy, LayoutGrid, ListOrdered, Maximize2, MousePointer2, Pencil, Play, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/Button";
 import { IconButton } from "@/components/IconButton";
 import { Chip, catStyle } from "@/components/Library";
@@ -16,7 +16,6 @@ import { ActionPicker } from "@/features/keys/ActionPicker";
 import { LookTab } from "@/features/keys/inspector/LookTab";
 import { WidgetTab } from "@/features/keys/inspector/WidgetTab";
 import { DoTab } from "@/features/keys/logic/DoTab";
-import { LightTab } from "@/features/light/LightTab";
 import { BlockLook } from "@/features/keys/inspector/BlockLook";
 import { InfoLook } from "@/features/keys/inspector/InfoLook";
 import { isInfoKey } from "@/features/keys/look";
@@ -26,6 +25,9 @@ import { pageKeysOf, spanOf, type KeySpec } from "@/features/keys/model";
 import { usePlacer } from "@/features/keys/place";
 import { isCells, type KeyPreview } from "@/features/keys/previews";
 import { useSession } from "@/features/keys/session";
+
+// a luz num pedaço próprio do build (a tela Luz usa as mesmas peças)
+const LightTab = lazy(() => import("@/features/light/LightTab").then((m) => ({ default: m.LightTab })));
 
 const QUICK = ["hotkey", "launch", "obs.scene", "discord.mute", "page", "media"];
 
@@ -204,7 +206,9 @@ function KeyInspector({ page, k, spec, preview }: { page: string; k: string; spe
         )}
       </div>
       {tab === "light" ? (
-        <LightTab page={page} k={k} spec={spec} />
+        <Suspense fallback={null}>
+          <LightTab page={page} k={k} spec={spec} />
+        </Suspense>
       ) : tab === "do" ? (
         <DoTab page={page} k={k} spec={spec} />
       ) : widget ? (
