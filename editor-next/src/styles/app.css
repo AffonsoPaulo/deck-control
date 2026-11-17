@@ -10,6 +10,12 @@
 @import "tailwindcss";
 @import "deck-tokens.css";
 
+/* as mesmas fontes do editor atual (app/editor/static/fonts), empacotadas no build */
+@font-face { font-family: "Figtree"; font-weight: 400; font-display: swap; src: url("deck-static/fonts/figtree-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 500; font-display: swap; src: url("deck-static/fonts/figtree-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 600; font-display: swap; src: url("deck-static/fonts/figtree-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 700; font-display: swap; src: url("deck-static/fonts/figtree-latin-700-normal.woff2") format("woff2"); }
+
 @theme inline reference {
   --color-*: initial;
   --radius-*: initial;
@@ -29,6 +35,29 @@
   --animate-*: initial;
 
   --spacing: var(--spacing);
+
+  /* tamanhos com nome: controles (h-control-lg), ícones (size-icon-md) e as medidas do layout do editor */
+  --spacing-control-xs: var(--size-xs);
+  --spacing-control-sm: var(--size-sm);
+  --spacing-control-md: var(--size-md);
+  --spacing-control-lg: var(--size-lg);
+  --spacing-control-xl: var(--size-xl);
+  --spacing-control-2xl: var(--size-2xl);
+  --spacing-icon-xs: var(--icon-xs);
+  --spacing-icon-sm: var(--icon-sm);
+  --spacing-icon-md: var(--icon-md);
+  --spacing-icon-lg: var(--icon-lg);
+  --spacing-icon-xl: var(--icon-xl);
+  --spacing-icon-2xl: var(--icon-2xl);
+  --spacing-top: 60px; /* altura do topo (o --top do style.css) */
+  --spacing-rail: 72px; /* largura do trilho da esquerda */
+  --spacing-rail-btn: 64px;
+
+  /* pesos da Figtree que o projeto usa (o tokens.css não tem escala de peso; são os do style.css) */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);

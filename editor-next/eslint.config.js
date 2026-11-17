@@ -34,6 +34,11 @@ export default tseslint.config(
     },
   },
   {
+    // nos testes, "isto existe" é justamente o que se está conferindo
+    files: ["**/*.test.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-non-null-assertion": "off" },
+  },
+  {
     files: ["*.config.{js,ts}", "scripts/**/*.mjs"],
     languageOptions: { globals: globals.node },
   },

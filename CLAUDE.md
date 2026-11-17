@@ -22,7 +22,10 @@
 - Tailwind só com os tokens do `app/editor/static/tokens.css` (importado, nunca copiado), em `src/styles/app.css`.
   O lint barra valor escrito direto (`rounded-[7px]`) e classe que não é token (`bg-blue-500`).
 - Tipos da API gerados do contrato: `npm run gen:api` (depois de `python -m app.editor.contract`).
-- Antes de commitar: `npm run check` (lint, tipos, contrato em dia) e `npx vite build`.
+- Antes de commitar: `npm run check` (lint, tipos, contrato em dia, testes) e `npx vite build`.
+- Textos com `t("English")` (`src/core/i18n.ts`), no mesmo `app/editor/static/locales/pt-BR.json` do editor atual.
+- O config só muda por `useConfig().edit(...)` (entra no desfazer e grava sozinho). Seleção e abas: `useUi`.
+- Nunca escrever as chaves do localStorage do editor atual (`d6-pendente`, `d6-lang`): é a mesma origem.
 - Versões exatas no `package.json`, instaladas com `npm install --before=<data de 2 semanas atrás>`.
 
 ## Python

@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 const src = fileURLToPath(new URL("./src", import.meta.url));
-const tokens = fileURLToPath(new URL("../app/editor/static/tokens.css", import.meta.url));
+const staticDir = fileURLToPath(new URL("../app/editor/static", import.meta.url));
+const tokens = `${staticDir}/tokens.css`;
 
 export default defineConfig({
   base: "/next/",
@@ -16,6 +17,8 @@ export default defineConfig({
       "@": src,
       // a fonte única dos tokens é a do editor atual (app/editor/static/tokens.css)
       "deck-tokens.css": tokens,
+      // fontes, favicon e traduções do editor atual: uma cópia só, a de app/editor/static
+      "deck-static": staticDir,
     },
   },
   server: {

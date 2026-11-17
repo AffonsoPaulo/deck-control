@@ -1026,5 +1026,13 @@
  "Page \"{0}\" deleted, with 1 key.": "Página \"{0}\" excluída, com 1 tecla.",
  "Page \"{0}\" deleted, with {1} keys.": "Página \"{0}\" excluída, com {1} teclas.",
  "Page options": "Opções da página",
- "Use as home page": "Usar como inicial"
+ "Use as home page": "Usar como inicial",
+ "Still in the current editor": "Ainda no editor de sempre",
+ "This part of the new editor isn't ready yet. Keep using the current editor for it: what you change there shows up here too.": "Esta parte do editor novo ainda não está pronta. Continue usando o editor de sempre: o que você muda lá aparece aqui também.",
+ "Open in the current editor": "Abrir no editor de sempre",
+ "Coming soon": "Em breve",
+ "Saving…": "Salvando…",
+ "Couldn't open the editor": "Não deu para abrir o editor",
+ "Open it from the app address (with the token at the end).": "Abra pelo endereço do app (com o token no fim).",
+ "The app restarted and this tab is out of date. Reload the page.": "O app reiniciou e esta aba ficou desatualizada. Recarregue a página."
 }
