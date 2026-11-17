@@ -1,6 +1,6 @@
 // Gravação automática: 900 ms depois da última mudança, manda o config inteiro para POST /api/config
-// (o servidor valida e só grava se estiver tudo certo). Igual ao editor atual, menos a cópia de segurança no
-// localStorage: a chave "d6-pendente" é do editor atual (mesma origem) e não pode ser misturada.
+// (o servidor valida e só grava se estiver tudo certo). Igual ao editor atual; a cópia de segurança no
+// navegador e o salvar ao fechar ficam em safety.ts.
 import { api, ApiError } from "@/core/api";
 import { isDirty, useConfig, type Config } from "@/core/store/config";
 
@@ -37,7 +37,7 @@ export async function flushSave(post: Post = defaultPost): Promise<boolean> {
       if (dirty) schedule(post);
       return true;
     } catch (e) {
-      useConfig.setState({ saveState: "error", tokenExpired: e instanceof ApiError && e.code === "token" });
+      useConfig.setState({ saveState: "error", errors: [], tokenExpired: e instanceof ApiError && e.code === "token", saveError: (e as Error).message });
       return false;
     } finally {
       inFlight = null;

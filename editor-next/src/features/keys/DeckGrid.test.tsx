@@ -49,9 +49,9 @@ describe("DeckGrid", () => {
 
   it("pede as prévias da página ao servidor, uma entrada por tecla", async () => {
     setup();
-    await waitFor(() => expect(api).toHaveBeenCalled());
-    const [route, body] = api.mock.calls[0] as [string, { keys: unknown[] }];
-    expect(route).toBe("POST /api/preview");
+    // (as ferramentas da tecla também pedem o schema)
+    await waitFor(() => expect(api.mock.calls.some((c) => c[0] === "POST /api/preview")).toBe(true));
+    const [, body] = api.mock.calls.find((c) => c[0] === "POST /api/preview") as [string, { keys: unknown[] }];
     expect(body.keys).toHaveLength(15);
   });
 
@@ -68,5 +68,28 @@ describe("DeckGrid", () => {
     useUi.setState({ view: "active" });
     setup();
     await waitFor(() => expect(document.querySelector<HTMLImageElement>('[data-key="4"] img')?.getAttribute("src")).toBe("data:k4on"));
+  });
+
+  it("Shift+clique escolhe várias; um retângulo vira bloco com o desenho de cada uma", async () => {
+    const user = userEvent.setup();
+    setup();
+    const keyBtn = (n: string) => document.querySelector<HTMLElement>(`[data-key="${n}"]`) as HTMLElement;
+    await user.keyboard("{Shift>}");
+    // (a 1 é um widget 2x2: o retângulo é 3, 4, 8, 9)
+    await user.click(keyBtn("3"));
+    await user.click(keyBtn("9"));
+    expect(screen.getByText("Select a full rectangle of keys (no gaps).")).toBeTruthy();
+    await user.click(keyBtn("4"));
+    await user.click(keyBtn("8"));
+    await user.keyboard("{/Shift}");
+    expect(document.querySelectorAll("[data-multi]")).toHaveLength(4);
+    await user.click(screen.getByRole("button", { name: "Join 2×2" }));
+    const spec = (useConfig.getState().cfg?.pages as Record<string, Record<string, Record<string, unknown>>>).main?.["3"];
+    expect(spec?.span).toEqual([2, 2]);
+    expect(spec?.mode).toBe("split");
+    expect((spec?.cells as unknown[]).length).toBe(4);
+    // a ação da 4 (a única com ação) fica para o bloco
+    expect(spec?.action).toEqual({ type: "keys" });
+    expect(useUi.getState().key).toBe("3");
   });
 });

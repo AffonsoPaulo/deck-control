@@ -29,6 +29,7 @@
 .deck-key[data-empty]:hover::after { color: var(--device-plus-hover); }
 .deck-key[data-pressed] { transform: translateY(2px); box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--device-rim-2), 0 1px 0 3px var(--device-base), 0 2px 4px 1px rgba(0, 0, 0, .4); }
 .deck-key[data-selected] { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--accent), 0 0 22px 2px var(--accent-glow), 0 3px 0 3px var(--device-base); }
+.deck-key[data-multi] { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--accent); }
 .deck-key[data-drop] { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--device-drop), 0 0 22px 2px color-mix(in srgb, var(--device-drop) 35%, transparent), 0 3px 0 3px var(--device-base); transform: scale(1.04); }
 .deck-key:focus-visible { outline: none; box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--accent), 0 3px 0 3px var(--device-base); }
 /* a tecla que está sendo arrastada fica no lugar, apagada (a peça que anda é a de cima) */

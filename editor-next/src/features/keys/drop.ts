@@ -8,6 +8,7 @@ import { footprintAt } from "@/features/keys/actions";
 import { NO_FOOT, useDeckState, type Foot } from "@/features/keys/deckState";
 import type { DragPoint } from "@/features/keys/dnd";
 import { cellAt, coverMap, dropAnchor, pageKeysOf, pieceSize, resolveDrop, selectionAfterSwap, swapKeys, type DragPayload, type PageKeys } from "@/features/keys/model";
+import { moveKeyToPage } from "@/features/keys/pageOps";
 import { usePlacer } from "@/features/keys/place";
 import { draftKeys } from "@/features/keys/keys";
 
@@ -43,7 +44,7 @@ export function useDeckDrop(page: string) {
 
   const onMove = (p: DragPoint) => {
     const set = (foot: Foot) => useDeckState.setState({ foot });
-    if (p.payload.kind === "key" || p.payload.kind === "step" || p.target === null || p.target.startsWith("slot|")) return set(NO_FOOT);
+    if (p.payload.kind === "key" || p.payload.kind === "step" || p.target === null || p.target.startsWith("slot|") || p.target.startsWith("page|")) return set(NO_FOOT);
     const keys = pageKeysOf(useConfig.getState().cfg, page);
     const [cols, rows] = pieceSize(p.payload);
     const anchor = dropAnchor(p.payload, p.target, cellUnder(p.target, keys, p.x, p.y));
@@ -55,6 +56,11 @@ export function useDeckDrop(page: string) {
     if (p.target === null) return;
     // soltou numa lista de passos de "O que faz"
     if (p.target.startsWith("slot|")) return void logicDrop.current?.(p.payload, p.target);
+    // soltou uma tecla na aba de outra página: vai para a primeira casa livre de lá
+    if (p.target.startsWith("page|")) {
+      if (p.payload.kind === "key") moveKeyToPage(t, page, p.payload.key, p.target.slice(5));
+      return;
+    }
     if (p.payload.kind === "step") return;
     const keys = pageKeysOf(useConfig.getState().cfg, page);
     const r = resolveDrop(p.payload, p.target, cellUnder(p.target, keys, p.x, p.y), keys);

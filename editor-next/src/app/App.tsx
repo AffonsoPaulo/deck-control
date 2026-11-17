@@ -4,9 +4,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ApiError } from "@/core/api";
-import { normalizeLang, setLang, useT } from "@/core/i18n";
+import { i18n, normalizeLang, setLang, useT } from "@/core/i18n";
 import { queryClient, useInitialConfig, useSchema } from "@/core/queries";
 import { startAutosave } from "@/core/store/autosave";
+import { offerPending, startSafety } from "@/core/store/safety";
 import { useConfig } from "@/core/store/config";
 import { startUrlSync } from "@/core/store/ui";
 import { readToken } from "@/core/token";
@@ -41,9 +42,12 @@ function Boot() {
   useEffect(() => {
     if (!ready) return;
     const stopSave = startAutosave();
+    const stopSafety = startSafety();
     const stopHash = startUrlSync();
+    offerPending(i18n.language);
     return () => {
       stopSave();
+      stopSafety();
       stopHash();
     };
   }, [ready]);

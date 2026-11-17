@@ -27,6 +27,8 @@ export interface ConfigStore {
   errors: string[];
   /** O app reiniciou e esta aba ficou com o token velho: só recarregando. */
   tokenExpired: boolean;
+  /** A mensagem do último erro de gravação que não foi config inválido (rede, app fechado). */
+  saveError: string | null;
 
   load: (cfg: Config) => void;
   edit: (recipe: (draft: Draft<Config>) => void, tag?: string) => void;
@@ -47,6 +49,7 @@ export const useConfig = create<ConfigStore>()((set, get) => ({
   saveState: "saved",
   errors: [],
   tokenExpired: false,
+  saveError: null,
 
   load: (cfg) =>
     set({ cfg, saved: JSON.stringify(cfg), past: [], future: [], lastTag: null, lastAt: 0, saveState: "saved", errors: [] }),

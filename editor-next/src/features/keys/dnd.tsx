@@ -57,6 +57,8 @@ const point = (op: Op): DragPoint | null =>
 
 /** Lugar numa lista de passos ("slot|<caminho>|<índice>"): a posição contando de 1, para o anúncio. */
 const slotPos = (id: string): number | null => (id.startsWith("slot|") ? Number(id.split("|")[2]) + 1 : null);
+/** Aba de página ("page|<nome>"): o nome, para o anúncio. */
+const pageOf = (id: string): string | null => (id.startsWith("page|") ? id.slice(5) : null);
 
 export function DeckDnd({ children, pitch, onMove, onDrop, ghost, ghostSize, canDrag, nameOf }: DeckDndProps) {
   const t = useT();
@@ -85,12 +87,16 @@ export function DeckDnd({ children, pitch, onMove, onDrop, ghost, ghostSize, can
           const op = (e as unknown as Ev).operation;
           const slot = op.target ? slotPos(String(op.target.id)) : null;
           if (slot !== null) return t("{0}: position {1} in the list.", [name(op), slot]);
+          const pg = op.target ? pageOf(String(op.target.id)) : null;
+          if (pg !== null) return t("{0} is over page {1}.", [name(op), pg]);
           return op.target ? t("{0} is over key {1}.", [name(op), String(op.target.id)]) : t("{0} is outside the Deck.", [name(op)]);
         },
         dragend: (e: unknown) => {
           const ev = e as unknown as Ev;
           const slot = ev.operation.target ? slotPos(String(ev.operation.target.id)) : null;
           if (!ev.canceled && slot !== null) return t("{0} went to position {1} in the list.", [name(ev.operation), slot]);
+          const pg = ev.operation.target ? pageOf(String(ev.operation.target.id)) : null;
+          if (!ev.canceled && pg !== null) return t("{0} was dropped on page {1}.", [name(ev.operation), pg]);
           return ev.canceled || !ev.operation.target
             ? t("{0}: moving canceled.", [name(ev.operation)])
             : t("{0} was dropped on key {1}.", [name(ev.operation), String(ev.operation.target.id)]);
