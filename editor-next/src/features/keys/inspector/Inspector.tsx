@@ -19,6 +19,8 @@ import { actionDefs, groupOf, groupsOf, iconOf, widgetDefs } from "@/features/ke
 import { ActionPicker } from "@/features/keys/ActionPicker";
 import { LookTab } from "@/features/keys/inspector/LookTab";
 import { WidgetTab } from "@/features/keys/inspector/WidgetTab";
+import { BlockLook } from "@/features/keys/inspector/BlockLook";
+import { InfoLook } from "@/features/keys/inspector/InfoLook";
 import { isInfoKey } from "@/features/keys/look";
 import { useKeyOps } from "@/features/keys/keyOps";
 import { draftKeys } from "@/features/keys/keys";
@@ -141,8 +143,7 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
         ["look", t("Appearance")],
         ["light", t("Light")],
       ];
-  // widget tem a aba própria (mesmo ocupando várias teclas); bloco e informação ainda abrem no editor atual
-  const ready = tab === "look" && (widget || (!block && !info));
+  const ready = tab === "look";
 
   return (
     <>
@@ -168,10 +169,10 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
                   s.icon = next;
                 }, `name:${page}:${k}`);
               }}
-              className="-ml-1.75 h-control-sm w-full rounded-md border border-transparent bg-transparent px-1.5 text-lg font-bold text-fg outline-none placeholder:text-fg-subtle hover:border-border-strong focus:border-fg focus:bg-sunken"
+              className="-ml-1.75 h-control-md w-full rounded-md border border-transparent bg-transparent px-1.5 text-lg font-bold text-fg outline-none placeholder:text-fg-subtle hover:border-border-strong focus:border-fg focus:bg-sunken"
             />
           )}
-          <small className="block text-xs text-fg-subtle">{sub}</small>
+          <small className="block text-xs leading-(--text-base--line-height) text-fg-subtle">{sub}</small>
         </div>
         <div className="flex gap-0.5">
           <IconButton icon={Play} label={t("Test")} title={t("Test (runs the saved version)")} onClick={() => void ops.test(k)} />
@@ -195,7 +196,17 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
           </button>
         ))}
       </div>
-      {!ready ? <SectionPlaceholder place={place} compact /> : widget ? <WidgetTab page={page} k={k} spec={spec} /> : <LookTab page={page} k={k} spec={spec} preview={preview} />}
+      {!ready ? (
+        <SectionPlaceholder place={place} compact />
+      ) : widget ? (
+        <WidgetTab page={page} k={k} spec={spec} />
+      ) : block ? (
+        <BlockLook page={page} k={k} spec={spec} preview={preview} />
+      ) : info ? (
+        <InfoLook page={page} k={k} spec={spec} preview={preview && !isCells(preview) ? preview.normal : null} />
+      ) : (
+        <LookTab page={page} k={k} spec={spec} preview={preview} />
+      )}
     </>
   );
 }

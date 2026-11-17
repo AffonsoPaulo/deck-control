@@ -233,6 +233,13 @@
   }
 }
 
+/* texto de exemplo num campo editável que não é input (contenteditable vazio mostra o data-placeholder) */
+@utility placeholder-attr {
+  &:empty::before {
+    content: attr(data-placeholder);
+    color: var(--fg-subtle);
+  }
+}
 /* painel que rola: o espaço da barra fica reservado, para a largura não mudar quando ela aparece (sem isso,
    um texto que quebra de linha com a barra faz a lista crescer e a barra ir e voltar sem parar) */
 @utility scrollbar-stable {
