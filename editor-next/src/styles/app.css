@@ -119,6 +119,7 @@
   --color-danger-bg: var(--danger-bg);
   --color-danger-border: var(--danger-border);
   --color-danger-solid: var(--danger-solid);
+  --color-danger-solid-hover: color-mix(in srgb, var(--danger-solid) 85%, var(--on-danger)); /* .btn.solid-danger:hover */
   --color-on-danger: var(--on-danger);
   --color-warning-fg: var(--warning-fg);
   --color-warning-bg: var(--warning-bg);

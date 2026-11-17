@@ -7,6 +7,7 @@ import type { Section } from "@/core/hash";
 import { useT } from "@/core/i18n";
 import { useStatus } from "@/core/queries";
 import { flushSave } from "@/core/store/autosave";
+import { anyOverlayOpen } from "@/core/overlay";
 import { useConfig } from "@/core/store/config";
 import { useUi } from "@/core/store/ui";
 import { Rail } from "@/app/Rail";
@@ -53,14 +54,16 @@ export function Shell() {
     e.preventDefault();
     void flushSave();
   }, { enableOnFormTags: true });
+  // com menu, confirmação ou diálogo aberto, desfazer/refazer ficam quietos (como no editor atual)
+  const free = () => !anyOverlayOpen();
   useHotkeys("mod+z", (e) => {
     e.preventDefault();
     undo();
-  });
+  }, { enabled: free });
   useHotkeys(["mod+y", "mod+shift+z"], (e) => {
     e.preventDefault();
     redo();
-  });
+  }, { enabled: free });
 
   return (
     <div className="flex h-dvh bg-canvas text-fg">
