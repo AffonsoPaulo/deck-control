@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deck"
-version = "0.1.0"
+dynamic = ["version"]  # vem de app/__init__.py (__version__): um lugar só
 description = "App para o Fifine AmpliGame D6: teclas, luz, widgets e plugins, com editor no navegador."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -29,6 +29,9 @@ dev = [
 
 [project.scripts]
 deck = "app.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "app.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["app*", "d6*"]
