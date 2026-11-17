@@ -1,7 +1,8 @@
-"""A cor do anel convertida para o LED (correção de gama 2,8, escolhida comparando no D6).
+"""A cor do anel convertida para o LED, escolhida comparando no D6.
 
 As cores do config são de tela; o LED acende linear. Sem converter, as sobras de uma cor misturada apareciam
-demais: o verde #22c55e puxava para o ciano e o vermelho #e5484d para o rosa.
+demais: o verde #22c55e puxava para o ciano e o vermelho #e5484d para o rosa. A correção mantém o canal principal
+(corrigir todos deixava o anel apagado) e encolhe os outros com a curva 2,8.
 """
 
 from __future__ import annotations
@@ -14,8 +15,9 @@ from app import lighting
 @pytest.mark.parametrize(
     ("screen", "led"),
     [
-        ((34, 197, 94), (1, 124, 16)),  # o verde do toque duplo: o azul quase some
-        ((229, 72, 77), (189, 7, 9)),  # o vermelho: verde e azul quase somem
+        ((34, 197, 94), (1, 197, 25)),  # o verde do toque duplo: o verde fica, o azul quase some
+        ((229, 72, 77), (229, 9, 11)),  # o vermelho: o vermelho fica, verde e azul quase somem
+        ((128, 128, 128), (128, 128, 128)),  # cinza (canais iguais) não muda
         ((255, 0, 0), (255, 0, 0)),  # cor pura não muda (por isso a onda já parecia certa)
         ((0, 0, 0), (0, 0, 0)),
         ((255, 255, 255), (255, 255, 255)),
@@ -39,14 +41,14 @@ def test_flash_goes_converted_to_the_ring(make_engine):
     deck = rig.connect()
     rig.tap(1)
     rig.advance(100)
-    assert deck.leds[-1] == [(1, 124, 16)] * lighting.N
+    assert deck.leds[-1] == [(1, 197, 25)] * lighting.N
     assert rig.engine.leds_now() == [(34, 197, 94)] * lighting.N  # a prévia continua em cores de tela
 
 
 def test_brightness_curve_on_the_led_stays_as_before(make_engine):
-    """Brilho 80 num vermelho puro: o LED recebe ~(80/100)^1,6 do máximo, como antes da correção."""
+    """Brilho 80 num vermelho puro: o LED recebe (80/100)^1,6 do máximo, como antes da correção."""
     rig = make_engine(FLASH)
     deck = rig.connect()
     rig.advance(100)
     red = deck.leds[-1][0][0]
-    assert abs(red - round(255 * 0.8**1.6)) <= 3
+    assert red == round(255 * 0.8**1.6)
