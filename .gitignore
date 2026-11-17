@@ -15,6 +15,10 @@ __pycache__/
 build/
 venv/
 
+# Executável e instalador (packaging/): saídas do PyInstaller e do Inno Setup
+/dist/
+/packaging/Output/
+
 # Editor novo (React): dependências, build e prints de referência (gerados na máquina de quem testa)
 node_modules/
 editor-next/dist/

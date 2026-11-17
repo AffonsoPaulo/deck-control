@@ -1,0 +1,22 @@
+# O que monta o Deck.exe (packaging/deck.spec), em versões exatas: o build da CI sai igual ao conferido aqui.
+# As do app são as do pyproject.toml, fixadas nas que os testes rodaram; as do PyInstaller, de pelo menos duas
+# semanas antes de entrarem aqui. Atualizar: trocar o número, montar e rodar o Deck.exe --check e um plugin.
+
+# o app (pyproject.toml)
+hidapi==0.15.0
+pillow==11.3.0
+PyYAML==6.0.3
+ruamel.yaml==0.19.1
+pystray==0.19.5
+six==1.17.0
+obsws-python==1.8.1
+websocket-client==1.9.2
+
+# o empacotador
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.9
+altgraph==0.17.5
+pefile==2024.8.26
+pywin32-ctypes==0.2.3
+packaging==26.3
+setuptools==84.2.1
