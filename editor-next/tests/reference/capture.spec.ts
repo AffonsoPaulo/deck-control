@@ -1,5 +1,6 @@
-// Tira um print de cada tela do editor atual e guarda em reference/ (fora do git: os prints dependem da
-// máquina e das fontes). Rode de novo só se o editor atual mudar.
+// Tira um print de cada tela do editor e guarda em reference/ (fora do git: os prints dependem da máquina e das
+// fontes). Antes da troca eram os prints do editor antigo, base da comparação tela por tela; o endereço no formato
+// antigo (#t=...&p=...) ainda abre a tela certa.
 import { expect, test } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

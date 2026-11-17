@@ -4,8 +4,8 @@ Segurança: escuta só em 127.0.0.1, exige um token aleatório (guardado no perf
 no cabeçalho X-Token de toda chamada /api, e confere o Host (contra DNS rebinding). Sem isso, qualquer site
 aberto no navegador poderia mandar o app gravar uma ação 'command' no config.
 
-O token tem o formato XXXX-XXXX-XXXX (base32 de Crockford: sem I, L, O, U; 60 bits). O editor novo o leva no
-caminho (/next/XXXX-XXXX-XXXX/teclas/...): por isso toda resposta manda Referrer-Policy: no-referrer, para o
+O token tem o formato XXXX-XXXX-XXXX (base32 de Crockford: sem I, L, O, U; 60 bits). O editor o leva no
+caminho (/XXXX-XXXX-XXXX/teclas/...): por isso toda resposta manda Referrer-Policy: no-referrer, para o
 navegador nunca repassar o endereço a outro site, e o log mascara o token como qualquer segredo.
 """
 
@@ -33,7 +33,12 @@ if TYPE_CHECKING:
     from app.plugins import PluginManager
     from app.values import Values
 
-STATIC = paths.STATIC
+# sem o build do editor (desenvolvimento, antes do npm run build): explica em vez de um 404 seco
+NO_BUILD = (
+    "<!doctype html><meta charset=utf-8><title>Deck</title><body style='font:16px system-ui;padding:2rem'>"
+    "<h1>O editor ainda não foi montado</h1><p>Na pasta <code>editor-next</code>, rode <code>npm run build</code> "
+    "e recarregue esta página.</p>"
+).encode()
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("image/svg+xml", ".svg")
 mimetypes.add_type("font/ttf", ".ttf")
@@ -41,7 +46,7 @@ mimetypes.add_type("font/ttf", ".ttf")
 mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("text/javascript", ".mjs")
 mimetypes.add_type("application/json", ".map")
-NEXT_PREFIX = "/next"  # o editor novo (React), enquanto não substitui o atual
+OLD_NEXT = "/next"  # onde o editor ficava antes da troca: redireciona para a raiz (aba ou favorito antigo)
 TOKEN_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"  # base32 de Crockford: sem I, L, O, U (não confundem)
 TOKEN_RE = re.compile(r"[0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){2}")
 log = logs.get("editor")
@@ -115,12 +120,8 @@ class EditorServer:
 
     @property
     def url(self) -> str:
-        return f"http://127.0.0.1:{self.port}/#t={self.token}"
-
-    @property
-    def next_url(self) -> str:
-        """O editor novo, com o token no caminho."""
-        return f"http://127.0.0.1:{self.port}{NEXT_PREFIX}/{self.token}/teclas"
+        """O editor, com o token no caminho."""
+        return f"http://127.0.0.1:{self.port}/{self.token}/teclas"
 
     def start(self) -> None:
         self._thread.start()
@@ -176,7 +177,7 @@ def _make_handler(server: EditorServer):
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
-            # o editor novo leva o token no caminho: o navegador nunca repassa o endereço a outro site
+            # o editor leva o token no caminho: o navegador nunca repassa o endereço a outro site
             self.send_header("Referrer-Policy", "no-referrer")
             self.end_headers()
             try:
@@ -184,6 +185,17 @@ def _make_handler(server: EditorServer):
             except _GONE:
                 # o navegador desistiu do pedido (F5, aba fechada): normal, não é erro
                 log.debug("Browser closed the connection before %s finished", self.path.split("?", 1)[0])
+
+        def _redirect(self, to: str) -> None:
+            # sempre um caminho deste servidor: "//site.com" viraria um endereço de outro site
+            to = "/" + to.lstrip("/\\")
+            self.status = 302
+            self.send_response(302)
+            self.send_header("Location", to)
+            self.send_header("Content-Length", "0")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.end_headers()
 
         def _json(self, code: int, obj) -> None:
             self._send(code, json.dumps(obj, ensure_ascii=False).encode(), "application/json; charset=utf-8")
@@ -233,15 +245,18 @@ def _make_handler(server: EditorServer):
                     return self._json(500, {"error": f"{type(e).__name__}: {e}"})
             if method != "GET":
                 return self._send(405, b"", "text/plain")
-            # arquivos estáticos: o editor atual em /, o novo em /next (o build do editor-next/). As páginas do
-            # novo (/next, /next/ e /next/XXXX-XXXX-XXXX/qualquer/coisa) são todas o index.html: quem lê o resto
-            # do caminho (seção, página, tecla) é o próprio editor.
-            if path == NEXT_PREFIX or path.startswith(NEXT_PREFIX + "/"):
-                rest = path[len(NEXT_PREFIX) :].lstrip("/")
-                first = rest.split("/", 1)[0]
-                root, rel = paths.EDITOR_NEXT, ("index.html" if not rest or TOKEN_RE.fullmatch(first) else rest)
-            else:
-                root, rel = STATIC, "index.html" if path in ("/", "") else path.lstrip("/")
+            # o editor fica na raiz; o endereço de antes da troca (/next/...) leva para o mesmo lugar
+            if path == OLD_NEXT or path.startswith(OLD_NEXT + "/"):
+                rest = path[len(OLD_NEXT) :] or "/"
+                return self._redirect(rest)
+            # arquivos do build do editor (editor-next/dist). As páginas (/, /XXXX-XXXX-XXXX/qualquer/coisa) são
+            # todas o index.html: quem lê o resto do caminho (seção, página, tecla) é o próprio editor.
+            rest = path.lstrip("/")
+            first = rest.split("/", 1)[0]
+            root = paths.EDITOR_NEXT
+            rel = "index.html" if not rest or TOKEN_RE.fullmatch(first) else rest
+            if rel == "index.html" and not (root / rel).is_file():
+                return self._send(503, NO_BUILD, "text/html; charset=utf-8")
             target = (root / rel).resolve()
             if root.resolve() not in target.parents or not target.is_file():
                 return self._send(404, b"not found", "text/plain")

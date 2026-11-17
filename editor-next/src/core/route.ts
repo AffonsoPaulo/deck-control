@@ -1,12 +1,12 @@
 // Onde a pessoa está, no endereço, com nomes que dá para ler:
-//   /next/K7QM-2XPA-9DFT/teclas/main/4/aparencia
-//   /next/K7QM-2XPA-9DFT/teclas/main/4/aparencia/ativa      (aparência de ligada)
-//   /next/K7QM-2XPA-9DFT/teclas/main/4/luz/segurar          (luz ao segurar)
-//   /next/K7QM-2XPA-9DFT/teclas/main/4/o-que-faz/ampliado   (lógica na área grande)
-//   /next/K7QM-2XPA-9DFT/teclas/main?vista=ativas           (o Deck mostrando as teclas ligadas)
-//   /next/K7QM-2XPA-9DFT/luz | /automacoes | /logs | /config/integracoes
+//   /K7QM-2XPA-9DFT/teclas/main/4/aparencia
+//   /K7QM-2XPA-9DFT/teclas/main/4/aparencia/ativa      (aparência de ligada)
+//   /K7QM-2XPA-9DFT/teclas/main/4/luz/segurar          (luz ao segurar)
+//   /K7QM-2XPA-9DFT/teclas/main/4/o-que-faz/ampliado   (lógica na área grande)
+//   /K7QM-2XPA-9DFT/teclas/main?vista=ativas           (o Deck mostrando as teclas ligadas)
+//   /K7QM-2XPA-9DFT/luz | /automacoes | /logs | /config/integracoes
 // O token é o primeiro pedaço (XXXX-XXXX-XXXX); o servidor entrega a página para qualquer caminho atrás dele.
-// O prefixo (/next/) é o base do Vite: quando o editor novo virar o principal, some sem mudar nada aqui.
+// O prefixo é o base do Vite ("/"; era /next/ antes da troca, e o servidor ainda redireciona de lá).
 import { DEFAULT_PLACE, SET_SECTIONS, type Place, type Section, type SetSection } from "@/core/hash";
 
 export const TOKEN_RE = /^[0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){2}$/;
@@ -30,7 +30,7 @@ const TAB_OF = invert(TAB_SLUG);
 const MOMENT_OF = invert(MOMENT_SLUG);
 const KEYS = Array.from({ length: 15 }, (_, i) => String(i + 1));
 
-/** O prefixo do editor no endereço ("/next/"), o mesmo base do build. */
+/** O prefixo do editor no endereço ("/"), o mesmo base do build. */
 export const basePath = (): string => (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 
 const decode = (s: string): string => {

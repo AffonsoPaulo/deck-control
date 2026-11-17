@@ -1,31 +1,36 @@
 # Deck (substituto do app do Fifine AmpliGame D6)
 
-## Design system (editor: `app/editor/static`)
-- Tokens em `app/editor/static/tokens.css`. O `style.css` só usa as variáveis de lá:
-  nada de cor, raio, tamanho de fonte, ícone, sombra, duração ou z-index escritos direto.
-  Exceção: o desenho do aparelho (`.deck`, `.key`, `.lv-*` do Deck, peça arrastada), que usa `--device-*` e medidas próprias.
+## Design system
+- Tokens em `app/editor/static/tokens.css` (a fonte única; o editor importa no Tailwind). Nada de cor, raio,
+  tamanho de fonte, ícone, sombra, duração ou z-index escritos direto: o lint barra.
+  Exceção: o desenho do aparelho (`editor-next/src/features/keys/deck.css`: o Deck, as teclas, a tela Luz, a peça
+  arrastada), que usa `--device-*` e medidas próprias.
 - Dois blocos no `tokens.css`: escalas e paleta de tecla (fixos) e o tema (`[data-theme]`, só cores e sombras).
   Um tema novo redefine só o bloco do tema.
 - Escalas: raio 3/6/9/12/16/redondo (peça de dentro = raio de fora − folga); texto 11/12/13/14/15/18/22/28;
   ícone 12/14/16/20/24/28; controles 24/28/32/36/40/44; espaço em múltiplos de 2 (base 4).
 - Trilhos (abas, segmentado, pílulas): um estilo só, o escolhido em `--selected` com texto `--fg`.
 - Cores de categoria: só a base (`--cat-<matiz>`); chip, ícone e bloco saem das fórmulas com `color-mix`.
-- Paleta de tecla (`--key-*`) é o que vai para o Deck e não muda com o tema. No JS: `KEY_SWATCHES`.
+- Paleta de tecla (`--key-*`) é o que vai para o Deck e não muda com o tema. No editor: `useKeySwatches()`.
 - Contraste WCAG medido antes de mostrar cor nova: texto 4,5:1, peça 3:1. Exceção combinada: borda de campo.
 - Estado sempre com ícone e texto. Sem bolinha verde/vermelha e sem borda tracejada. Ícones Lucide.
 - Apareceu em dois lugares: vira componente na hora.
 - Mudança visual passa primeiro pelo canvas (artifact "Editor do D6", página "Design system").
 
-## Editor novo (React, `editor-next/`)
-- Vite + React 19 + TypeScript 6 (estrito) + Tailwind v4. O Python serve o build em `/next` (mesmo token).
+## Editor (React, `editor-next/`)
+- Vite + React 19 + TypeScript 6 (estrito) + Tailwind v4. O Python serve o build (`editor-next/dist`) na raiz, com o
+  token no caminho (`/XXXX-XXXX-XXXX/teclas/...`); sem o build, a página explica que falta o `npm run build`.
+  O editor antigo (JS puro) saiu; de `app/editor/static` ficaram os tokens, as traduções, as fontes, o índice do
+  Lucide e os favicons, que o editor e o Python usam.
   Em desenvolvimento, `npm run dev` (porta 5173) manda a `/api` para o servidor de teste (8799), nunca para o app real.
 - Tailwind só com os tokens do `app/editor/static/tokens.css` (importado, nunca copiado), em `src/styles/app.css`.
   O lint barra valor escrito direto (`rounded-[7px]`) e classe que não é token (`bg-blue-500`).
 - Tipos da API gerados do contrato: `npm run gen:api` (depois de `python -m app.editor.contract`).
 - Antes de commitar: `npm run check` (lint, tipos, contrato em dia, testes) e `npx vite build`.
-- Textos com `t("English")` (`src/core/i18n.ts`), no mesmo `app/editor/static/locales/pt-BR.json` do editor atual.
+- Textos com `t("English")` (`src/core/i18n.ts`), traduzidos em `app/editor/static/locales/pt-BR.json`.
 - O config só muda por `useConfig().edit(...)` (entra no desfazer e grava sozinho). Seleção e abas: `useUi`.
-- Nunca escrever as chaves do localStorage do editor atual (`d6-pendente`, `d6-lang`): é a mesma origem.
+- Nunca escrever as chaves do localStorage do editor antigo (`d6-pendente`, `d6-lang`, `d6-lib-*`): podem ter sobrado
+  no navegador. O editor usa as suas (`deck-next-*`).
 - Versões exatas no `package.json`, instaladas com `npm install --before=<data de 2 semanas atrás>`.
 
 ## Python

@@ -1,5 +1,5 @@
 // Onde a pessoa está (seção, página, tecla, aba): fora do histórico de desfazer, espelhado no endereço
-// (/next/XXXX-XXXX-XXXX/teclas/main/4/aparencia; ver core/route.ts).
+// (/XXXX-XXXX-XXXX/teclas/main/4/aparencia; ver core/route.ts).
 import { create } from "zustand";
 import { DEFAULT_PLACE, parsePlace, type Place } from "@/core/hash";
 import { TOKEN_RE, formatRoute, parseRoute } from "@/core/route";

@@ -36,6 +36,7 @@ export interface SegmentedOption<T extends string> {
   label: string; // nas "icons", vira o aria-label e o title
   icon?: LucideIcon;
   sub?: string; // nos "moments", a linha pequena embaixo (o resumo de cada momento)
+  title?: string; // a dica ao parar o mouse (nos "icons", o próprio rótulo)
 }
 
 interface SegmentedProps<T extends string> extends VariantProps<typeof track> {
@@ -57,7 +58,7 @@ export function Segmented<T extends string>({ options, value, onChange, label, v
             type="button"
             aria-pressed={o.value === value}
             aria-label={iconOnly ? o.label : undefined}
-            title={iconOnly ? o.label : undefined}
+            title={iconOnly ? o.label : o.title}
             onClick={() => onChange(o.value)}
             className={option({ variant })}
           >

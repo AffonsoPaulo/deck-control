@@ -204,7 +204,7 @@ ALL_ROUTES = {
 
 
 def test_the_routes_are_these_30():
-    # o editor (app.js) chama estas; trocar uma é mudar o contrato
+    # o editor chama estas; trocar uma é mudar o contrato
     assert set(ROUTES) == ALL_ROUTES
 
 
@@ -264,7 +264,7 @@ def test_preview(api):
 
 def test_widget_expand(api):
     r = api.post("/api/widget/expand", {"key": {"widget": "app.clock", "size": "1x2"}, "id": "k1"})
-    # como o editor manda (widgets.js): opções e cores nulas, id nulo
+    # como o editor manda: opções e cores nulas, id nulo
     key = {"widget": "app.clock", "size": "1x1", "options": None, "colors": None}
     assert api.post("/api/widget/expand", {"key": key, "widgets": None, "id": None})["span"] == [1, 1]
     assert r["span"] == [2, 1]
@@ -526,12 +526,23 @@ def test_route_error_envelope(api):
     assert status == 500 and r == {"error": "KeyError: 'id'"}
 
 
-def test_static_files(api):
+def _dist(tmp_path, monkeypatch):
+    """Um build falso do editor (index.html e um arquivo em assets/)."""
+    from app import paths
+
+    dist = tmp_path / "dist"
+    (dist / "assets").mkdir(parents=True)
+    (dist / "index.html").write_text("<!doctype html><title>editor</title>", encoding="utf-8")
+    (dist / "assets" / "app.js").write_text("export {}", encoding="utf-8")
+    monkeypatch.setattr(paths, "EDITOR_NEXT", dist)
+    return dist
+
+
+def test_static_files(api, tmp_path, monkeypatch):
+    _dist(tmp_path, monkeypatch)
     status, body = api.request("GET", "/")
-    assert status == 200 and b"<html" in body.lower()
-    status, body = api.request("GET", "/tokens.css")
-    assert status == 200
-    for path in ("/../config.yaml", "/..%2f..%2fconfig.yaml", "/nada.js"):
+    assert status == 200 and b"editor" in body
+    for path in ("/../config.yaml", "/..%2f..%2fconfig.yaml", "/nada.js", "/tokens.css", "/app.js"):
         status, _ = api.request("GET", path)
         assert status == 404, path
     # sem corpo: num POST fora da /api o servidor responde 405 sem ler o corpo, e no Windows a conexão pode
@@ -605,42 +616,50 @@ def test_optional_keys_are_optional():
         check_contract("error", "", {"error": "x", "code": "outro"})
 
 
-# ---------------------------------------------------------------------------- o editor novo em /next
+# ---------------------------------------------------------------------------- o editor (build do editor-next)
 
 
-def test_next_editor_is_served_from_its_build(api, tmp_path, monkeypatch):
-    from app import paths
-
-    dist = tmp_path / "dist"
-    (dist / "assets").mkdir(parents=True)
-    (dist / "index.html").write_text("<!doctype html><title>novo</title>", encoding="utf-8")
-    (dist / "assets" / "app.js").write_text("export {}", encoding="utf-8")
-    (dist / "assets" / "app.css").write_text("body{}", encoding="utf-8")
-    monkeypatch.setattr(paths, "EDITOR_NEXT", dist)
-    for path in ("/next", "/next/"):
-        status, body = api.request("GET", path)
-        assert status == 200 and b"novo" in body, path
+def test_editor_is_served_from_its_build(api, tmp_path, monkeypatch):
+    _dist(tmp_path, monkeypatch)
     conn = http.client.HTTPConnection("127.0.0.1", api.srv.port, timeout=10)
-    conn.request("GET", "/next/assets/app.js", headers={"Host": f"127.0.0.1:{api.srv.port}"})
+    conn.request("GET", "/assets/app.js", headers={"Host": f"127.0.0.1:{api.srv.port}"})
     r = conn.getresponse()
     r.read()
     assert r.status == 200
     assert r.getheader("Content-Type") == "text/javascript; charset=utf-8"  # módulo: o navegador exige JS
     conn.close()
-    for path in ("/next/../config.yaml", "/next/../../app/paths.py", "/next/nada.js"):
+    for path in ("/assets/../../config.yaml", "/../app/paths.py", "/assets/nada.js"):
         status, _ = api.request("GET", path)
         assert status == 404, path
-    # o editor atual continua em /
-    status, body = api.request("GET", "/")
-    assert status == 200 and b"novo" not in body
 
 
-def test_next_without_build_is_404(api, tmp_path, monkeypatch):
+def test_without_build_explains_what_to_do(api, tmp_path, monkeypatch):
     from app import paths
 
     monkeypatch.setattr(paths, "EDITOR_NEXT", tmp_path / "nao-existe")
-    status, _ = api.request("GET", "/next/")
-    assert status == 404
+    status, body = api.request("GET", f"/{api.srv.token}/teclas")
+    assert status == 503 and b"npm run build" in body
+
+
+def test_old_next_address_redirects_to_the_root(api):
+    """Aba ou favorito de antes da troca (/next/...) vai para o mesmo lugar na raiz, nunca para outro site."""
+    tok = api.srv.token
+    cases = {
+        "/next": "/",
+        "/next/": "/",
+        f"/next/{tok}/teclas/main/4": f"/{tok}/teclas/main/4",
+        "/next//evil.example/x": "/evil.example/x",
+        "/next/\\\\evil.example": "/evil.example",
+    }
+    for path, want in cases.items():
+        conn = http.client.HTTPConnection("127.0.0.1", api.srv.port, timeout=10)
+        conn.request("GET", path, headers={"Host": f"127.0.0.1:{api.srv.port}"})
+        r = conn.getresponse()
+        r.read()
+        assert r.status == 302, path
+        assert r.getheader("Location") == want, path
+        assert r.getheader("Referrer-Policy") == "no-referrer"
+        conn.close()
 
 
 def test_token_is_short_and_old_ones_are_replaced(cfg_path, no_side_effects):
@@ -655,41 +674,31 @@ def test_token_is_short_and_old_ones_are_replaced(cfg_path, no_side_effects):
         assert TOKEN_RE.fullmatch(srv.token)
         assert not set(srv.token) & set("ILOU")
         assert f.read_text(encoding="ascii") == srv.token
-        assert srv.next_url.endswith(f"/next/{srv.token}/teclas")
+        assert srv.url == f"http://127.0.0.1:{srv.port}/{srv.token}/teclas"
     finally:
         srv.stop()
         srv.httpd.server_close()
 
 
-def test_next_pages_carry_the_token_in_the_path(api, tmp_path, monkeypatch):
-    """/next/XXXX-XXXX-XXXX/qualquer/coisa é a página do editor (ele lê o caminho); arquivo continua arquivo."""
-    from app import paths
-
-    dist = tmp_path / "dist"
-    (dist / "assets").mkdir(parents=True)
-    (dist / "index.html").write_text("<!doctype html><title>novo</title>", encoding="utf-8")
-    (dist / "assets" / "app.js").write_text("export {}", encoding="utf-8")
-    monkeypatch.setattr(paths, "EDITOR_NEXT", dist)
+def test_pages_carry_the_token_in_the_path(api, tmp_path, monkeypatch):
+    """/XXXX-XXXX-XXXX/qualquer/coisa é a página do editor (ele lê o caminho); arquivo continua arquivo."""
+    _dist(tmp_path, monkeypatch)
     tok = api.srv.token
-    for path in (
-        f"/next/{tok}",
-        f"/next/{tok}/teclas/main/4/aparencia",
-        "/next/ABCD-EFGH-JKMN/teclas",
-        f"/next/{tok}/teclas/v1.2",
-    ):
+    for path in (f"/{tok}", f"/{tok}/teclas/main/4/aparencia", "/ABCD-EFGH-JKMN/teclas", f"/{tok}/teclas/v1.2"):
         status, body = api.request("GET", path)
-        assert status == 200 and b"novo" in body, path
+        assert status == 200 and b"editor" in body, path
     # o que não começa com um token é arquivo do build (ou 404), nunca o index por engano
-    for path in ("/next/teclas", "/next/nada.js", "/next/abcd-efgh-jkmn/teclas", f"/next/{tok}x/teclas"):
+    for path in ("/teclas", "/nada.js", "/abcd-efgh-jkmn/teclas", f"/{tok}x/teclas"):
         status, _ = api.request("GET", path)
         assert status == 404, path
     # nada fora do build, nem escondido atrás de um token
-    status, body = api.request("GET", f"/next/{tok}/../../config.yaml")
-    assert b"novo" in body or status == 404
+    status, body = api.request("GET", f"/{tok}/../../config.yaml")
+    assert b"editor" in body or status == 404
 
 
-def test_every_response_says_no_referrer(api):
-    """O token vai no caminho do editor novo: o navegador não pode repassar o endereço a outro site."""
+def test_every_response_says_no_referrer(api, tmp_path, monkeypatch):
+    """O token vai no caminho do editor: o navegador não pode repassar o endereço a outro site."""
+    _dist(tmp_path, monkeypatch)
     conn = http.client.HTTPConnection("127.0.0.1", api.srv.port, timeout=10)
     for path in ("/", "/api/status"):
         conn.request("GET", path, headers={"Host": f"127.0.0.1:{api.srv.port}", "X-Token": api.srv.token})

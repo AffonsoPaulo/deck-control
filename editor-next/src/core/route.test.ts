@@ -4,7 +4,7 @@ import { basePath, formatRoute, parseRoute, tokenFromPath } from "@/core/route";
 import { readToken } from "@/core/token";
 
 const T = "K7QM-2XPA-9DFT";
-const B = basePath(); // "/next/" no build; "/" no teste
+const B = basePath(); // "/" (o base do build)
 const at = (patch: Partial<Place>): Place => ({ ...DEFAULT_PLACE, ...patch });
 
 describe("endereço legível", () => {

@@ -285,8 +285,8 @@ export function Stage({ page }: { page: string }) {
             value={view}
             onChange={(v) => go({ view: v })}
             options={[
-              { value: "normal", label: t("Normal") },
-              { value: "active", label: t("Active") },
+              { value: "normal", label: t("Normal"), title: t("How keys look normally") },
+              { value: "active", label: t("Active"), title: t("How keys look when active (recording, scene on air…)") },
             ]}
           />
         </div>

@@ -1,4 +1,4 @@
-// Editor novo. Em produção o Python serve o dist/ em /next (mesmo token, mesma API).
+// O editor. Em produção o Python serve o dist/ na raiz (/XXXX-XXXX-XXXX/teclas/...), com a mesma API.
 // Em desenvolvimento (npm run dev), a /api vai para o servidor de teste na porta 8799, nunca para o app real.
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -10,14 +10,14 @@ const staticDir = fileURLToPath(new URL("../app/editor/static", import.meta.url)
 const tokens = `${staticDir}/tokens.css`;
 
 export default defineConfig({
-  base: "/next/",
+  base: "/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": src,
-      // a fonte única dos tokens é a do editor atual (app/editor/static/tokens.css)
+      // a fonte única dos tokens (app/editor/static/tokens.css)
       "deck-tokens.css": tokens,
-      // fontes, favicon e traduções do editor atual: uma cópia só, a de app/editor/static
+      // fontes, favicon, índice do Lucide e traduções: uma cópia só, a de app/editor/static (o Python também usa)
       "deck-static": staticDir,
     },
   },
