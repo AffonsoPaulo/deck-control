@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from app import actions, icons, lighting, logs
+from app import actions, icons, lighting, logs, widgets
 from d6.device import COLS, KEY_COUNT
 from app.i18n import tr
 from app import automations, values
@@ -214,6 +214,14 @@ def build_config(raw: dict, path: Path) -> Config:
         raise ConfigError(tr("define at least one page in 'pages:'"))
 
     errors: list[str] = []
+    raw_widgets = raw.get("widgets")
+    if raw_widgets is not None and not isinstance(raw_widgets, dict):
+        errors.append(tr("widgets: expected an object (widget id: description)"))
+    for name, wd in (raw_widgets or {}).items() if isinstance(raw_widgets, dict) else ():
+        problem = widgets.check(str(name), wd)
+        if problem:
+            errors.append(problem)
+    wdefs = None                                   # os modelos só são lidos se alguma tecla usar widget
     pages: dict[str, dict[int, KeySpec]] = {}
     for page_name, keys in raw_pages.items():
         page_name = str(page_name)
@@ -234,9 +242,22 @@ def build_config(raw: dict, path: Path) -> Config:
                 errors.append(tr("{where}: expected an object with icon/action", where=where))
                 continue
             unknown = set(k) - {"icon", "active_icon", "state", "action", "double", "hold", "hold_ms", "release", "light",
-                                "repeat", "repeat_ms", "repeat_delay", "rules", "span", "cells", "mode", "format", "panel"}
+                                "repeat", "repeat_ms", "repeat_delay", "rules", "span", "cells", "mode",
+                                "widget", "size", "options", "colors"}
             if unknown:
                 errors.append(tr("{where}: unknown fields {fields}", where=where, fields=sorted(unknown)))
+            if k.get("widget") is not None:
+                # widget: o desenho vem do modelo, montado agora (span e células); o resto da tecla vale igual
+                if any(f in k for f in ("span", "cells", "mode")):
+                    errors.append(tr("{where}: a widget key can't have span, cells or mode", where=where))
+                if widgets.parse_size(k.get("size")) is None:
+                    errors.append(tr("{where}.size: use rows x columns, e.g. 1x3", where=where))
+                    continue
+                if wdefs is None:
+                    wdefs = widgets.all_defs(raw_widgets)
+                built = widgets.expand(k, wdefs, f"{page_name}-{n}")
+                k = {**{f: v for f, v in k.items() if f not in ("widget", "size", "options", "colors")},
+                     "span": list(built["span"]), "cells": built["cells"], "icon": built["icon"]}
             for field_name in ("action", "double", "hold", "release"):
                 errors += actions.validate(k.get(field_name), f"{where}.{field_name}")
             rules = k.get("rules") or []

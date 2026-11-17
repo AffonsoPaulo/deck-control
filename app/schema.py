@@ -9,7 +9,7 @@ Uma ação registrada sem entrada aqui ainda funciona no editor, editada como JS
 from __future__ import annotations
 
 from app.actions import REGISTRY
-from app import i18n, panels, values
+from app import i18n, values, widgets
 
 MODE_TSS = [['toggle', 'Toggle (on/off)'], ['start', 'Start'], ['stop', 'Stop']]
 
@@ -183,7 +183,7 @@ ACTIONS.update({
                                  {'name': 'text', 'kind': 'text', 'label': 'Text'},
                                  {'name': 'seconds', 'kind': 'number', 'label': 'Seconds', 'placeholder': 3}] + _DISMISS},
     'page.temp': {'label': 'Show a temporary page', 'group': 'Temporary responses', 'icon': 'layers',
-                  'help': 'Shows a page for a few seconds and goes back on its own. Good for panels of information.',
+                  'help': 'Shows a page for a few seconds and goes back on its own. Good for showing information.',
                   'fields': [{'name': 'page', 'kind': 'page', 'label': 'Page', 'required': True},
                              {'name': 'seconds', 'kind': 'number', 'label': 'Seconds', 'placeholder': 10}] + _DISMISS + [
                              {'name': 'show_left', 'kind': 'bool', 'label': 'Show the time left on an empty key', 'default': True},
@@ -234,5 +234,5 @@ def schema() -> dict:
             "plugins": MANAGER.describe(), "plugin_groups": MANAGER.groups(), "plugin_errors": MANAGER.errors,
             "default_language": i18n.detect(),
             "values": [{**v, "label": i18n.tr(v["label"]), "group": i18n.tr(v["group"])} for v in values.describe()] + MANAGER.value_schemas(),
-            "panels": {**panels.builtin(), **MANAGER.panel_schemas()},
+            "widgets": widgets.all_defs(), "widget_categories": widgets.categories(),
             "value_ops": list(values.OPS)}

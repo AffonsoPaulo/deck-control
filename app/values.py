@@ -31,6 +31,9 @@ BUILTIN = [
     ("clock.minute", "Minute", "Clock and date", "text", "32"),
     ("clock.second", "Second", "Clock and date", "text", "08"),
     ("clock.time", "Time (hh:mm)", "Clock and date", "text", "14:32"),
+    ("clock.hour12", "Hour (12 h)", "Clock and date", "text", "2"),
+    ("clock.time12", "Time (12 h)", "Clock and date", "text", "2:32"),
+    ("clock.ampm", "AM or PM", "Clock and date", "text", "PM"),
     ("clock.weekday", "Day of the week", "Clock and date", "text", "Saturday"),
     ("clock.weekday_short", "Day of the week (short)", "Clock and date", "text", "Sat"),
     ("clock.day", "Day", "Clock and date", "text", "15"),
@@ -231,6 +234,8 @@ class Values:
         return {
             "hour": f"{t.tm_hour:02d}", "minute": f"{t.tm_min:02d}", "second": f"{t.tm_sec:02d}",
             "time": f"{t.tm_hour:02d}:{t.tm_min:02d}",
+            "hour12": str(t.tm_hour % 12 or 12), "time12": f"{t.tm_hour % 12 or 12}:{t.tm_min:02d}",
+            "ampm": "AM" if t.tm_hour < 12 else "PM",
             "weekday": tr(WEEKDAYS[t.tm_wday]), "weekday_short": tr(WEEKDAYS_SHORT[t.tm_wday]),
             "day": str(t.tm_mday), "month": tr(MONTHS_SHORT[t.tm_mon - 1]),
             "date": tr("{m}/{d}/{y}", d=f"{t.tm_mday:02d}", m=f"{t.tm_mon:02d}", y=t.tm_year),

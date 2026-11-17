@@ -7,8 +7,8 @@
   "setting.refresh.help": "How often the forecast is fetched again. Minimum 5.",
   "step.1": "Turn on the integration here.",
   "step.2": "Type your city in **City**.",
-  "step.3": "Done: the status above shows when it was updated. Then drag the **Weather now** panel onto the Deck. The data comes from **open-meteo.com**: free, no account needed.",
-  "panel.now": "Weather now",
+  "step.3": "Done: the status above shows when it was updated. Then drag the **Weather now** widget (library › Widgets) onto the Deck. The data comes from **open-meteo.com**: free, no account needed.",
+  "widget.now": "Weather now",
   "cell.now": "now",
   "cell.max": "high",
   "cell.min": "low",
@@ -70,5 +70,8 @@
   "value.d3.max": "In 3 days: high (°C)",
   "value.d3.min": "In 3 days: low (°C)",
   "value.d3.icon": "In 3 days: icon",
-  "sample.d3.name": "Wed"
+  "sample.d3.name": "Wed",
+  "opt.below": "Second line",
+  "opt.maxmin": "High / low",
+  "opt.rain": "Chance of rain"
 }

@@ -108,7 +108,7 @@ Dois jeitos de usar:
 ## Valores e painéis
 
 Um plugin pode publicar **valores** (informações vivas) que qualquer tecla, regra, condição do
-"Se" ou automação usa, e **painéis** prontos para mostrar esses valores em blocos de teclas.
+"Se" ou automação usa, e **widgets** prontos para mostrar esses valores em uma ou mais teclas.
 
 - Embutidos: `api.set_value("clima.temperatura", 28)`. Externos: `{"type": "value", "name": "clima.temperatura", "value": 28}`.
   O nome começa com `<id>.`. `None`/`null` apaga o valor (a tecla mostra "–"). Desligar o plugin apaga os dele.
@@ -120,18 +120,34 @@ Um plugin pode publicar **valores** (informações vivas) que qualquer tecla, re
 
   `kind`: `text`, `number`, `bool`, `icon` (nome de ícone do Lucide), `image` (caminho) ou `color`.
   Os `states` do plugin também viram valores sim/não automaticamente.
-- **Painéis**: para cada tamanho aceito (`"linhas x colunas"`), uma lista de linhas com o que vai em
-  cada tecla. Uma tecla pode ter `text`, `sub` (linha menor), `lucide`, `image`, `bg`, `fg` e `bar`,
-  com `{valores}` dentro; um campo que é só um valor (`"lucide": "{weather.icon}"`) usa o valor cru.
+- **Widgets**: peças prontas que a pessoa arrasta da biblioteca (aba Widgets) para o Deck. Para cada
+  tamanho aceito (`"linhas x colunas"`, até 3x5), uma lista de linhas com o que vai em cada tecla. Uma
+  tecla pode ter `text`, `sub` (linha menor), `lucide`, `image`, `bg`, `fg` e `bar`, com `{valores}`
+  dentro; um campo que é só um valor (`"lucide": "{weather.icon}"`) usa o valor cru.
 
   ```json
-  "panels": {"weather.now": {"label": "%panel.now%", "icon": "sun", "sizes": {
-    "1x2": [[{"lucide": "{weather.icon}"}, {"text": "{weather.temp}°", "sub": "{weather.max}° / {weather.min}°"}]]
-  }}}
+  "widgets": {"weather.now": {
+    "label": "%widget.now%", "icon": "sun", "category": "weather",
+    "options": [{"name": "below", "kind": "choice", "label": "%opt.below%", "default": "{weather.max}° / {weather.min}°",
+                 "choices": [["{weather.max}° / {weather.min}°", "%opt.maxmin%"], ["{weather.rain}%", "%opt.rain%"]]}],
+    "sizes": {
+      "1x2": [[{"lucide": "{weather.icon}"}, {"text": "{weather.temp}°", "sub": "{opt.below}"}]]
+    }
+  }}
   ```
 
-  No editor, o painel aparece em "Mostrar informação" com uma peça para cada tamanho, que a pessoa
-  arrasta e encaixa na grade. O plugin de clima embutido (`app/plugins/builtin/weather`) é um exemplo completo.
+  - `category`: uma das categorias fixas do app: `time`, `system`, `stream`, `media`, `weather`,
+    `chat` ou `other`. A biblioteca agrupa por categoria e, quando uma categoria tem widgets de
+    mais de uma origem, separa por plugin.
+  - `options`: o que a pessoa ajusta no inspetor. `kind`: `choice` (com `choices`), `bool`, `number`,
+    `text`, `color`, `glyph` (ícone) ou `value` (um valor do app ou de plugins; `kinds` filtra:
+    `["number"]`). Nos textos do modelo, `{opt.<nome>}` vira o valor escolhido antes de os `{valores}`
+    serem lidos: a opção pode trazer valores (como no exemplo) ou montar o nome de um
+    (`{clock.hour{opt.format}}` vira `{clock.hour12}`).
+  - `action` / `hold` (opcional): o que a tecla faz ao apertar / segurar, já preenchido quando a pessoa
+    coloca o widget (ela pode trocar depois). `$id` vira um id único da tecla.
+
+  O plugin de clima embutido (`app/plugins/builtin/weather`) é um exemplo completo.
 
 ### Campos que dependem de um modo
 

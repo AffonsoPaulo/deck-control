@@ -146,6 +146,28 @@ def _color(value, default):
     return ImageColor.getrgb(str(value))[:3]
 
 
+def _luminance(rgb) -> float:
+    def ch(v):
+        v /= 255
+        return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = rgb
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+WHITE = (255, 255, 255)
+DARK_FG = (0x1A, 0x12, 0x05)   # --key-fg-dark no tokens.css do editor
+
+
+def _auto_fg(spec, bg):
+    """Cor do texto quando a tecla não escolheu uma: branco, a não ser que o fundo liso seja claro
+    demais para ele (contraste abaixo de 3:1, como no âmbar); aí o texto sai escuro.
+    Degradê e imagem ocupando a tecla continuam com branco."""
+    if spec.get("bg_to") or (spec.get("image") and spec.get("image_fill")):
+        return WHITE
+    contrast = 1.05 / (_luminance(bg) + 0.05)
+    return WHITE if contrast >= 3 else DARK_FG
+
+
 def _glyph_char(glyph) -> str:
     g = str(glyph)
     if len(g) in (4, 5) and all(c in "0123456789abcdefABCDEF" for c in g):
@@ -213,7 +235,7 @@ def _render(spec, base_dir, defaults, art) -> Image.Image:
     spec = spec or {}
     defaults = defaults or {}
     bg = _color(spec.get("bg"), "#202020")
-    fg = _color(spec.get("fg"), "white")
+    fg = _color(spec["fg"], "white") if spec.get("fg") is not None else _auto_fg(spec, bg)
     img = _background(bg, spec)
     draw = ImageDraw.Draw(img)
 

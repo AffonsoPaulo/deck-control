@@ -172,10 +172,20 @@
       "sample": "sun"
     }
   ],
-  "panels": {
+  "widgets": {
     "weather.now": {
-      "label": "%panel.now%",
+      "label": "%widget.now%",
       "icon": "sun",
+      "category": "weather",
+      "options": [
+        {
+          "name": "below",
+          "kind": "choice",
+          "label": "%opt.below%",
+          "default": "{weather.max}° / {weather.min}°",
+          "choices": [["{weather.max}° / {weather.min}°", "%opt.maxmin%"], ["{weather.rain}%", "%opt.rain%"]]
+        }
+      ],
       "sizes": {
         "1x1": [
           [
@@ -196,7 +206,7 @@
             },
             {
               "text": "{weather.temp}°",
-              "sub": "{weather.max}° / {weather.min}°",
+              "sub": "{opt.below}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             }
@@ -211,7 +221,7 @@
             },
             {
               "text": "{weather.temp}°",
-              "sub": "{weather.max}° / {weather.min}°",
+              "sub": "{opt.below}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },
@@ -321,7 +331,7 @@
             },
             {
               "text": "{weather.temp}°",
-              "sub": "{weather.max}° / {weather.min}°",
+              "sub": "{opt.below}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },

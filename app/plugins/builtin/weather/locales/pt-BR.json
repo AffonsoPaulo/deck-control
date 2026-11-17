@@ -7,8 +7,8 @@
   "setting.refresh.help": "De quanto em quanto tempo a previsão é buscada de novo. Mínimo 5.",
   "step.1": "Ative a integração aqui.",
   "step.2": "Digite sua cidade em **Cidade**.",
-  "step.3": "Pronto: o estado aqui em cima mostra a hora da atualização. Depois arraste o painel **Clima agora** para o Deck. Os dados vêm do **open-meteo.com**: grátis, sem precisar de conta.",
-  "panel.now": "Clima agora",
+  "step.3": "Pronto: o estado aqui em cima mostra a hora da atualização. Depois arraste o widget **Clima agora** (biblioteca › Widgets) para o Deck. Os dados vêm do **open-meteo.com**: grátis, sem precisar de conta.",
+  "widget.now": "Clima agora",
   "cell.now": "agora",
   "cell.max": "máxima",
   "cell.min": "mínima",
@@ -70,5 +70,8 @@
   "value.d3.max": "Daqui a 3 dias: máxima (°C)",
   "value.d3.min": "Daqui a 3 dias: mínima (°C)",
   "value.d3.icon": "Daqui a 3 dias: ícone",
-  "sample.d3.name": "Qua"
+  "sample.d3.name": "Qua",
+  "opt.below": "Linha de baixo",
+  "opt.maxmin": "Máx. / mín.",
+  "opt.rain": "Chance de chuva"
 }

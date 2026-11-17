@@ -209,21 +209,18 @@ def check_manifest(m: dict, builtin: bool) -> None:
     for v in m.get("values", []) or []:
         if not isinstance(v, dict) or not str(v.get("id", "")).startswith(pid + "."):
             raise PluginError(tr("each value needs an 'id' starting with '{prefix}.'", prefix=pid))
-    panels = m.get("panels", {}) or {}
-    if not isinstance(panels, dict):
-        raise PluginError(tr("'panels' must be an object (panel id: description)"))
-    for name, pnl in panels.items():
-        sizes = pnl.get("sizes") if isinstance(pnl, dict) else None
-        if not str(name).startswith(pid + ".") or not isinstance(sizes, dict) or not sizes:
-            raise PluginError(tr("the panel '{name}' must start with '{prefix}.' and have 'sizes'", name=name, prefix=pid))
-        for size, rows in sizes.items():
-            try:
-                r, c = (int(x) for x in str(size).lower().split("x"))
-                ok = 1 <= r <= 3 and 1 <= c <= 5 and isinstance(rows, list) and len(rows) == r and all(isinstance(x, list) and len(x) == c for x in rows)
-            except ValueError:
-                ok = False
-            if not ok:
-                raise PluginError(tr("the panel '{name}' has an invalid size '{size}' (rows x columns, with that many cells)", name=name, size=size))
+    wids = m.get("widgets", {}) or {}
+    if not isinstance(wids, dict):
+        raise PluginError(tr("'widgets' must be an object (widget id: description)"))
+    from app import widgets
+    for name, wd in wids.items():
+        if not str(name).startswith(pid + "."):
+            raise PluginError(tr("the widget '{name}' must start with '{prefix}.'", name=name, prefix=pid))
+        problem = widgets.check(str(name), wd)
+        if problem:
+            raise PluginError(problem)
+        if isinstance(wd, dict) and wd.get("category") not in (None, *widgets.CATEGORY_IDS):
+            raise PluginError(tr("the widget '{name}': 'category' must be one of {cats}", name=name, cats=", ".join(widgets.CATEGORY_IDS)))
     from app.binds import check_rules
     rule_sets = [m["shortcut_rules"]] if "shortcut_rules" in m else []
     rule_sets += [d["shortcut_rules"] for d in m.get("actions", {}).values() if isinstance(d, dict) and "shortcut_rules" in d]
@@ -443,14 +440,14 @@ class PluginManager:
                     out.append({"id": st[0], "label": st[1], "group": group, "kind": "bool", "sample": False, "plugin": p.id})
         return out
 
-    def panel_schemas(self) -> dict:
-        """Painéis dos plugins: {id: {label, icon, plugin, sizes: {"2x2": [[célula, ...], ...]}}}."""
+    def widget_schemas(self) -> dict:
+        """Widgets dos plugins ligados, já no formato do editor (ver app/widgets.py)."""
+        from app import widgets
         out = {}
         for p in self.plugins.values():
             m = p.text()
-            for name, pnl in (m.get("panels") or {}).items():
-                out[name] = {"label": pnl.get("label") or name, "icon": pnl.get("icon") or m.get("icon"),
-                             "plugin": p.id, "sizes": pnl.get("sizes", {}), "color": m.get("color")}
+            for name, wd in (m.get("widgets") or {}).items():
+                out[name] = widgets.normalize({**wd, "icon": wd.get("icon") or m.get("icon")}, plugin=p.id, color=m.get("color"))
         return out
 
     def action_schemas(self) -> dict:

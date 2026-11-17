@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 
 import yaml
 
-from app import actions, history, i18n, icons, logs, transfer, values
+from app import actions, history, i18n, icons, logs, transfer, values, widgets
 from app.config import ConfigError, build_config
 from app.configio import read_plain, save_plain
 from app.schema import schema
@@ -177,10 +177,16 @@ class EditorServer:
         base = self.config_path.parent
         defaults = body.get("icons") if isinstance(body.get("icons"), dict) else None
         get = _sample_getter()
+        wdefs = None
         for item in body.get("keys", []):
             if not item:
                 out.append(None)
                 continue
+            if item.get("widget"):                 # widget: monta as células do tamanho escolhido
+                if wdefs is None:
+                    wdefs = widgets.all_defs(body.get("widgets"))
+                built = widgets.expand(item, wdefs, "preview")
+                item = {**item, "span": list(built["span"]), "cells": built["cells"], "icon": built["icon"], "mode": "split"}
             icon = item.get("icon") or {}
             if isinstance(icon, str):
                 icon = {"text": icon}
@@ -208,6 +214,12 @@ class EditorServer:
                 res["active"] = _preview(icons.merge_icon(icon, values.resolve_icon(override, get)), base, defaults)
             out.append(res)
         return {"images": out}
+
+    def api_widget_expand(self, body):
+        """{key: {widget, size, options, colors}, widgets} -> o widget montado (para separar em teclas e as ações padrão)."""
+        k = body.get("key") if isinstance(body.get("key"), dict) else {}
+        built = widgets.expand(k, widgets.all_defs(body.get("widgets")), str(body.get("id") or "key"))
+        return {**built, "span": list(built["span"])}
 
     def api_values(self, _body):
         """Valor atual de cada valor (para a lista do editor e as etiquetas de prévia)."""
@@ -517,6 +529,7 @@ ROUTES = {
     ("POST", "/api/config"): "api_save_config",
     ("POST", "/api/validate"): "api_validate",
     ("POST", "/api/preview"): "api_preview",
+    ("POST", "/api/widget/expand"): "api_widget_expand",
     ("GET", "/api/schema"): "api_schema",
     ("GET", "/api/status"): "api_status",
     ("GET", "/api/logs"): "api_logs",
