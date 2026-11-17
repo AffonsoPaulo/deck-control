@@ -3,11 +3,12 @@
 // "sequência" são blocos com listas dentro. Arrastar pela alça muda a ordem (ou leva para outra lista); uma
 // ação da biblioteca solta numa lista vira passo. Mesmas regras do editor atual (doTab, renderFlow, block,
 // cBlock, sentence, repeatRow).
-import { CornerDownRight, Ellipsis, GripVertical, ListOrdered, Plus, Split, ToggleRight, Trash2, X } from "lucide-react";
+import { CornerDownRight, Ellipsis, GripVertical, ListOrdered, Plus, Split, ToggleRight, Trash2, TriangleAlert, X } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { IconButton } from "@/components/IconButton";
 import { NamedIcon } from "@/components/NamedIcon";
+import { BindField, useClash } from "@/features/keys/logic/BindField";
 import { InlineInput, InlineSelect } from "@/components/Inline";
 import { catStyle } from "@/components/Library";
 import { cn } from "@/core/cn";
@@ -324,9 +325,11 @@ function Block({ ctx, path, index, step }: { ctx: Ctx; path: ListPath; index: nu
   const d = defs[type] as (ActionDef & Obj) | undefined;
   const extras = d && d.fields !== null ? (d.fields ?? []).filter((f) => !(SENTENCE_FIELDS[type] ?? []).includes(f.name) && f.kind !== "action" && f.kind !== "actions") : null;
   const hasValue = !!extras?.some((f) => step[f.name] !== undefined);
-  const [open, setOpen] = useState(hasValue);
+  const clash = useClash(step);
+  const [openState, setOpen] = useState(hasValue);
+  const open = openState || clash;
   const label = d ? t(d.label) : type;
-  const more = extras === null || extras.length > 0;
+  const more = extras === null || extras.length > 0 || type === "bind";
   const { ref, handleRef, isDragSource } = useStepDrag(path, index, label);
   return (
     <div
@@ -341,6 +344,11 @@ function Block({ ctx, path, index, step }: { ctx: Ctx; path: ListPath; index: nu
         <span className="flex min-h-7.5 min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
           <Sentence s={step} set={set} defs={defs} t={t} />
         </span>
+        {clash && (
+          <span role="img" title={t("Repeated shortcut")} aria-label={t("Repeated shortcut")} className="grid h-7.5 flex-none place-items-center text-danger-fg">
+            <TriangleAlert className="size-icon-md" strokeWidth={1.75} aria-hidden />
+          </span>
+        )}
         <Tools
           ctx={ctx}
           path={path}
@@ -360,7 +368,12 @@ function Block({ ctx, path, index, step }: { ctx: Ctx; path: ListPath; index: nu
           {extras === null ? (
             <FieldFor f={{ name: "__json", kind: "json", label: t("Parameters (JSON)") }} s={{ __json: withoutType(step) }} set={(_f, v) => isRecord(v) && replaceParams(ctx, path, index, v)} />
           ) : (
-            extras.map((f) => <FieldFor key={f.name} f={f as never} s={step} set={set} />)
+            <>
+              {type === "bind" && <BindField step={step} set={(n, x) => set(n, x)} />}
+              {extras.map((f) => (
+                <FieldFor key={f.name} f={f as never} s={step} set={set} />
+              ))}
+            </>
           )}
         </div>
       )}

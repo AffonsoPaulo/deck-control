@@ -10,6 +10,7 @@ import { flushSave } from "@/core/store/autosave";
 import { anyOverlayOpen } from "@/core/overlay";
 import { useConfig } from "@/core/store/config";
 import { useUi } from "@/core/store/ui";
+import { useValidation } from "@/core/validation";
 import { Rail } from "@/app/Rail";
 import { SectionPlaceholder } from "@/app/SectionPlaceholder";
 import { TopBar } from "@/app/TopBar";
@@ -37,6 +38,7 @@ export function Shell() {
   const canUndo = useConfig((s) => s.past.length > 0);
   const canRedo = useConfig((s) => s.future.length > 0);
   const { undo, redo } = useConfig.getState();
+  useValidation();
 
   const logging = isObj(cfg?.logging) ? cfg.logging : {};
   const showLogs = !!logging.show_tab;

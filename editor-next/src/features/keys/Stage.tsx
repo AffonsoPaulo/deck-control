@@ -16,6 +16,7 @@ import { useConfig } from "@/core/store/config";
 import { useUi } from "@/core/store/ui";
 import { toast } from "@/core/toast";
 import { DeckGrid } from "@/features/keys/DeckGrid";
+import { Problems } from "@/features/keys/Problems";
 import { initialPage, pagesOf } from "@/features/keys/model";
 
 /** A página aberta, sempre uma que existe (a da URL, a inicial ou a primeira). */
@@ -196,6 +197,7 @@ export function Stage({ page }: { page: string }) {
       </div>
       <DeckGrid page={page} />
       <StageBar page={page} />
+      <Problems />
     </main>
   );
 }

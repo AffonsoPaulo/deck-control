@@ -14,6 +14,7 @@ import { useT } from "@/core/i18n";
 import type { Obj } from "@/core/obj";
 import { useObs, useSchema } from "@/core/queries";
 import { useConfig } from "@/core/store/config";
+import { BindField } from "@/features/keys/logic/BindField";
 import { pageNames, type ActionDef, type ActionField } from "@/features/keys/actions";
 import { GlyphCard } from "@/features/keys/inspector/LookTab";
 import { comboOf } from "@/features/keys/logic/model";
@@ -83,12 +84,13 @@ export function InlSeconds({ s, set }: { s: Obj; set: Set }) {
 
 /** Campo de escolha do schema: opcional = a 1ª opção é o padrão (não grava). */
 export function InlEnum({ s, f, set, defs }: { s: Obj; f: string; set: Set; defs: Record<string, ActionDef> }) {
+  const t = useT();
   const fd = defs[String(s.type)]?.fields?.find((x) => x.name === f);
   if (!fd?.options) return <W>?</W>;
   return (
     <InlineSelect
-      label={fd.label ?? f}
-      options={fd.options}
+      label={fd.label ? t(fd.label) : f}
+      options={fd.options.map(([v, l]) => [v, t(l)] as [unknown, string])}
       value={s[f]}
       onChange={(v) => set(f, !fd.required && JSON.stringify(v) === JSON.stringify(fd.options?.[0]?.[0]) ? null : v)}
     />
@@ -226,12 +228,14 @@ export function FieldFor({ f, s, set }: { f: ActionField & Obj; s: Obj; set: Set
   const obs = useObs();
   const names = pageNames(useConfig((c) => c.cfg));
   const [picker, setPicker] = useState(false);
-  const label = String(f.label ?? f.name);
-  const help = typeof f.help === "string" ? f.help : undefined;
+  // os textos do schema vêm em inglês (a chave): aqui viram o idioma do editor (o applySchema do atual)
+  const label = typeof f.label === "string" ? t(f.label) : f.name;
+  const help = typeof f.help === "string" ? t(f.help) : undefined;
+  const ph = typeof f.placeholder === "string" ? t(f.placeholder) : "";
   const v = s[f.name];
   const put = (x: unknown, tag = false) => set(f.name, x, tag);
   const text = (placeholder?: string, list?: string[]) => (
-    <TextBox value={v} placeholder={placeholder ?? (typeof f.placeholder === "string" ? f.placeholder : "")} list={list} onChange={(x) => put(x, true)} />
+    <TextBox value={v} placeholder={placeholder ?? ph} list={list} onChange={(x) => put(x, true)} />
   );
   const box = (control: ReactNode) => (
     <FieldBox label={label} {...(help ? { hint: help } : {})}>
@@ -247,7 +251,7 @@ export function FieldFor({ f, s, set }: { f: ActionField & Obj; s: Obj; set: Set
           type="number"
           step={typeof f.step === "string" || typeof f.step === "number" ? String(f.step) : "any"}
           value={empty(v) ? "" : String(v)}
-          placeholder={typeof f.placeholder === "string" ? f.placeholder : ""}
+          placeholder={ph}
           onChange={(e) => put(e.target.value === "" ? null : Number(e.target.value), true)}
         />,
       );
@@ -271,12 +275,14 @@ export function FieldFor({ f, s, set }: { f: ActionField & Obj; s: Obj; set: Set
           aria-label={label}
           value={String(idx >= 0 ? idx : 0)}
           onChange={(i) => put(!f.required && i === "0" ? null : opts[Number(i)]?.[0])}
-          options={opts.map(([, l], i) => ({ value: String(i), label: l }))}
+          options={opts.map(([, l], i) => ({ value: String(i), label: t(l) }))}
         />,
       );
     }
     case "combo":
       return box(<ComboInput value={v} onChange={(x) => put(x, true)} />);
+    case "bind":
+      return box(<BindField step={s} set={(n, x) => set(n, x)} hint={typeof f.hint === "string" ? f.hint : undefined} />);
     case "json":
       return box(<JsonInput value={v} onChange={(x) => put(x, true)} />);
     case "color":
