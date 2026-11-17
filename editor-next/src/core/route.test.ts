@@ -80,4 +80,13 @@ describe("sincronia do endereço", () => {
     expect(window.location.hash).toBe("");
     stop();
   });
+
+  it("nomes de página com barra, interrogação, cerquilha, espaço e acento vão e voltam", () => {
+    for (const page of ["a/b", "o que?", "#live", "ação 2", "100%"]) {
+      const url = formatRoute({ ...DEFAULT_PLACE, page, key: "4" }, T);
+      const [path, search = ""] = url.split("?");
+      expect(new URL(url, "http://x").pathname.split("/").length).toBe(B.split("/").length + 3); // token/teclas/página/tecla
+      expect(parseRoute(path ?? "", search ? `?${search}` : "")).toMatchObject({ page, key: "4" });
+    }
+  });
 });

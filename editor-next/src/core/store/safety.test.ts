@@ -56,4 +56,18 @@ describe("rede de segurança", () => {
     expect(f).toHaveBeenCalledWith("/api/config", expect.objectContaining({ method: "POST", keepalive: true }));
     f.mockRestore();
   });
+
+  it("a cópia no navegador não leva as senhas; recuperar mantém as de agora", () => {
+    useConfig.getState().load({ pages: { main: {} }, obs: { host: "x", password: "segredo" } });
+    useConfig.getState().edit((d) => void (d.home = "main"));
+    const kept = localStorage.getItem(PENDING_KEY) ?? "";
+    expect(kept).not.toContain("segredo");
+    expect(JSON.parse(kept).cfg.obs).toEqual({ host: "x" });
+    // outro dia (a rede liga depois de carregar): o app tem a senha; o que sobrou volta com ela
+    stop();
+    useConfig.getState().load({ pages: { main: {} }, obs: { host: "x", password: "nova" } });
+    offerPending("pt-BR");
+    useToast.getState().current?.buttons[0]?.run();
+    expect(useConfig.getState().cfg).toEqual({ pages: { main: {} }, obs: { host: "x", password: "nova" }, home: "main" });
+  });
 });

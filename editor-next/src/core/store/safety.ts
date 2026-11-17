@@ -1,15 +1,58 @@
 // Rede de segurança da gravação (como no editor atual, com chave própria: "d6-pendente" é do editor atual):
-// - o que ainda não foi salvo fica guardado neste navegador; ao abrir, se sobrou algo diferente do que o app tem,
-//   o aviso oferece "Recuperar";
+// - o que ainda não foi salvo fica guardado neste navegador, SEM as senhas (a do OBS e os campos "password" dos
+//   plugins); ao abrir, se sobrou algo diferente do que o app tem, o aviso oferece "Recuperar", que mantém as
+//   senhas de agora;
 // - fechando a aba com algo pendente, manda salvar mesmo assim (keepalive sobrevive ao fechamento);
 // - salvar falhou: o app reiniciou (token novo) pede recarregar; outro erro diz qual.
+import type { EditorSchema } from "@/core/api-types";
 import { t } from "@/core/i18n";
+import { isObj, type Obj } from "@/core/obj";
+import { queryClient } from "@/core/queries";
 import { isDirty, useConfig, type Config } from "@/core/store/config";
 import { readToken } from "@/core/token";
 import { toast } from "@/core/toast";
 import { RefreshCw, RotateCcw } from "lucide-react";
 
 export const PENDING_KEY = "deck-next-pendente";
+
+type Path = string[];
+
+/** Onde ficam as senhas no config: a do OBS e os campos "password" que cada plugin declara. */
+export function secretPaths(): Path[] {
+  const out: Path[] = [["obs", "password"]];
+  const schema = queryClient.getQueryData<EditorSchema>(["schema"]);
+  for (const pl of (schema?.plugins ?? []) as Obj[]) {
+    const base = Array.isArray(pl.config_path) ? (pl.config_path as string[]) : [String(pl.id)];
+    for (const st of (Array.isArray(pl.settings) ? pl.settings : []) as Obj[]) if (st.kind === "password") out.push([...base, String(st.name)]);
+  }
+  return out;
+}
+const at = (o: unknown, path: Path): unknown => path.reduce<unknown>((n, k) => (isObj(n) ? n[k] : undefined), o);
+function put(o: Obj, path: Path, v: unknown) {
+  let n: Obj = o;
+  for (const k of path.slice(0, -1)) {
+    if (!isObj(n[k])) n[k] = {};
+    n = n[k] as Obj;
+  }
+  const last = path[path.length - 1] as string;
+  if (v === undefined) Reflect.deleteProperty(n, last);
+  else n[last] = v;
+}
+/** O config sem as senhas (o que vai para o navegador). */
+export function withoutSecrets(cfg: Config): Config {
+  const c = structuredClone(cfg);
+  for (const p of secretPaths()) if (at(c, p) !== undefined) put(c, p, undefined);
+  return c;
+}
+/** O config recuperado com as senhas de agora (as que estão no app). */
+export function withSecretsFrom(cfg: Config, now: Config | null): Config {
+  const c = structuredClone(cfg);
+  for (const p of secretPaths()) {
+    const v = at(now, p);
+    if (v !== undefined) put(c, p, v);
+  }
+  return c;
+}
 
 function store(): Storage | null {
   try {
@@ -20,7 +63,7 @@ function store(): Storage | null {
 }
 const keep = (cfg: Config) => {
   try {
-    store()?.setItem(PENDING_KEY, JSON.stringify({ cfg, t: Date.now() }));
+    store()?.setItem(PENDING_KEY, JSON.stringify({ cfg: withoutSecrets(cfg), t: Date.now() }));
   } catch {
     /* cheio ou bloqueado */
   }
@@ -45,7 +88,8 @@ function read(): { cfg?: Config; t?: number } | null {
 export function offerPending(lang: string): void {
   const p = read();
   const saved = useConfig.getState().saved;
-  if (!p?.cfg || JSON.stringify(p.cfg) === saved) return drop();
+  const now = useConfig.getState().cfg;
+  if (!p?.cfg || JSON.stringify(withSecretsFrom(p.cfg, now)) === saved) return drop();
   const cfg = p.cfg;
   const when = new Date(p.t ?? Date.now()).toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
   toast(t("There are changes from {0} that were not saved.", [when]), {
@@ -54,11 +98,13 @@ export function offerPending(lang: string): void {
       label: t("Recover"),
       icon: RotateCcw,
       // entra como uma edição: dá para desfazer e grava sozinha
-      run: () =>
+      run: () => {
+        const full = withSecretsFrom(cfg, useConfig.getState().cfg);
         useConfig.getState().edit((d) => {
           for (const k of Object.keys(d)) Reflect.deleteProperty(d, k);
-          Object.assign(d, structuredClone(cfg));
-        }),
+          Object.assign(d, full);
+        });
+      },
     },
   });
 }

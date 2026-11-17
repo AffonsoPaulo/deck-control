@@ -1054,5 +1054,6 @@
  "A Python script, run by the Deck app.": "Um script em Python, rodado pelo app do Deck.",
  "A program that comes with the plugin.": "Um programa que vem com o plugin.",
  "{0} is over page {1}.": "{0} está sobre a página {1}.",
- "{0} was dropped on page {1}.": "{0} foi solta na página {1}."
+ "{0} was dropped on page {1}.": "{0} foi solta na página {1}.",
+ "“{0}” can't be a page name.": "“{0}” não pode ser nome de página."
 }
