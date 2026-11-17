@@ -1,0 +1,2112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeckEditorApi",
+  "description": "Contrato da API do editor do Deck. Gerado por app/editor/contract.py; não edite à mão.",
+  "type": "object",
+  "properties": {
+    "About": {
+      "$ref": "#/$defs/About"
+    },
+    "AutostartRequest": {
+      "$ref": "#/$defs/AutostartRequest"
+    },
+    "AutostartResponse": {
+      "$ref": "#/$defs/AutostartResponse"
+    },
+    "ConfigResponse": {
+      "$ref": "#/$defs/ConfigResponse"
+    },
+    "EditorSchema": {
+      "$ref": "#/$defs/EditorSchema"
+    },
+    "Empty": {
+      "$ref": "#/$defs/Empty"
+    },
+    "ErrorResponse": {
+      "$ref": "#/$defs/ErrorResponse"
+    },
+    "Errors": {
+      "$ref": "#/$defs/Errors"
+    },
+    "ExportRequest": {
+      "$ref": "#/$defs/ExportRequest"
+    },
+    "FileDownload": {
+      "$ref": "#/$defs/FileDownload"
+    },
+    "FreeBindRequest": {
+      "$ref": "#/$defs/FreeBindRequest"
+    },
+    "FreeBindResponse": {
+      "$ref": "#/$defs/FreeBindResponse"
+    },
+    "HistoryEntry": {
+      "$ref": "#/$defs/HistoryEntry"
+    },
+    "HistoryResponse": {
+      "$ref": "#/$defs/HistoryResponse"
+    },
+    "HistoryRestoreRequest": {
+      "$ref": "#/$defs/HistoryRestoreRequest"
+    },
+    "HistoryRestoreResponse": {
+      "$ref": "#/$defs/HistoryRestoreResponse"
+    },
+    "ImageInfo": {
+      "$ref": "#/$defs/ImageInfo"
+    },
+    "ImageInfoRequest": {
+      "$ref": "#/$defs/ImageInfoRequest"
+    },
+    "ImageMissing": {
+      "$ref": "#/$defs/ImageMissing"
+    },
+    "ImportDone": {
+      "$ref": "#/$defs/ImportDone"
+    },
+    "ImportPreview": {
+      "$ref": "#/$defs/ImportPreview"
+    },
+    "ImportRequest": {
+      "$ref": "#/$defs/ImportRequest"
+    },
+    "ImportSummary": {
+      "$ref": "#/$defs/ImportSummary"
+    },
+    "KeyShortcutPlace": {
+      "$ref": "#/$defs/KeyShortcutPlace"
+    },
+    "LogDetail": {
+      "$ref": "#/$defs/LogDetail"
+    },
+    "LogFiles": {
+      "$ref": "#/$defs/LogFiles"
+    },
+    "LogRecord": {
+      "$ref": "#/$defs/LogRecord"
+    },
+    "LogSummary": {
+      "$ref": "#/$defs/LogSummary"
+    },
+    "LogsBadge": {
+      "$ref": "#/$defs/LogsBadge"
+    },
+    "LogsQuery": {
+      "$ref": "#/$defs/LogsQuery"
+    },
+    "LogsResponse": {
+      "$ref": "#/$defs/LogsResponse"
+    },
+    "LogsSeenRequest": {
+      "$ref": "#/$defs/LogsSeenRequest"
+    },
+    "ObsLists": {
+      "$ref": "#/$defs/ObsLists"
+    },
+    "ObsOffline": {
+      "$ref": "#/$defs/ObsOffline"
+    },
+    "Ok": {
+      "$ref": "#/$defs/Ok"
+    },
+    "OpenRequest": {
+      "$ref": "#/$defs/OpenRequest"
+    },
+    "PluginGroup": {
+      "$ref": "#/$defs/PluginGroup"
+    },
+    "PluginInspect": {
+      "$ref": "#/$defs/PluginInspect"
+    },
+    "PluginInstalled": {
+      "$ref": "#/$defs/PluginInstalled"
+    },
+    "PluginLoadError": {
+      "$ref": "#/$defs/PluginLoadError"
+    },
+    "PluginManifestSummary": {
+      "$ref": "#/$defs/PluginManifestSummary"
+    },
+    "PluginRemoveRequest": {
+      "$ref": "#/$defs/PluginRemoveRequest"
+    },
+    "PluginRemoved": {
+      "$ref": "#/$defs/PluginRemoved"
+    },
+    "PluginShortcutPlace": {
+      "$ref": "#/$defs/PluginShortcutPlace"
+    },
+    "PluginStatus": {
+      "$ref": "#/$defs/PluginStatus"
+    },
+    "PluginZipRequest": {
+      "$ref": "#/$defs/PluginZipRequest"
+    },
+    "PressRequest": {
+      "$ref": "#/$defs/PressRequest"
+    },
+    "PreviewCells": {
+      "$ref": "#/$defs/PreviewCells"
+    },
+    "PreviewRequest": {
+      "$ref": "#/$defs/PreviewRequest"
+    },
+    "PreviewResponse": {
+      "$ref": "#/$defs/PreviewResponse"
+    },
+    "PreviewSingle": {
+      "$ref": "#/$defs/PreviewSingle"
+    },
+    "Problem": {
+      "$ref": "#/$defs/Problem"
+    },
+    "RecordArm": {
+      "$ref": "#/$defs/RecordArm"
+    },
+    "RecordCancel": {
+      "$ref": "#/$defs/RecordCancel"
+    },
+    "RecordSent": {
+      "$ref": "#/$defs/RecordSent"
+    },
+    "RecordState": {
+      "$ref": "#/$defs/RecordState"
+    },
+    "SaveConfigRequest": {
+      "$ref": "#/$defs/SaveConfigRequest"
+    },
+    "SendComboRequest": {
+      "$ref": "#/$defs/SendComboRequest"
+    },
+    "ShortcutConflict": {
+      "$ref": "#/$defs/ShortcutConflict"
+    },
+    "ShowRequest": {
+      "$ref": "#/$defs/ShowRequest"
+    },
+    "StatusOffline": {
+      "$ref": "#/$defs/StatusOffline"
+    },
+    "StatusOnline": {
+      "$ref": "#/$defs/StatusOnline"
+    },
+    "UploadRequest": {
+      "$ref": "#/$defs/UploadRequest"
+    },
+    "UploadResponse": {
+      "$ref": "#/$defs/UploadResponse"
+    },
+    "ValidateErrors": {
+      "$ref": "#/$defs/ValidateErrors"
+    },
+    "ValidateOk": {
+      "$ref": "#/$defs/ValidateOk"
+    },
+    "ValidateRequest": {
+      "$ref": "#/$defs/ValidateRequest"
+    },
+    "ValuesResponse": {
+      "$ref": "#/$defs/ValuesResponse"
+    },
+    "WidgetCategory": {
+      "$ref": "#/$defs/WidgetCategory"
+    },
+    "WidgetExpandRequest": {
+      "$ref": "#/$defs/WidgetExpandRequest"
+    },
+    "WidgetExpanded": {
+      "$ref": "#/$defs/WidgetExpanded"
+    }
+  },
+  "$defs": {
+    "About": {
+      "type": "object",
+      "properties": {
+        "firmware": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "device": {
+          "type": "boolean"
+        },
+        "autostart": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "config": {
+          "type": "string"
+        },
+        "log": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "firmware",
+        "device",
+        "autostart",
+        "config",
+        "log"
+      ],
+      "additionalProperties": false
+    },
+    "AutostartRequest": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled"
+      ],
+      "additionalProperties": false
+    },
+    "AutostartResponse": {
+      "type": "object",
+      "properties": {
+        "autostart": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "autostart"
+      ],
+      "additionalProperties": false
+    },
+    "ConfigResponse": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "config",
+        "file"
+      ],
+      "additionalProperties": false
+    },
+    "EditorSchema": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "icon_fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "field_labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "segoe_to_lucide": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "plugins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "plugin_groups": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginGroup"
+          }
+        },
+        "plugin_errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginLoadError"
+          }
+        },
+        "default_language": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "widgets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "widget_categories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WidgetCategory"
+          }
+        },
+        "value_ops": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "actions",
+        "icon_fields",
+        "field_labels",
+        "segoe_to_lucide",
+        "plugins",
+        "plugin_groups",
+        "plugin_errors",
+        "default_language",
+        "values",
+        "widgets",
+        "widget_categories",
+        "value_ops"
+      ],
+      "additionalProperties": false,
+      "description": "Tudo que o editor precisa para montar os formulários. As descrições de ações, campos, widgets e plugins ficam abertas: vêm também dos plugins."
+    },
+    "Empty": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false,
+      "description": "Pedido sem campos (o editor manda {})."
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "const": "token"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "additionalProperties": false,
+      "description": "Corpo de toda resposta que não é 200 (403 token/Host, 404, 400, 413, 500)."
+    },
+    "Errors": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "ok",
+        "errors"
+      ],
+      "additionalProperties": false,
+      "description": "O config tem problemas: nada foi gravado. Cada item é uma mensagem para a pessoa."
+    },
+    "ExportRequest": {
+      "type": "object",
+      "properties": {
+        "include_secrets": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "FileDownload": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "data"
+      ],
+      "additionalProperties": false,
+      "description": "Arquivo para baixar: nome e conteúdo em base64."
+    },
+    "FreeBindRequest": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "count": {
+          "type": "integer"
+        },
+        "rules": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "taken": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "FreeBindResponse": {
+      "type": "object",
+      "properties": {
+        "combos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "combos"
+      ],
+      "additionalProperties": false
+    },
+    "HistoryEntry": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "time": {
+          "type": "number"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "summary": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "time",
+        "reason",
+        "summary"
+      ],
+      "additionalProperties": false
+    },
+    "HistoryResponse": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryEntry"
+          }
+        }
+      },
+      "required": [
+        "entries"
+      ],
+      "additionalProperties": false
+    },
+    "HistoryRestoreRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "HistoryRestoreResponse": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "when": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "config",
+        "when"
+      ],
+      "additionalProperties": false
+    },
+    "ImageInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        },
+        "frames": {
+          "type": "integer"
+        },
+        "thumb": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "width",
+        "height",
+        "frames",
+        "thumb"
+      ],
+      "additionalProperties": false
+    },
+    "ImageInfoRequest": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "ImageMissing": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "missing": {
+          "const": true
+        }
+      },
+      "required": [
+        "name",
+        "missing"
+      ],
+      "additionalProperties": false
+    },
+    "ImportDone": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "ok",
+        "config"
+      ],
+      "additionalProperties": false
+    },
+    "ImportPreview": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "$ref": "#/$defs/ImportSummary"
+        }
+      },
+      "required": [
+        "summary"
+      ],
+      "additionalProperties": false
+    },
+    "ImportRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "mode": {
+          "enum": [
+            "replace",
+            "merge"
+          ]
+        }
+      },
+      "required": [
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "ImportSummary": {
+      "type": "object",
+      "properties": {
+        "pages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "keys": {
+          "type": "integer"
+        },
+        "images": {
+          "type": "integer"
+        },
+        "settings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "pages",
+        "keys",
+        "images",
+        "settings"
+      ],
+      "additionalProperties": false
+    },
+    "KeyShortcutPlace": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "page",
+        "key",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "LogDetail": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "type": "boolean"
+        },
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "force": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "detail",
+        "areas",
+        "force"
+      ],
+      "additionalProperties": false
+    },
+    "LogFiles": {
+      "type": "object",
+      "properties": {
+        "folder": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "bytes": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "folder",
+        "file",
+        "count",
+        "bytes"
+      ],
+      "additionalProperties": false
+    },
+    "LogRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "t": {
+          "type": "number"
+        },
+        "level": {
+          "type": "string"
+        },
+        "area": {
+          "type": "string"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "ctx": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tb": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "t",
+        "level",
+        "area",
+        "msg",
+        "ctx",
+        "tb"
+      ],
+      "additionalProperties": false
+    },
+    "LogSummary": {
+      "type": "object",
+      "properties": {
+        "last": {
+          "type": "integer"
+        },
+        "seen": {
+          "type": "integer"
+        },
+        "new_errors": {
+          "type": "integer"
+        },
+        "errors": {
+          "type": "integer"
+        },
+        "warnings": {
+          "type": "integer"
+        },
+        "since": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "last",
+        "seen",
+        "new_errors",
+        "errors",
+        "warnings",
+        "since"
+      ],
+      "additionalProperties": false
+    },
+    "LogsBadge": {
+      "type": "object",
+      "properties": {
+        "new_errors": {
+          "type": "integer"
+        },
+        "last": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "new_errors",
+        "last"
+      ],
+      "additionalProperties": false
+    },
+    "LogsQuery": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "LogsResponse": {
+      "type": "object",
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LogRecord"
+          }
+        },
+        "summary": {
+          "$ref": "#/$defs/LogSummary"
+        },
+        "problems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Problem"
+          }
+        },
+        "files": {
+          "$ref": "#/$defs/LogFiles"
+        },
+        "detail": {
+          "$ref": "#/$defs/LogDetail"
+        }
+      },
+      "required": [
+        "records",
+        "summary",
+        "problems",
+        "files",
+        "detail"
+      ],
+      "additionalProperties": false
+    },
+    "LogsSeenRequest": {
+      "type": "object",
+      "properties": {
+        "upto": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "ObsLists": {
+      "type": "object",
+      "properties": {
+        "connected": {
+          "type": "boolean"
+        },
+        "scenes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sources": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "connected",
+        "scenes",
+        "inputs",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "ObsOffline": {
+      "type": "object",
+      "properties": {
+        "connected": {
+          "const": false
+        }
+      },
+      "required": [
+        "connected"
+      ],
+      "additionalProperties": false,
+      "description": "Sem o app rodando."
+    },
+    "Ok": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": true
+        }
+      },
+      "required": [
+        "ok"
+      ],
+      "additionalProperties": false
+    },
+    "OpenRequest": {
+      "type": "object",
+      "properties": {
+        "what": {
+          "enum": [
+            "log",
+            "logs",
+            "folder"
+          ]
+        }
+      },
+      "required": [
+        "what"
+      ],
+      "additionalProperties": false
+    },
+    "PluginGroup": {
+      "type": "object",
+      "properties": {
+        "color": {},
+        "icon": {}
+      },
+      "required": [
+        "color",
+        "icon"
+      ],
+      "additionalProperties": false
+    },
+    "PluginInspect": {
+      "type": "object",
+      "properties": {
+        "manifest": {
+          "$ref": "#/$defs/PluginManifestSummary"
+        },
+        "actions": {
+          "type": "array",
+          "items": {}
+        },
+        "installed": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "builtin_conflict": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "manifest",
+        "actions",
+        "installed",
+        "builtin_conflict"
+      ],
+      "additionalProperties": false
+    },
+    "PluginInstalled": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "schema": {
+          "$ref": "#/$defs/EditorSchema"
+        }
+      },
+      "required": [
+        "ok",
+        "id",
+        "schema"
+      ],
+      "additionalProperties": false
+    },
+    "PluginLoadError": {
+      "type": "object",
+      "properties": {
+        "folder": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "folder",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "PluginManifestSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {},
+        "version": {},
+        "author": {},
+        "description": {},
+        "icon": {},
+        "color": {},
+        "permissions": {},
+        "homepage": {}
+      },
+      "required": [
+        "id",
+        "name",
+        "version",
+        "author",
+        "description",
+        "icon",
+        "color",
+        "permissions",
+        "homepage"
+      ],
+      "additionalProperties": false,
+      "description": "Só o id é conferido pelo validador do manifesto; o resto vem como o plugin escreveu (normalmente texto ou null). Fica tipado quando a Fase 6 validar o manifesto."
+    },
+    "PluginRemoveRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "PluginRemoved": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "schema": {
+          "$ref": "#/$defs/EditorSchema"
+        }
+      },
+      "required": [
+        "ok",
+        "schema"
+      ],
+      "additionalProperties": false
+    },
+    "PluginShortcutPlace": {
+      "type": "object",
+      "properties": {
+        "plugin": {
+          "type": "string"
+        },
+        "setting": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "plugin",
+        "setting"
+      ],
+      "additionalProperties": false
+    },
+    "PluginStatus": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "state",
+        "label",
+        "error"
+      ],
+      "additionalProperties": true
+    },
+    "PluginZipRequest": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "replace": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "PressRequest": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "string"
+        },
+        "key": {
+          "type": "integer"
+        },
+        "which": {
+          "enum": [
+            "action",
+            "hold",
+            "release"
+          ]
+        }
+      },
+      "required": [
+        "page",
+        "key"
+      ],
+      "additionalProperties": false
+    },
+    "PreviewCells": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "type": "null"
+        },
+        "active": {
+          "type": "null"
+        },
+        "cells": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "normal",
+        "active",
+        "cells"
+      ],
+      "additionalProperties": false,
+      "description": "Bloco de várias teclas: uma imagem por tecla, em ordem de leitura."
+    },
+    "PreviewRequest": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "icons": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "widgets": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "keys"
+      ],
+      "additionalProperties": false
+    },
+    "PreviewResponse": {
+      "type": "object",
+      "properties": {
+        "images": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PreviewSingle"
+              },
+              {
+                "$ref": "#/$defs/PreviewCells"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "images"
+      ],
+      "additionalProperties": false
+    },
+    "PreviewSingle": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "type": "string"
+        },
+        "active": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "normal",
+        "active"
+      ],
+      "additionalProperties": false
+    },
+    "Problem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "where": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "since": {
+          "type": "number"
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "where",
+        "since",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "RecordArm": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "string"
+        },
+        "seconds": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "keys"
+      ],
+      "additionalProperties": false
+    },
+    "RecordCancel": {
+      "type": "object",
+      "properties": {
+        "cancel": {
+          "const": true
+        }
+      },
+      "required": [
+        "cancel"
+      ],
+      "additionalProperties": false
+    },
+    "RecordSent": {
+      "type": "object",
+      "properties": {
+        "combo": {
+          "type": "string"
+        },
+        "key": {
+          "type": "integer"
+        },
+        "at": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "combo",
+        "key",
+        "at"
+      ],
+      "additionalProperties": false
+    },
+    "RecordState": {
+      "type": "object",
+      "properties": {
+        "armed": {
+          "type": "boolean"
+        },
+        "left": {
+          "type": "integer"
+        },
+        "sent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecordSent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "armed",
+        "left",
+        "sent"
+      ],
+      "additionalProperties": false
+    },
+    "SaveConfigRequest": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "config"
+      ],
+      "additionalProperties": false
+    },
+    "SendComboRequest": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "string"
+        },
+        "delay": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "keys"
+      ],
+      "additionalProperties": false
+    },
+    "ShortcutConflict": {
+      "type": "object",
+      "properties": {
+        "combo": {
+          "type": "string"
+        },
+        "places": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/KeyShortcutPlace"
+              },
+              {
+                "$ref": "#/$defs/PluginShortcutPlace"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "combo",
+        "places"
+      ],
+      "additionalProperties": false
+    },
+    "ShowRequest": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "page"
+      ],
+      "additionalProperties": false
+    },
+    "StatusOffline": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "const": false
+        },
+        "logs": {
+          "$ref": "#/$defs/LogsBadge"
+        },
+        "problems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Problem"
+          }
+        }
+      },
+      "required": [
+        "engine",
+        "logs",
+        "problems"
+      ],
+      "additionalProperties": false,
+      "description": "O editor sem o app rodando (aberto antes, ou o servidor de teste)."
+    },
+    "StatusOnline": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "const": true
+        },
+        "device": {
+          "type": "boolean"
+        },
+        "page": {
+          "type": "string"
+        },
+        "obs": {
+          "type": "boolean"
+        },
+        "plugins": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginStatus"
+          }
+        },
+        "logs": {
+          "$ref": "#/$defs/LogsBadge"
+        },
+        "problems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Problem"
+          }
+        }
+      },
+      "required": [
+        "engine",
+        "device",
+        "page",
+        "obs",
+        "plugins",
+        "logs",
+        "problems"
+      ],
+      "additionalProperties": false
+    },
+    "UploadRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "UploadResponse": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "ValidateErrors": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ShortcutConflict"
+          }
+        }
+      },
+      "required": [
+        "ok",
+        "errors",
+        "conflicts"
+      ],
+      "additionalProperties": false
+    },
+    "ValidateOk": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ShortcutConflict"
+          }
+        }
+      },
+      "required": [
+        "ok",
+        "conflicts"
+      ],
+      "additionalProperties": false
+    },
+    "ValidateRequest": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "ValuesResponse": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "values"
+      ],
+      "additionalProperties": false
+    },
+    "WidgetCategory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "hue": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "hue",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "WidgetExpandRequest": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "widgets": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "additionalProperties": false
+    },
+    "WidgetExpanded": {
+      "type": "object",
+      "properties": {
+        "span": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "cells": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "icon": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "action": {},
+        "hold": {},
+        "missing": {
+          "const": true
+        }
+      },
+      "required": [
+        "span",
+        "cells",
+        "icon"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "x-error": {
+    "$ref": "#/$defs/ErrorResponse"
+  },
+  "x-routes": {
+    "GET /api/about": {
+      "request": null,
+      "response": {
+        "$ref": "#/$defs/About"
+      }
+    },
+    "POST /api/autostart": {
+      "request": {
+        "$ref": "#/$defs/AutostartRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/AutostartResponse"
+      }
+    },
+    "GET /api/config": {
+      "request": null,
+      "response": {
+        "$ref": "#/$defs/ConfigResponse"
+      }
+    },
+    "POST /api/config": {
+      "request": {
+        "$ref": "#/$defs/SaveConfigRequest"
+      },
+      "response": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/Ok"
+          },
+          {
+            "$ref": "#/$defs/Errors"
+          }
+        ]
+      }
+    },
+    "POST /api/export": {
+      "request": {
+        "$ref": "#/$defs/ExportRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/FileDownload"
+      }
+    },
+    "POST /api/free_bind": {
+      "request": {
+        "$ref": "#/$defs/FreeBindRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/FreeBindResponse"
+      }
+    },
+    "GET /api/history": {
+      "request": null,
+      "response": {
+        "$ref": "#/$defs/HistoryResponse"
+      }
+    },
+    "POST /api/history/restore": {
+      "request": {
+        "$ref": "#/$defs/HistoryRestoreRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/HistoryRestoreResponse"
+      }
+    },
+    "POST /api/image_info": {
+      "request": {
+        "$ref": "#/$defs/ImageInfoRequest"
+      },
+      "response": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ImageInfo"
+          },
+          {
+            "$ref": "#/$defs/ImageMissing"
+          }
+        ]
+      }
+    },
+    "POST /api/import": {
+      "request": {
+        "$ref": "#/$defs/ImportRequest"
+      },
+      "response": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ImportPreview"
+          },
+          {
+            "$ref": "#/$defs/ImportDone"
+          },
+          {
+            "$ref": "#/$defs/Errors"
+          }
+        ]
+      }
+    },
+    "GET /api/logs": {
+      "request": {
+        "$ref": "#/$defs/LogsQuery"
+      },
+      "response": {
+        "$ref": "#/$defs/LogsResponse"
+      }
+    },
+    "POST /api/logs/diagnostics": {
+      "request": {
+        "$ref": "#/$defs/Empty"
+      },
+      "response": {
+        "$ref": "#/$defs/FileDownload"
+      }
+    },
+    "POST /api/logs/seen": {
+      "request": {
+        "$ref": "#/$defs/LogsSeenRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/Ok"
+      }
+    },
+    "GET /api/obs": {
+      "request": null,
+      "response": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ObsOffline"
+          },
+          {
+            "$ref": "#/$defs/ObsLists"
+          }
+        ]
+      }
+    },
+    "POST /api/open": {
+      "request": {
+        "$ref": "#/$defs/OpenRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/Ok"
+      }
+    },
+    "POST /api/plugins/inspect": {
+      "request": {
+        "$ref": "#/$defs/PluginZipRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/PluginInspect"
+      }
+    },
+    "POST /api/plugins/install": {
+      "request": {
+        "$ref": "#/$defs/PluginZipRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/PluginInstalled"
+      }
+    },
+    "POST /api/plugins/remove": {
+      "request": {
+        "$ref": "#/$defs/PluginRemoveRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/PluginRemoved"
+      }
+    },
+    "POST /api/press": {
+      "request": {
+        "$ref": "#/$defs/PressRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/Ok"
+      }
+    },
+    "POST /api/preview": {
+      "request": {
+        "$ref": "#/$defs/PreviewRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/PreviewResponse"
+      }
+    },
+    "GET /api/record": {
+      "request": null,
+      "response": {
+        "$ref": "#/$defs/RecordState"
+      }
+    },
+    "POST /api/record": {
+      "request": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/RecordArm"
+          },
+          {
+            "$ref": "#/$defs/RecordCancel"
+          }
+        ]
+      },
+      "response": {
+        "$ref": "#/$defs/Ok"
+      }
+    },
+    "GET /api/schema": {
+      "request": null,
+      "response": {
+        "$ref": "#/$defs/EditorSchema"
+      }
+    },
+    "POST /api/send_combo": {
+      "request": {
+        "$ref": "#/$defs/SendComboRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/Ok"
+      }
+    },
+    "POST /api/show": {
+      "request": {
+        "$ref": "#/$defs/ShowRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/Ok"
+      }
+    },
+    "GET /api/status": {
+      "request": null,
+      "response": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/StatusOffline"
+          },
+          {
+            "$ref": "#/$defs/StatusOnline"
+          }
+        ]
+      }
+    },
+    "POST /api/upload": {
+      "request": {
+        "$ref": "#/$defs/UploadRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/UploadResponse"
+      }
+    },
+    "POST /api/validate": {
+      "request": {
+        "$ref": "#/$defs/ValidateRequest"
+      },
+      "response": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ValidateOk"
+          },
+          {
+            "$ref": "#/$defs/ValidateErrors"
+          }
+        ]
+      }
+    },
+    "GET /api/values": {
+      "request": null,
+      "response": {
+        "$ref": "#/$defs/ValuesResponse"
+      }
+    },
+    "POST /api/widget/expand": {
+      "request": {
+        "$ref": "#/$defs/WidgetExpandRequest"
+      },
+      "response": {
+        "$ref": "#/$defs/WidgetExpanded"
+      }
+    }
+  }
+}

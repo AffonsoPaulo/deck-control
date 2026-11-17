@@ -34,6 +34,8 @@ MODULES = [
     "app.config",
     "app.engine",
     "app.editor.server",
+    "app.editor.api",
+    "app.editor.api.preview",
     "app.schema",
     "app.widgets",
     "app.binds",

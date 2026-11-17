@@ -88,3 +88,8 @@ def test_page_that_is_not_a_map():
 @pytest.mark.xfail(raises=ValueError, strict=True, reason="brightness que não é número escapa da validação")
 def test_brightness_that_is_not_a_number():
     assert "brightness" in problems({"brightness": "x", "pages": {"main": {}}})
+
+
+@pytest.mark.xfail(raises=KeyError, strict=True, reason="toggle sem 'on' quebra a validação (o editor recebe erro 500)")
+def test_toggle_without_on():
+    assert "needs the field 'on'" in problems({"pages": {"main": {1: {"action": {"type": "toggle"}}}}})

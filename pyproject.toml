@@ -25,6 +25,8 @@ dev = [
     "ruff==0.15.9",
     "mypy==1.18.2",
     "types-PyYAML",
+    # confere as respostas da API contra o contrato exportado (independente de app/editor/contract.py)
+    "jsonschema==4.23.0",
 ]
 
 [project.scripts]
@@ -75,13 +77,22 @@ python_version = "3.12"
 ignore_missing_imports = true
 # Começa leve: só os módulos listados em "files" são checados. Cada módulo refeito entra na lista, já estrito.
 # Próximos: widgets, values e binds (hoje têm avisos de tipo, sem bug conhecido).
-files = ["app/configio.py", "app/i18n.py", "app/bootstrap.py", "app/errors.py", "app/paths.py"]
+files = [
+    "app/configio.py",
+    "app/i18n.py",
+    "app/bootstrap.py",
+    "app/errors.py",
+    "app/paths.py",
+    "app/editor/contract.py",
+    "app/editor/api/__init__.py",
+    "app/editor/api/context.py",
+]
 follow_imports = "silent"
 warn_unused_ignores = true
 
 # Código novo (Fase 1 em diante) entra estrito.
 [[tool.mypy.overrides]]
-module = ["app.bootstrap", "app.errors", "app.paths"]
+module = ["app.bootstrap", "app.errors", "app.paths", "app.editor.contract", "app.editor.api", "app.editor.api.context"]
 # o "strict" do mypy só vale para o projeto inteiro; estas são as partes dele que funcionam por módulo
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

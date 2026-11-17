@@ -23,6 +23,9 @@
   commit separado de mudança de lógica.
 - Importar um módulo não liga nada. Plugins carregam e as peças compartilhadas saem de `app.bootstrap.services()`;
   quem precisa recebe por parâmetro (`Engine(..., plugins=, values=)`). Caminhos passam por `app/paths.py`.
+- API do editor: uma função por rota em `app/editor/api/<assunto>.py`, com os tipos do pedido e da resposta em
+  `app/editor/contract.py` e a entrada em `ROUTES` (`app/editor/api/__init__.py`). Mudou o formato: rode
+  `python -m app.editor.contract` (o teste avisa). O servidor (`server.py`) só cuida do HTTP.
 - Bug achado em teste de caracterização: registrar com `xfail(strict=True)` e avisar, sem corrigir junto.
 - Plano da refatoração: `docs/plano-python.md`.
 
