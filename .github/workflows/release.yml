@@ -2,6 +2,7 @@ name: Versão
 
 # Ao criar uma tag v* (v0.9.0): monta o editor, o Deck.exe e o instalador, confere o executável e anexa o
 # Deck-Setup.exe no Release da tag. A versão é a de app/__init__.py e tem de bater com a tag.
+# O nome da tag vem de fora: entra nos scripts só por variável de ambiente (TAG), nunca colado no texto do script.
 on:
   push:
     tags: ["v*"]
@@ -27,9 +28,11 @@ jobs:
           cache-dependency-path: editor-next/package-lock.json
 
       - name: Versão (app/__init__.py) igual à tag
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           $v = python -c "import app; print(app.__version__)"
-          if ("v$v" -ne "${{ github.ref_name }}") { throw "A tag ${{ github.ref_name }} não bate com app/__init__.py (v$v)" }
+          if ("v$v" -ne $env:TAG) { throw "A tag $env:TAG não bate com app/__init__.py (v$v)" }
           "VERSION=$v" >> $env:GITHUB_ENV
 
       - name: Editor (editor-next/dist)
@@ -69,8 +72,9 @@ jobs:
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
         run: |
-          $tag = "${{ github.ref_name }}"
+          $tag = $env:TAG
           gh release view $tag *> $null
           if ($LASTEXITCODE) {
             gh release create $tag packaging/Output/Deck-Setup.exe --title "Deck $env:VERSION" --generate-notes
