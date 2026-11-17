@@ -98,6 +98,14 @@ def test_check_command(args, in_project, tmp_path):
     assert r.stdout.startswith("Config OK:"), r.stdout
 
 
+def test_version_comes_from_the_package():
+    from app import __version__
+
+    r = run_python("", "-m", "app", "--version")
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == f"Deck {__version__}"
+
+
 def test_engine_and_editor_receive_the_shared_objects(tmp_path, example_raw):
     from app.editor.server import EditorServer
     from app.engine import Engine

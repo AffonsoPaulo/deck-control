@@ -270,5 +270,6 @@
  "'run' has -m without the module name (e.g.: [\"-m\", \"my_plugin\"])": "'run' tem -m sem o nome do módulo (ex.: [\"-m\", \"meu_plugin\"])",
  "'run' uses the Python option {option}, which the Deck doesn't run (only -m, -u and -B)": "'run' usa a opção {option} do Python, que o Deck não roda (só -m, -u e -B)",
  "'run' needs the plugin's Python script (e.g.: [\"main.py\"])": "'run' precisa do script Python do plugin (ex.: [\"main.py\"])",
- "this plugin's runtime isn't \"deck-python\"": "o runtime deste plugin não é \"deck-python\""
+ "this plugin's runtime isn't \"deck-python\"": "o runtime deste plugin não é \"deck-python\"",
+ "Your settings were copied from {old} to {new}. The old file stays where it was; from now on the Deck uses the new one.": "Suas configurações foram copiadas de {old} para {new}. O arquivo antigo ficou onde estava; daqui em diante o Deck usa o novo."
 }

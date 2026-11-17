@@ -6,6 +6,11 @@ python -m app --debug         log detalhado de tudo (teclas, estados, desenho, p
 python -m app --check         só valida o config
 python -m app --autostart on|off   liga/desliga iniciar com o Windows (modo bandeja)
 python app/__main__.py --run-plugin <pasta>   vira o processo de um plugin deck-python (quem usa é o próprio app)
+
+No executável (Deck.exe, packaging/deck.spec) as opções são as mesmas. Ele não tem console: sem --check,
+--autostart ou --version, roda sempre na bandeja (senão ficaria invisível e sem como sair), e o que essas três
+escrevem só aparece com a saída redirecionada (`Deck.exe --check | more`). O config fica em %APPDATA%\\Deck
+(app/paths.py); na primeira abertura, o config.yaml da pasta do Deck.exe é copiado para lá (app/firstrun.py).
 """
 
 from __future__ import annotations
@@ -39,7 +44,7 @@ def main() -> int:
     from app.i18n import tr
 
     ap = argparse.ArgumentParser(prog="python -m app")
-    from app import paths
+    from app import __version__, paths
 
     ap.add_argument("--config", type=Path, default=paths.default_config())
     ap.add_argument(
@@ -50,12 +55,15 @@ def main() -> int:
     ap.add_argument("--editor", action="store_true", help="abre o editor no navegador ao iniciar")
     ap.add_argument("--port", type=int, default=8765, help="porta do editor (padrão 8765)")
     ap.add_argument("--autostart", choices=["on", "off"], help="liga/desliga iniciar com o Windows")
+    ap.add_argument("--version", action="version", version=f"Deck {__version__}")
     args = ap.parse_args()
 
     from app import logs, winutil
 
     config = args.config.resolve()
     cli = bool(args.check or args.autostart)  # só responde no terminal e sai: sem arquivo de log
+    if paths.FROZEN and not cli and sys.stdout is None:
+        args.tray = True  # executável sem console: sem a bandeja, o app ficaria invisível e sem como sair
     if cli:
         if sys.stdout is not None:
             sys.stdout.reconfigure(line_buffering=True)
@@ -74,12 +82,19 @@ def main() -> int:
     log = logs.get("app")
 
     if args.autostart:
+        if args.autostart == "on":
+            _copy_old_config(config, cli, log)  # o instalador liga o "iniciar com o Windows" antes da 1ª abertura
         winutil.set_autostart(args.autostart == "on", config)
         print("Start with Windows:", "on" if args.autostart == "on" else "off")
         return 0
 
+    if args.check and paths.FROZEN and (missing := paths.missing_resources()):
+        print("Missing from the package:", *missing, sep="\n  ")
+        return 1
+
     from app.storage import ConfigRepository
 
+    _copy_old_config(config, cli, log)
     store = ConfigRepository(config)
     if store.create_from(paths.EXAMPLE_CONFIG):
         msg = f"Created {config} from the example. Edit it as you like (it reloads by itself)."
@@ -105,6 +120,8 @@ def main() -> int:
     if args.check:
         n = sum(len(k) for k in cfg.pages.values())
         print(f"Config OK: {len(cfg.pages)} pages, {n} keys, states: {sorted(cfg.all_states())}")
+        if paths.FROZEN:  # a CI de versão confere o pacote por aqui
+            print(f"Package OK: Deck {__version__}, plugins: {sorted(svc.plugins.plugins)}")
         return 0
 
     from app.editor.server import EditorServer
@@ -133,6 +150,42 @@ def main() -> int:
     finally:
         editor.stop()
     return 0
+
+
+def _copy_old_config(config: Path, cli: bool, log) -> None:
+    """Primeira abertura do executável: copia o config.yaml antigo para %APPDATA%\\Deck e avisa (app/firstrun.py).
+    Em desenvolvimento não faz nada."""
+    from app import firstrun, winutil
+    from app.i18n import tr
+
+    try:
+        copied = firstrun.copy_old_config(config)
+    except OSError as e:
+        log.error("Couldn't copy the old config to %s; starting with the example: %s", config, e)
+        return
+    if copied is None:
+        return
+    log.warning(
+        "First start: copied the old config %s to %s (%d images, history: %s); the old file stays where it was",
+        copied.old,
+        copied.new,
+        copied.images,
+        "yes" if copied.history else "no",
+    )
+    msg = tr(
+        "Your settings were copied from {old} to {new}. The old file stays where it was; from now on the Deck "
+        "uses the new one.",
+        old=copied.old,
+        new=copied.new,
+    )
+    if sys.stdout is not None:
+        print(msg)
+    elif cli:
+        winutil.message_box(msg)  # o instalador espera: é uma vez só
+    else:
+        import threading
+
+        threading.Thread(target=winutil.message_box, args=(msg,), daemon=True, name="first-run").start()
 
 
 if __name__ == "__main__":
