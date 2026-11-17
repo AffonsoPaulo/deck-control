@@ -5,7 +5,8 @@ Um plugin acrescenta ações, configurações e estados ao app. Ele aparece em
 entram na biblioteca do editor, numa categoria com a cor do plugin.
 
 O OBS e o Discord já são plugins: estão em `app/plugins/builtin/` e servem de exemplo de
-`plugin.json`. Um plugin de terceiros completo, o Pomodoro, está em `examples/plugins/pomodoro`.
+`plugin.json`. Um plugin de terceiros completo, o Pomodoro, está em `examples/plugins/pomodoro`
+(com o `run` do jeito antigo, `["python", "main.py"]`, que continua valendo).
 
 ## Como funciona
 
@@ -17,15 +18,39 @@ O OBS e o Discord já são plugins: estão em `app/plugins/builtin/` e servem de
   ícone das teclas) e mostra um estado curto nas Integrações. Mas ele é um programa como outro
   qualquer no PC, então **instale só plugins de quem você confia**.
 - Os plugins instalados ficam na pasta `plugins` dos dados do app
-  (`%LOCALAPPDATA%\D6\plugins\<id>`). A configuração de cada um fica no config.yaml, em
+  (`%LOCALAPPDATA%\D6Deck\plugins\<id>`). A configuração de cada um fica no config.yaml, em
   `plugins: <id>:`.
 
 ## Instalar
 
 No editor: **Configurações › Integrações › Instalar plugin (.zip)**. O .zip pode ter o
-`plugin.json` na raiz ou numa pasta só. O editor mostra o nome, o autor, as ações e o que o plugin
-diz que faz antes de instalar. Depois de instalado, o plugin começa **desligado**: ative pelo
-interruptor dele.
+`plugin.json` na raiz ou numa pasta só. Antes de instalar, o editor mostra o nome, o autor, a
+versão, as ações e o que o plugin diz que faz, avisa que ele é um programa rodando no PC e pede
+confirmação. Um plugin que pede uma versão do protocolo mais nova que a do app não instala: a
+mensagem diz para atualizar o Deck. Depois de instalado, o plugin começa **desligado**: ative pelo
+interruptor dele. O log do app registra cada instalação (autor, homepage e o que o plugin roda).
+
+## Como o plugin roda
+
+O campo `runtime` diz quem abre o programa do plugin:
+
+- **`"exe"`**: o `run` é um programa que o plugin traz, em qualquer linguagem (Python empacotado,
+  Node, C#, Go…), mais os argumentos: `"run": ["bin/meu-plugin.exe", "--x"]`. Um programa que está
+  na pasta do plugin é aberto de lá; outro nome (`"node"`, `"dotnet"`) vem do PATH do Windows.
+- **`"deck-python"`**: plugin em Python, rodado pelo próprio app, com o Python dele (no executável do
+  Deck, sem precisar de um Python instalado). O `run` é o script e os argumentos:
+  `"run": ["main.py"]`; também aceita `["-m", "meu_plugin"]` e as opções `-u` e `-B`.
+  - As bibliotecas do plugin vão numa pasta `lib/` dentro dele (por exemplo,
+    `pip install --target lib requests`): ela entra no caminho do Python antes das do app.
+  - Só bibliotecas em Python puro. Biblioteca compilada (`.pyd`) ou outra versão do Python: use `"exe"`.
+  - O plugin roda como `python main.py` na pasta dele: o `sys.argv`, o `__name__ == "__main__"` e o
+    `__file__` são os de sempre, e ele não enxerga os módulos do app.
+- **Sem `runtime`** (plugins de antes): um `run` que começa com `python` (ou `python3`, `pythonw`)
+  vale como `"deck-python"`; qualquer outro, como `"exe"`.
+
+O campo `protocol` diz a versão do [protocolo](#protocolo-versão-1) que o plugin precisa (padrão: 1).
+Se o app tiver uma versão menor, o plugin não carrega e o editor explica que é preciso atualizar o
+Deck. Hoje a versão é 1.
 
 ## plugin.json
 
@@ -39,7 +64,9 @@ interruptor dele.
   "icon": "timer",
   "color": "#e5484d",
   "category": "Pomodoro",
-  "run": ["python", "main.py"],
+  "runtime": "deck-python",
+  "protocol": 1,
+  "run": ["main.py"],
   "permissions": ["Toca um som do Windows quando o tempo acaba"],
   "settings": [
     {"name": "focus", "kind": "number", "label": "Minutos de foco", "default": 25, "half": true}
@@ -67,7 +94,9 @@ interruptor dele.
 | `icon` | Nome de um ícone do [Lucide](https://lucide.dev/icons). |
 | `color` | Cor da categoria na biblioteca e do ícone nas Integrações. |
 | `category` | Nome da categoria das ações na biblioteca (padrão: `name`). |
-| `run` | Linha de comando, em lista, rodada na pasta do plugin. `python` usa o mesmo Python do app. |
+| `runtime` | `"exe"` ou `"deck-python"`. Ver [Como o plugin roda](#como-o-plugin-roda). |
+| `run` | Linha de comando, em lista, rodada na pasta do plugin: o programa e os argumentos (`exe`) ou o script e os argumentos (`deck-python`). |
+| `protocol` | A versão do protocolo que o plugin precisa (padrão: 1). |
 | `permissions` | O que o plugin faz fora do app, em texto (aparece antes de instalar). |
 | `settings` | Campos da integração. `kind`: `text`, `password`, `number`, `bool`, `enum` (com `options: [[valor, rótulo]]`), `shortcut` (um atalho de teclado; ver [Atalhos](#atalhos)). Opcionais: `default`, `placeholder`, `help`, `half` (dois `half` seguidos ficam lado a lado), `style: "pills"` (num `enum`, mostra botões em vez de lista; bom para escolher um modo) e `when` (ver abaixo). `enabled` é reservado. |
 | `steps` | Passo a passo do "Como configurar". `**texto**` vira destaque; `{nome}` vira o valor da configuração `nome`. Um passo também pode ser `{"text": "...", "when": {...}}`. |
@@ -207,6 +236,19 @@ pomodoro/
 
 ## Protocolo (versão 1)
 
+O app abre o programa do plugin na pasta dele, sem janela, e conversa por JSON em UTF-8, **um
+objeto por linha**, no stdin (app → plugin) e no stdout (plugin → app). O ambiente traz
+`D6_PLUGIN_ID` (o id do plugin), `PYTHONIOENCODING=utf-8` e `PYTHONUNBUFFERED=1`.
+
+Quando cada coisa acontece:
+
+| Momento | O app manda |
+|---|---|
+| A pessoa liga o plugin (ou o app abre com ele ligado), e depois de cada reinício | abre o programa e manda `hello` |
+| O config é lido de novo com o plugin ligado | `settings`, se as configurações mudaram; `locale`, se o idioma mudou |
+| Uma tecla (ou automação) roda uma ação do plugin | `action`, e espera o `result` |
+| A pessoa desliga o plugin, ou o app vai fechar | `stop` |
+
 App → plugin:
 
 ```json
@@ -217,23 +259,40 @@ App → plugin:
 {"type": "stop"}
 ```
 
+- `settings` traz todas as configurações (com os padrões do `plugin.json`), inclusive as senhas:
+  não escreva o `hello` nem o `settings` no log.
+- `params` são os campos da ação na tecla (sem o `type`). `page` e `key` dizem de onde veio.
+
 Plugin → app:
 
 ```json
 {"type": "result", "id": 7, "ok": true}
 {"type": "result", "id": 8, "ok": false, "error": "texto do erro"}
 {"type": "state", "name": "pomodoro.running", "value": true}
+{"type": "value", "name": "pomodoro.left", "value": 12}
 {"type": "status", "state": "ok", "label": "Foco: 12 min"}
-{"type": "log", "message": "vai para o log do app"}
+{"type": "log", "message": "vai para o log do app", "level": "info"}
 ```
 
-- Toda `action` precisa de um `result` com o mesmo `id` em até 10 segundos.
-- `status.state`: `ok`, `wait` ou `error`. O `label` aparece nas Integrações (até 40 letras).
-- Texto que não for JSON no stdout, e tudo no stderr, vai para o log do app.
+- Toda `action` precisa de um `result` com o mesmo `id` em até 10 segundos; senão a tecla mostra
+  erro. Com `"ok": false`, o `error` aparece no log e a tecla mostra erro.
+- `state` e `value`: o nome começa com `<id>.`; outro nome é ignorado (com aviso no log).
+  `value: null` apaga o valor. Desligar o plugin apaga os valores dele.
+- `status.state`: `ok`, `wait` ou `error` (outro vira `ok`). O `label` aparece nas Integrações
+  (até 40 letras).
+- `log.level`: `debug`, `info` (padrão), `warn` ou `error`.
+- Texto que não for JSON no stdout vai para o log do app; tudo no stderr também, como aviso.
 - `locale` é `pt-BR` ou `en`. Plugins que não traduzem nada podem ignorar a mensagem `locale`.
 - Ao receber `stop`, feche em até 2 segundos; depois disso o app encerra o processo.
+- Se o programa fechar sozinho, o app avisa no editor e abre de novo (com outro `hello`), até 3
+  vezes por minuto; depois disso, mostra "Parou" nas Integrações. O aviso some quando o plugin
+  manda uma mensagem ou fica 15 s de pé.
+- Um app com uma versão do protocolo menor que o `protocol` do manifesto não carrega o plugin.
+  Mudanças que plugins antigos entendem (uma mensagem nova, um campo novo) não mudam a versão.
 
 ## Plugin mínimo (Python)
+
+Com `"runtime": "deck-python"` e `"run": ["main.py"]` no `plugin.json`:
 
 ```python
 import json, sys
@@ -257,9 +316,36 @@ for line in sys.stdin:
 
 Os embutidos (`app/plugins/builtin/<id>`) rodam dentro do app, em Python, com `"entry": "plugin.py"`
 no lugar de `run`. A pasta é carregada como pacote, então o `plugin.py` pode importar outros
-arquivos dela (`from .rpc import DiscordRPC`). O `plugin.py` define `setup(api)`, registra as ações com `@api.action(...)` e
-devolve um objeto com `start(settings)`, `update(settings)`, `stop()` e, se quiser,
-`current_status()`. Eles podem usar `"config_key"` para guardar a configuração numa seção própria
-do config (`obs:`, `discord:`) e `"default_enabled"`.
+arquivos dela (`from .rpc import DiscordRPC`). Eles podem usar `"config_key"` para guardar a
+configuração numa seção própria do config (`obs:`, `discord:`) e `"default_enabled"`.
+
+O ciclo de vida (o mesmo dos de terceiros, que passam por ele com o `hello`/`stop`):
+
+1. **Carregar**, ao abrir o app e depois de instalar ou remover um plugin: o app importa o
+   `plugin.py` e chama `setup(api)`. Aqui o plugin registra as ações com `@api.action(...)` e
+   devolve o objeto que o app liga e desliga. Ainda não deve abrir conexões nem threads.
+2. **Ligar**, quando o config liga o plugin: `start(settings)`.
+3. **Atualizar**, a cada leitura do config com o plugin ligado: `update(settings)` e
+   `set_locale(idioma)` (as configurações e o idioma podem ser os mesmos de antes).
+4. **Desligar**, quando o config desliga o plugin ou o app vai fechar: `stop()`. Depois disso, o app
+   apaga os valores do plugin e fecha os problemas `plugin.<id>.…` que ele abriu.
+
+Todos os métodos do objeto são opcionais; `current_status()` devolve
+`{"state": "ok|wait|error", "label": "...", "detail": "..."}` para as Integrações. Um erro no
+`start` aparece como "Não iniciou", e o app tenta de novo na próxima leitura do config.
+
+O `api` (`app/plugins/api.py`) é a porta do plugin para o app:
+
+| | |
+|---|---|
+| `api.action(nome, required=(), state=None, check=None, mirror=False)` | Decorador que registra uma ação do plugin. |
+| `api.set_state(nome, valor)` | Liga/desliga um estado (`<id>.…`). |
+| `api.set_value(nome, valor)` | Publica um valor (`<id>.…`); `None` apaga. |
+| `api.set_status(state, label)` | O status nas Integrações (quando não há `current_status()`). |
+| `api.log` | O log do plugin (`deck.plugins.<id>`), em inglês. |
+| `api.language()` | O idioma do app agora (`pt-BR` ou `en`). |
+| `api.id`, `api.folder` | O id e a pasta do plugin. |
+| `api.engine` | O engine, para o que a API ainda não cobre (`None` antes de o app ligar). |
+
 Os textos do `plugin.json` seguem as mesmas regras de [Idiomas](#idiomas); os do Python usam
 `tr("texto em inglês")` de `app.i18n`, com a tradução em `app/locales/pt-BR.json`.
