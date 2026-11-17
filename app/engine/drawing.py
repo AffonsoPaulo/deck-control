@@ -15,6 +15,7 @@ engine.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Collection
 from typing import TYPE_CHECKING, Any
 
 from app import icons, logs, values
@@ -38,6 +39,8 @@ dlog = logs.get("device")  # USB: conectar, desconectar, desenhar
 ERROR_MARK_S = 1.0  # quanto tempo a tecla mostra a marca de erro
 
 ALL_KEYS = range(1, KEY_COUNT + 1)
+SKIP = "skip"  # _transition_for: não redesenha agora (a virada em andamento termina sozinha)
+TRANSITIONS = {"flip"}  # as que o app sabe fazer (as outras, de versões mais novas, desenham direto)
 
 
 class DrawQueue:
@@ -58,9 +61,14 @@ class DrawQueue:
     def mark_all(self) -> None:
         self._dirty = set(ALL_KEYS)
 
-    def take(self) -> tuple[set[int], int | None]:
-        """Esvazia a fila: (teclas a redesenhar, brilho novo ou None)."""
-        dirty, self._dirty = self._dirty, set()
+    def take(self, only: set[int] | None = None) -> tuple[set[int], int | None]:
+        """Esvazia a fila: (teclas a redesenhar, brilho novo ou None). Com `only`, tira só essas teclas
+        (as outras continuam esperando); o brilho vai junto, porque é um comando curto."""
+        if only is None:
+            dirty, self._dirty = self._dirty, set()
+        else:
+            dirty = self._dirty & only
+            self._dirty -= dirty
         bright = self.brightness if self._brightness_dirty else None
         self._brightness_dirty = False
         return dirty, bright
@@ -117,16 +125,32 @@ class Drawing:
         self._anims: dict[int, dict[str, Any]] = {}  # tecla -> GIF tocando (quadros, durações, posição)
         self._frame_cache: dict[str, tuple[list[bytes], list[float]]] = {}
         self._dyn_at = 0.0
+        # o que cada tecla mostrou por último e de onde veio (página, tecla do config, resposta): a virada dos
+        # números só anima quando é a mesma tecla mudando de texto
+        self._shown: dict[int, tuple[tuple[Any, ...], Icon | None]] = {}
+        self._fast_poll: tuple[tuple[str, int], bool] | None = None
+        # GIF que toca uma vez ("loop": false) e já terminou: tecla -> (de onde veio, ícone). Não recomeça
+        # por um redesenho qualquer (estado, aperto, reconexão): só quando o ícone ou a página mudam
+        self._played: dict[int, tuple[tuple[Any, ...], str]] = {}
+        self._played_page: str | None = None  # trocou de página: os GIFs de tocar uma vez tocam de novo ao voltar
         self._slices: dict[tuple[str, float, int, int, int], Image.Image] = {}  # bloco "imagem contínua", já cortada
 
     # -- o Deck (re)conectou ou caiu
     def forget_screens(self) -> None:
         """O D6 pode ter perdido as imagens: todas vão de novo (quem chama segura a trava)."""
         self._sent.clear()
+        self._shown.clear()  # sem virada no redesenho da reconexão
         self._queue.mark_all()
 
     def stop_animations(self) -> None:
         self._anims.clear()
+
+    def restart_animation(self, key: int) -> None:
+        """A tecla saiu do aperto: o GIF dela recomeça no próximo envio (a tela estava com a imagem encolhida).
+        O que toca uma vez não recomeça: vai direto para o último quadro."""
+        a = self._anims.pop(key, None)
+        if a is not None and "once" in a:
+            self._played[key] = a["once"]
 
     def forget_slices(self) -> None:
         self._slices.clear()
@@ -214,10 +238,21 @@ class Drawing:
         x, y = c * (tile + gap), r * (tile + gap)
         return big.crop((x, y, x + tile, y + tile))
 
+    def _poll_s(self) -> float:
+        """De quanto em quanto tempo conferir os valores: 0,5 s, ou 0,1 s se a página mostra segundos (a virada
+        dos segundos sai no ritmo certo, sem atrasar até meio segundo)."""
+        cfg = self._shared.cfg
+        k = (self._nav.page, id(cfg))
+        if self._fast_poll is None or self._fast_poll[0] != k:
+            specs = cfg.page_keys(self._nav.page).values()
+            fast = any("clock.second" in repr((s.icon, s.cells, s.rules)) for s in specs if s.dynamic)
+            self._fast_poll = (k, fast)
+        return 0.1 if self._fast_poll[1] else 0.5
+
     def refresh_dynamic(self) -> None:
-        """Duas vezes por segundo: redesenha só as teclas cujos valores mudaram."""
+        """Duas vezes por segundo (dez, com segundos na página): redesenha só as teclas cujos valores mudaram."""
         now = self._shared.clock.monotonic()
-        if now - self._dyn_at < 0.5:
+        if now - self._dyn_at < self._poll_s():
             return
         self._dyn_at = now
         if self._nav.overlay is not None:
@@ -277,11 +312,15 @@ class Drawing:
         return self._frame_cache[ck]
 
     # -- o envio
-    def flush(self, deck: D6) -> None:
-        """Manda ao Deck o brilho novo e as teclas marcadas cuja imagem mudou de fato."""
+    def flush(self, deck: D6, sunk: Collection[int] = (), only: set[int] | None = None) -> None:
+        """Manda ao Deck o brilho novo e as teclas marcadas cuja imagem mudou de fato.
+        sunk: teclas apertadas que mostram a tela encolhida. only: manda só essas (as outras esperam)."""
         clock = self._shared.clock
+        if self._nav.page != self._played_page:
+            self._played.clear()
+            self._played_page = self._nav.page
         with self._shared.lock:
-            dirty, bright = self._queue.take()
+            dirty, bright = self._queue.take(only)
         if bright is not None:
             deck.set_brightness(bright)
         if not dirty:
@@ -292,14 +331,40 @@ class Drawing:
         t_render = clock.monotonic()
         with self._shared.lock:
             for key in sorted(dirty):
+                if key in sunk:
+                    # apertada: a imagem de agora, encolhida (o GIF dela fica parado até soltar)
+                    pressed = render.encode(icons.pressed_image(self._still_for(key)))
+                    digest = hashlib.sha1(pressed).hexdigest()
+                    if self._sent.get(key) != digest:
+                        tiles[key] = pressed
+                        self._sent[key] = digest
+                    continue
+                flip = self._transition_for(key)
+                if flip == SKIP:
+                    continue  # a virada para este mesmo texto ainda está andando: deixa terminar
+                if isinstance(flip, bytes):
+                    tiles[key] = flip
+                    self._sent[key] = hashlib.sha1(flip).hexdigest()
+                    continue
                 jpegs, durations = self._frames_for(key)
                 mark = self._queue.errors.get(key)
                 if mark is not None and mark["until"] is None:
                     mark["until"] = now + ERROR_MARK_S  # o 1 s conta a partir de quando aparece
                 if len(jpegs) > 1:
                     old = self._anims.get(key)
-                    if old is None or old["jpegs"] is not jpegs:
+                    once = self._once_sig(key)
+                    if once is not None and self._played.get(key) == once:
+                        self._anims.pop(key, None)
+                        data = jpegs[-1]  # já tocou: fica no último quadro
+                        digest = hashlib.sha1(data).hexdigest()
+                        if self._sent.get(key) != digest:
+                            tiles[key] = data
+                            self._sent[key] = digest
+                        continue
+                    if old is None or old.get("jpegs") is not jpegs:
                         self._anims[key] = {"jpegs": jpegs, "durations": durations, "i": 0, "due": now + durations[0]}
+                        if once is not None:
+                            self._anims[key]["once"] = once
                     else:
                         continue  # o mesmo GIF já está tocando
                 else:
@@ -330,6 +395,53 @@ class Drawing:
                 sum(len(b) for b in tiles.values()),
             )
 
+    # -- transições entre o que a tecla mostrava e o novo (célula com "transition"; hoje: "flip", a virada dos
+    # números: o texto que muda desce e o novo entra por cima). Nome desconhecido: desenha direto.
+    def _ident(self, key: int) -> tuple[Any, ...]:
+        """De onde vem o que a tecla mostra: muda com a página, o config, a resposta temporária."""
+        spec, idx = self._shared.cfg.spec_at(self._nav.page, key)
+        t = self._nav.temp
+        close = t is not None and key == t.get("close_key")
+        return (self._nav.page, id(spec), idx, id(self._nav.overlay), close)
+
+    def _transition_for(self, key: int) -> bytes | str | None:
+        """Se a tecla vai virar (mesma tecla, texto novo), começa a virada e devolve o 1º quadro (bytes);
+        SKIP se a virada para este mesmo texto já está andando; None para o desenho normal.
+        Quem chama segura a trava. Guarda o que a tecla passa a mostrar."""
+        icon = self.icon_for(key)
+        ident = self._ident(key)
+        prev = self._shown.get(key)
+        running = self._anims.get(key)
+        if running is not None and "plan" in running and running["icon"] == icon:
+            return SKIP
+        self._shown[key] = (ident, icon)
+        if (
+            key in self._queue.errors
+            or not icon
+            or "__slice__" in icon
+            or icon.get("transition") not in TRANSITIONS
+            or prev is None
+            or prev[0] != ident
+            or not prev[1]
+            or prev[1].get("transition") != icon.get("transition")
+            or prev[1] == icon
+        ):
+            return None
+        cfg = self._shared.cfg
+        plan = icons.flip_plan(prev[1], icon, cfg.base_dir, cfg.raw.get("icons"))
+        if plan is None:
+            return None
+        now = self._shared.clock.monotonic()
+        self._anims[key] = {"plan": plan, "icon": icon, "i": 1, "due": now + icons.FLIP_FRAME_S}
+        return render.encode(plan.frame(1))
+
+    def _once_sig(self, key: int) -> tuple[tuple[Any, ...], str] | None:
+        """Assinatura do GIF que toca uma vez nesta tecla agora (de onde vem + ícone), ou None se ele repete."""
+        icon = self.icon_for(key)
+        if not icon or icon.get("loop") is not False:
+            return None
+        return (self._ident(key), repr(sorted(icon.items(), key=str)))
+
     # -- GIFs
     def next_frame_due(self) -> float | None:
         """Quando vence o próximo quadro de GIF (None = nenhum GIF tocando)."""
@@ -338,18 +450,36 @@ class Drawing:
         due: float = min(a["due"] for a in self._anims.values())
         return due
 
-    def advance_animations(self, deck: D6) -> None:
-        """Manda o próximo quadro de cada GIF cuja hora chegou (um envio curto por quadro)."""
+    def advance_animations(self, deck: D6, skip: Collection[int] = ()) -> None:
+        """Manda o próximo quadro de cada GIF cuja hora chegou (um envio curto por quadro).
+        skip: teclas apertadas (mostram a tela encolhida; o GIF delas espera soltar)."""
         if not self._anims:
             return
         now = self._shared.clock.monotonic()
         for key, a in list(self._anims.items()):
-            if now < a["due"]:
+            if now < a["due"] or key in skip:
+                continue
+            if "plan" in a:  # virada: um quadro por vez, montado agora; no último, para
+                a["i"] += 1
+                data = render.encode(a["plan"].frame(a["i"]))
+                deck.push(key, data)
+                self._sent[key] = hashlib.sha1(data).hexdigest()
+                if a["i"] >= a["plan"].n:
+                    del self._anims[key]
+                    continue
+                a["due"] += icons.FLIP_FRAME_S
+                if a["due"] < now:
+                    a["due"] = now + icons.FLIP_FRAME_S
                 continue
             a["i"] = (a["i"] + 1) % len(a["jpegs"])
             data = a["jpegs"][a["i"]]
             deck.push(key, data)
             self._sent[key] = hashlib.sha1(data).hexdigest()
+            if "once" in a and a["i"] == len(a["jpegs"]) - 1:
+                # tocou uma vez ("loop": false): para no último quadro
+                self._played[key] = a["once"]
+                del self._anims[key]
+                continue
             a["due"] += a["durations"][a["i"]]
             if a["due"] < now:  # atrasou muito (desenho longo): ressincroniza
                 a["due"] = now + a["durations"][a["i"]]

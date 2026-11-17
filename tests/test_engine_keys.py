@@ -360,9 +360,10 @@ def test_failing_action_shows_the_error_mark_for_one_second(make_engine):
     normal = deck.screens[1]
     rig.press(1)
     assert rig.moments() == [("brightness", "press")]
-    assert deck.screens[1] == normal  # com a tecla apertada não redesenha
+    pressed = deck.screens[1]
+    assert pressed != normal  # apertada: a tela encolhida (a marca de erro espera soltar)
     rig.release(1)
-    assert deck.screens[1] != normal
+    assert deck.screens[1] not in (normal, pressed)  # a marca de erro
     rig.advance(990)
     assert deck.screens[1] != normal
     rig.advance(20)

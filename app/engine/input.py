@@ -9,6 +9,7 @@ a trava, quando o Deck reconecta.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Mapping
 
 from app import actions, keys, logs
@@ -28,9 +29,17 @@ STUCK_S = 5  # tecla "apertada" há mais que isso: um 'soltar' se perdeu, não s
 
 class Input:
     def __init__(
-        self, shared: Shared, nav: Navigation, timers: Timers, leds: Leds, recorder: Recorder, submit: Submit
+        self,
+        shared: Shared,
+        nav: Navigation,
+        timers: Timers,
+        leds: Leds,
+        recorder: Recorder,
+        submit: Submit,
+        mark: Callable[[int], None] = lambda key: None,
     ) -> None:
         self._shared = shared
+        self._mark = mark  # marca a tecla para redesenhar (a fila de desenho)
         self._nav = nav
         self._timers = timers
         self._leds = leds
@@ -41,6 +50,8 @@ class Input:
         self._mirrored: dict[int, str] = {}  # tecla -> combinação segurada (ação 'bind')
         self._doubled: set[int] = set()  # teclas cujo 2º toque já rodou o 'double'
         self._swallow: set[int] = set()  # teclas que só fecharam uma resposta (o soltar não roda nada)
+        self.sunk: dict[int, float] = {}  # teclas mostrando a tela encolhida (apertadas) -> desde quando
+        self._sink_pending: set[int] = set()  # encolheram e ainda não foram para o Deck
 
     # -- combinações seguradas
     @staticmethod
@@ -76,6 +87,44 @@ class Input:
     def forget_pressed(self) -> None:
         """O Deck (re)conectou: nenhuma tecla está apertada (quem chama segura a trava)."""
         self.pressed.clear()
+        self.sunk.clear()
+        self._sink_pending.clear()
+
+    # -- a tecla encolhe ao apertar (config icons.press_shrink, ligado por padrão)
+    def _shrink_on(self) -> bool:
+        raw = self._shared.cfg.raw.get("icons")
+        value = raw.get("press_shrink", True) if isinstance(raw, dict) else True
+        return value if isinstance(value, bool) else True
+
+    def _sink(self, key: int, now: float) -> None:
+        if self._shrink_on():
+            self.sunk[key] = now
+            self._sink_pending.add(key)
+            self._mark(key)
+
+    def _unsink(self, key: int) -> bool:
+        """A tecla volta ao normal (redesenha). Devolve se estava encolhida."""
+        if self.sunk.pop(key, None) is None:
+            return False
+        self._sink_pending.discard(key)
+        self._mark(key)
+        return True
+
+    def expire_sunk(self, now: float) -> None:
+        """Um 'soltar' perdido não deixa a tecla encolhida para sempre (mesma regra dos 5 s do desenho)."""
+        for key, t in list(self.sunk.items()):
+            if now - t >= STUCK_S:
+                self._unsink(key)
+
+    def drawable_while_held(self, now: float) -> set[int]:
+        """Com tecla apertada, só estas redesenham: a que acabou de encolher e as apertadas que não seguram
+        uma combinação ("apertar para falar": o soltar dela não pode esperar um envio)."""
+        live = {k for k, t in self.pressed.items() if now - t < STUCK_S}
+        return self._sink_pending | (live - set(self._mirrored))
+
+    def drawn(self, keys: set[int]) -> None:
+        """O laço mandou essas teclas para o Deck."""
+        self._sink_pending -= keys
 
     def holding(self, now: float) -> bool:
         """Alguma tecla apertada agora (ignora apertos "presos" há mais de 5 s, caso um 'soltar' se perca)."""
@@ -86,6 +135,9 @@ class Input:
 
     # -- eventos do D6
     def on_key(self, key: int, pressed: bool) -> None:
+        if not pressed:
+            # volta ao normal em qualquer caminho do soltar (resposta fechada, página trocada, gravação...)
+            self._unsink(key)
         if not pressed and key in self._mirrored:
             # solta o que foi segurado, mesmo se a página mudou no meio
             keys.key_up(self._mirrored.pop(key))
@@ -107,6 +159,7 @@ class Input:
             return
         if pressed and self._nav.answer_press(key):
             self._swallow.add(key)
+            self._sink(key, self._shared.clock.monotonic())  # a tecla que só fecha também encolhe
             klog.debug("Key %d pressed (page %s) -> closed a temporary answer", key, self._nav.page)
             return
         spec = self._shared.cfg.spec_at(self._nav.page, key)[0]
@@ -125,6 +178,7 @@ class Input:
     def _on_press(self, key: int, spec: KeySpec, now: float) -> None:
         cfg = self._shared.cfg
         self.pressed[key] = now
+        self._sink(key, now)
         self._hold_fired.discard(key)
         tap = self._timers.take_tap(key)
         if tap is not None and spec.double is not None:

@@ -76,6 +76,10 @@ clog = logs.get("config")
 
 
 class Engine:
+    # Com tecla apertada, deixa redesenhar a que encolheu e as apertadas que não seguram combinação (o resto
+    # espera soltar). Desligado = o comportamento antigo (nada redesenha com tecla apertada); só os testes trocam.
+    redraw_while_held: bool = True
+
     def __init__(
         self,
         config_path: Path,
@@ -121,7 +125,9 @@ class Engine:
         self._drawing = Drawing(self._shared, self._queue, self._nav, self._state_table, values)
         self.automations = automations.Automations(self)
         self.automations.configure(self.cfg.automations)
-        self._input = Input(self._shared, self._nav, self._timers, self._leds, self._recorder, self._submit)
+        self._input = Input(
+            self._shared, self._nav, self._timers, self._leds, self._recorder, self._submit, mark=self._remark
+        )
         self._session = Session(clock, device)  # "sem o Deck desde agora": o fim do __init__, como sempre foi
         self.apply_log_settings()
 
@@ -261,6 +267,12 @@ class Engine:
             label = str(text) if text else None
         return Context(self, self.page, key, moment, label)
 
+    def _remark(self, key: int) -> None:
+        """A tecla encolheu ou voltou: redesenha (e o GIF dela recomeça do primeiro quadro)."""
+        with self._lock:
+            self._queue.mark(key)
+        self._drawing.restart_animation(key)
+
     def _submit(self, spec: object, key: int, moment: str = "press", label: str | None = None) -> None:
         """Manda a ação para o pool (a página do Context é a da tela na hora de mandar)."""
         if spec is not None:
@@ -389,11 +401,19 @@ class Engine:
         self._check_answers()
         self._drawing.refresh_dynamic()
         self.automations.tick()
-        # não redesenha com tecla apertada: o envio demora e atrasaria o 'soltar'
-        # (ignora apertos "presos" há mais de 5 s, caso um 'soltar' se perca)
-        if not self._input.holding(self._clock.monotonic()):
-            self._drawing.flush(deck)
-        self._drawing.advance_animations(deck)
+        now = self._clock.monotonic()
+        self._input.expire_sunk(now)
+        sunk = set(self._input.sunk)
+        if not self._input.holding(now):
+            self._drawing.flush(deck, sunk)
+        elif self.redraw_while_held:
+            # com tecla apertada, só redesenham a que acabou de encolher e as apertadas que não seguram
+            # combinação: as outras esperam soltar, para o envio não atrasar o 'soltar' de quem segura
+            allowed = self._input.drawable_while_held(now)
+            self._drawing.flush(deck, sunk, only=allowed)
+            self._input.drawn(allowed)
+        # (redraw_while_held desligado: não redesenha nada com tecla apertada, como antes)
+        self._drawing.advance_animations(deck, skip=sunk)
         self._leds.update(deck)
 
     def run(self) -> None:

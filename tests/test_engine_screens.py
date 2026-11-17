@@ -78,7 +78,8 @@ def test_page_action_switches_and_redraws_only_what_changed(make_engine):
     rig.clear()
     rig.tap(1)
     assert rig.engine.page == "other"
-    assert sorted(deck.pushed_keys()) == [1, 2, 3]  # as vazias continuam pretas: não reenvia
+    # as vazias continuam pretas: não reenvia; a 1 vai duas vezes (encolhida no aperto, normal ao soltar)
+    assert sorted(deck.pushed_keys()) == [1, 1, 2, 3]
     assert_colors(deck, {1: BLUE, 2: YELLOW, 3: CYAN})
     rig.tap(1)  # back
     assert rig.engine.page == "main"
@@ -445,9 +446,9 @@ def test_clock_widget_spans_its_size_and_follows_the_clock(make_engine):
     assert deck.screens[2] == drawn(rig, {**cells[1], "text": "32"})
     rig.clear()
     rig.clock.set_wall(time.mktime((2026, 11, 17, 14, 33, 0, 0, 0, -1)))
-    rig.advance(500)
-    assert deck.pushed_keys() == [2]
-    assert deck.screens[2] == drawn(rig, {**cells[1], "text": "33"})
+    rig.advance(900)  # a conferência (até 0,5 s) e a virada (10 quadros de 30 ms)
+    assert deck.pushed_keys() == [2] * 10  # só os minutos viram
+    assert deck.screens[2] == drawn(rig, {**cells[1], "text": "33"})  # e terminam exatamente no número novo
 
 
 def test_countdown_widget_runs_the_action_saved_on_the_key(make_engine):
@@ -461,8 +462,7 @@ def test_countdown_widget_runs_the_action_saved_on_the_key(make_engine):
     rig.tap(6)
     assert rig.moments() == [("timer.toggle", "press")]
     assert rig.engine.values.get("timer.egg") == "02:00"
-    assert deck.screens[6] == drawn(rig, {**cell, "text": "–"})  # a contagem não marca a tecla: espera a conferência
-    rig.advance(500)  # das teclas com valores (a cada 0,5 s)
+    # ao soltar, a tecla redesenha (sai do aperto) já com o valor novo, sem esperar a conferência de 0,5 s
     assert deck.screens[6] == drawn(rig, {**cell, "text": "02:00"})
     rig.clear()
     rig.tap(11)

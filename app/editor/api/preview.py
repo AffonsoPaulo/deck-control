@@ -184,7 +184,7 @@ def _preview(icon, base, defaults) -> str:
         save_all=True,
         append_images=[f for f, _ in frames[1:]],
         duration=[ms for _, ms in frames],
-        loop=0,
+        loop=1 if icon.get("loop") is False else 0,  # "loop": false: a prévia também toca uma vez
         quality=85,
     )
     return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode()

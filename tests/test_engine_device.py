@@ -117,13 +117,17 @@ def test_lost_deck_is_closed_and_reopened_with_every_key_redrawn(make_engine, er
     rig.run()
 
     assert rig.factory.made == [first, second]
-    assert sorted(first.pushed_keys()) == list(range(1, 16))
+    # as 15 telas, mais a tecla 1 encolhida (o cabo saiu com ela apertada)
+    assert sorted(set(first.pushed_keys())) == list(range(1, 16))
+    assert first.pushed_keys().count(1) == 2
+    normal_1 = next(img for k, img in first.pushes if k == 1)
     assert first.closed
     assert rig.keys == [("down", "ctrl+f13"), ("up", "ctrl+f13")]  # Ctrl não fica preso
     assert second.enabled == [70]
     assert second.settle == 0.5
     assert sorted(second.pushed_keys()) == list(range(1, 16))
-    assert second.screens == first.screens
+    # depois de reconectar nenhuma tecla está apertada: a 1 volta normal, as outras iguais
+    assert second.screens == {**first.screens, 1: normal_1}
     # ao parar: plugins desligados, pool fechado sem esperar, Deck fechado
     assert second.closed
     assert rig.engine.deck is None

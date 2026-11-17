@@ -52,6 +52,7 @@
 #                     o formato antigo 'glyph: E720' (Segoe Fluent Icons) ainda funciona;
 #                     tools/migrate_lucide.py troca um pelo outro
 #   image: icons/x.png  imagem (caminho relativo a este arquivo) | image_scale: 0.8
+#   loop: false         GIF animado: toca uma vez e para no último quadro (sem a linha, repete)
 #   border: "#FF0000"   borda de 4 px
 #   style: below | top | big   ícone com texto embaixo (padrão) | texto em cima | só o ícone, grande
 #

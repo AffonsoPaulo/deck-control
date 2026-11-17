@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps, ImageSequence
+from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFont, ImageOps, ImageSequence
 
 from app import logs, paths
 from d6 import render
@@ -494,6 +494,76 @@ def _warn_once(path, msg: str, e) -> None:
         _warned.clear()
     _warned.add(k)
     log.warning(msg, path, e)
+
+
+FLIP_FRAMES = 10  # a virada dos números: 10 quadros de 30 ms = 300 ms (aprovado no canvas, "Virada dos números")
+FLIP_FRAME_S = 0.03
+
+
+class FlipPlan:
+    """A virada de um texto que mudou: o velho desce e sai, o novo entra por cima, só na faixa onde estão os
+    números (o fundo e a legenda ficam parados). Os quadros são montados um a um, na hora de cada envio."""
+
+    def __init__(self, old: Image.Image, new: Image.Image, y0: int, y1: int, n: int = FLIP_FRAMES) -> None:
+        self.n = n
+        self._new = new
+        self._y0, self._h = y0, y1 - y0 + 1
+        self._strip_old = old.crop((0, y0, SIZE, y1 + 1))
+        self._strip_new = new.crop((0, y0, SIZE, y1 + 1))
+        self._bg = old.getpixel((2, 2))
+        self._base = old.copy()
+        self._base.paste(Image.new("RGB", (SIZE, self._h), self._bg), (0, y0))
+
+    def frame(self, i: int) -> Image.Image:
+        """Quadro i (1..n); o último é a imagem nova, exata."""
+        if i >= self.n:
+            return self._new
+        t = i / self.n
+        e = 4 * t**3 if t < 0.5 else 1 - (-2 * t + 2) ** 3 / 2  # acelera e freia
+        off = round(e * self._h)
+        win = Image.new("RGB", (SIZE, self._h), self._bg)
+        win.paste(self._strip_old, (0, off))  # o velho descendo
+        win.paste(self._strip_new, (0, off - self._h))  # o novo vindo de cima
+        out = self._base.copy()
+        out.paste(win, (0, self._y0))
+        return out
+
+
+def flip_plan(old_spec: dict, new_spec: dict, base_dir=None, defaults=None) -> FlipPlan | None:
+    """Prepara a virada de old_spec para new_spec, ou None quando não dá para animar (fundo com degradê ou
+    imagem, nada mudou, ou a mudança não é só de texto)."""
+    for s in (old_spec, new_spec):
+        if s.get("bg_to") or s.get("image"):
+            return None
+    old = render_icon(old_spec, base_dir, defaults).convert("RGB")
+    new = render_icon(new_spec, base_dir, defaults).convert("RGB")
+    box = ImageChops.difference(old, new).getbbox()
+    if box is None:
+        return None
+    pad = 6
+    y0, y1 = max(0, box[1] - pad), min(SIZE - 1, box[3] - 1 + pad)
+    # a janela para antes da legenda (o que vem embaixo dos números): o número que sai não passa por cima
+    bg = Image.new("RGB", (SIZE, SIZE), old.getpixel((2, 2)))
+    below = ImageChops.difference(old.crop((0, box[3], SIZE, SIZE)), bg.crop((0, box[3], SIZE, SIZE))).getbbox()
+    if below is not None:
+        y1 = min(y1, box[3] + below[1] - 3)
+    if y1 <= y0:
+        return None
+    return FlipPlan(old, new, y0, y1)
+
+
+PRESS_SCALE = 0.76  # tela da tecla apertada: 76% do tamanho (aprovado no canvas, "Aperto: a tecla encolhe")
+PRESS_DARKEN = 0.55  # a borda em volta: a cor do canto da tecla, mais escura
+
+
+def pressed_image(img: Image.Image, scale: float = PRESS_SCALE) -> Image.Image:
+    """A tela da tecla apertada: a imagem menor, centralizada, com a cor da tecla escurecida em volta."""
+    small = img.resize((round(SIZE * scale), round(SIZE * scale)), Image.LANCZOS)
+    corner = img.convert("RGB").getpixel((2, 2))
+    out = Image.new("RGB", (SIZE, SIZE), tuple(round(c * PRESS_DARKEN) for c in corner))
+    off = (SIZE - small.width) // 2
+    out.paste(small, (off, off))
+    return out
 
 
 def error_mark(img: Image.Image) -> Image.Image:
