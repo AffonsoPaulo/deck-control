@@ -1,0 +1,80 @@
+name: Versão
+
+# Ao criar uma tag v* (v0.9.0): monta o editor, o Deck.exe e o instalador, confere o executável e anexa o
+# Deck-Setup.exe no Release da tag. A versão é a de app/__init__.py e tem de bater com a tag.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write  # criar o Release e anexar o instalador
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: editor-next/package-lock.json
+
+      - name: Versão (app/__init__.py) igual à tag
+        run: |
+          $v = python -c "import app; print(app.__version__)"
+          if ("v$v" -ne "${{ github.ref_name }}") { throw "A tag ${{ github.ref_name }} não bate com app/__init__.py (v$v)" }
+          "VERSION=$v" >> $env:GITHUB_ENV
+
+      - name: Editor (editor-next/dist)
+        working-directory: editor-next
+        run: |
+          npm ci
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          npm run build
+
+      - name: Dependências do build (versões exatas)
+        run: python -m pip install -r packaging/requirements-build.txt
+
+      - name: Executável (dist/Deck)
+        run: python -m PyInstaller packaging/deck.spec --noconfirm
+
+      - name: Confere o Deck.exe (--version, --check do exemplo, recursos, plugins)
+        run: python packaging/check_exe.py dist/Deck/Deck.exe
+
+      - name: Inno Setup
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --version=6.7.1 -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe não encontrado em $iscc" }
+          "ISCC=$iscc" >> $env:GITHUB_ENV
+
+      - name: Instalador (packaging/Output/Deck-Setup.exe)
+        run: |
+          & $env:ISCC "/DAppVersion=$env:VERSION" "/DIconFile=$pwd\build\deck\deck.ico" packaging\installer.iss
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Testes do Python (depois do build, para o ambiente do build ficar só com o que vai no pacote)
+        run: |
+          python -m pip install -e ".[dev]"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m pytest
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE) {
+            gh release create $tag packaging/Output/Deck-Setup.exe --title "Deck $env:VERSION" --generate-notes
+          } else {
+            gh release upload $tag packaging/Output/Deck-Setup.exe --clobber
+          }
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
