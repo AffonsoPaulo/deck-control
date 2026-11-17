@@ -1,24 +1,35 @@
-// Onde a pessoa está (seção, página, tecla, aba): fora do histórico de desfazer, espelhado na URL.
+// Onde a pessoa está (seção, página, tecla, aba): fora do histórico de desfazer, espelhado no endereço
+// (/next/XXXX-XXXX-XXXX/teclas/main/4/aparencia; ver core/route.ts).
 import { create } from "zustand";
-import { DEFAULT_PLACE, formatPlace, parsePlace, type Place } from "@/core/hash";
+import { DEFAULT_PLACE, parsePlace, type Place } from "@/core/hash";
+import { formatRoute, parseRoute } from "@/core/route";
 import { readToken } from "@/core/token";
+
+/** O lugar do endereço de agora (um link no formato antigo, #t=...&p=..., também vale). */
+function placeFromLocation(): Place {
+  const { hash, pathname, search } = window.location;
+  if (new URLSearchParams(hash.replace(/^#/, "")).has("t")) return parsePlace(hash);
+  return parseRoute(pathname, search);
+}
 
 export interface UiStore extends Place {
   go: (patch: Partial<Place>) => void;
 }
 
 export const useUi = create<UiStore>()((set) => ({
-  ...(typeof window === "undefined" ? DEFAULT_PLACE : parsePlace(window.location.hash)),
+  ...(typeof window === "undefined" ? DEFAULT_PLACE : placeFromLocation()),
   go: (patch) => set(patch),
 }));
 
-/** Mantém a URL igual ao lugar (sem criar entrada no histórico do navegador). */
-export function startHashSync(): () => void {
+/** Mantém o endereço igual ao lugar (sem criar entrada no histórico do navegador). O primeiro write já troca
+ * um link no formato antigo pelo novo. */
+export function startUrlSync(): () => void {
   const token = readToken();
   if (!token) return () => {};
   const write = (p: Place) => {
-    const hash = formatPlace(p, token);
-    if (window.location.hash !== hash) window.history.replaceState(null, "", hash);
+    const url = formatRoute(p, token);
+    const now = window.location.pathname + window.location.search + window.location.hash;
+    if (now !== url) window.history.replaceState(null, "", url);
   };
   write(useUi.getState());
   return useUi.subscribe(write);

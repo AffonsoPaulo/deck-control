@@ -1,15 +1,19 @@
 """Servidor HTTP local do editor visual.
 
-Segurança: escuta só em 127.0.0.1, exige um token aleatório (gerado a cada
-execução) no cabeçalho X-Token de toda chamada /api, e confere o Host
-(contra DNS rebinding). Sem isso, qualquer site aberto no navegador poderia
-mandar o app gravar uma ação 'command' no config.
+Segurança: escuta só em 127.0.0.1, exige um token aleatório (guardado no perfil, o mesmo entre execuções)
+no cabeçalho X-Token de toda chamada /api, e confere o Host (contra DNS rebinding). Sem isso, qualquer site
+aberto no navegador poderia mandar o app gravar uma ação 'command' no config.
+
+O token tem o formato XXXX-XXXX-XXXX (base32 de Crockford: sem I, L, O, U; 60 bits). O editor novo o leva no
+caminho (/next/XXXX-XXXX-XXXX/teclas/...): por isso toda resposta manda Referrer-Policy: no-referrer, para o
+navegador nunca repassar o endereço a outro site, e o log mascara o token como qualquer segredo.
 """
 
 from __future__ import annotations
 
 import json
 import mimetypes
+import re
 import secrets
 import sys
 import threading
@@ -38,6 +42,8 @@ mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("text/javascript", ".mjs")
 mimetypes.add_type("application/json", ".map")
 NEXT_PREFIX = "/next"  # o editor novo (React), enquanto não substitui o atual
+TOKEN_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"  # base32 de Crockford: sem I, L, O, U (não confundem)
+TOKEN_RE = re.compile(r"[0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){2}")
 log = logs.get("editor")
 _GONE = (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)
 
@@ -111,6 +117,11 @@ class EditorServer:
     def url(self) -> str:
         return f"http://127.0.0.1:{self.port}/#t={self.token}"
 
+    @property
+    def next_url(self) -> str:
+        """O editor novo, com o token no caminho."""
+        return f"http://127.0.0.1:{self.port}{NEXT_PREFIX}/{self.token}/teclas"
+
     def start(self) -> None:
         self._thread.start()
         log.info("Editor at %s", self.url)  # o token sai como **** (logs.configure)
@@ -121,19 +132,25 @@ class EditorServer:
     # -- API ------------------------------------------------------------------------
 
 
+def new_token() -> str:
+    """XXXX-XXXX-XXXX: 12 letras/números do base32 de Crockford (60 bits aleatórios), em grupos de 4."""
+    raw = "".join(secrets.choice(TOKEN_ALPHABET) for _ in range(12))
+    return "-".join(raw[i : i + 4] for i in range(0, 12, 4))
+
+
 def _persistent_token() -> str:
-    """Token guardado no perfil do usuário: continua o mesmo quando o app reinicia,
-    para uma aba do editor já aberta não perder a permissão de salvar."""
+    """Token guardado no perfil do usuário: continua o mesmo quando o app reinicia, para uma aba do editor já
+    aberta não perder a permissão de salvar. Um token no formato antigo (comprido) é trocado uma vez."""
     from app import winutil
 
     f = winutil.data_dir() / "editor-token"
     try:
         t = f.read_text(encoding="ascii").strip()
-        if len(t) >= 24:
+        if TOKEN_RE.fullmatch(t):
             return t
     except OSError:
         pass
-    t = secrets.token_urlsafe(24)
+    t = new_token()
     f.write_text(t, encoding="ascii")
     return t
 
@@ -159,6 +176,8 @@ def _make_handler(server: EditorServer):
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
+            # o editor novo leva o token no caminho: o navegador nunca repassa o endereço a outro site
+            self.send_header("Referrer-Policy", "no-referrer")
             self.end_headers()
             try:
                 self.wfile.write(body)
@@ -214,9 +233,13 @@ def _make_handler(server: EditorServer):
                     return self._json(500, {"error": f"{type(e).__name__}: {e}"})
             if method != "GET":
                 return self._send(405, b"", "text/plain")
-            # arquivos estáticos: o editor atual em /, o novo em /next (o build do editor-next/)
+            # arquivos estáticos: o editor atual em /, o novo em /next (o build do editor-next/). As páginas do
+            # novo (/next, /next/ e /next/XXXX-XXXX-XXXX/qualquer/coisa) são todas o index.html: quem lê o resto
+            # do caminho (seção, página, tecla) é o próprio editor.
             if path == NEXT_PREFIX or path.startswith(NEXT_PREFIX + "/"):
-                root, rel = paths.EDITOR_NEXT, path[len(NEXT_PREFIX) :].lstrip("/") or "index.html"
+                rest = path[len(NEXT_PREFIX) :].lstrip("/")
+                first = rest.split("/", 1)[0]
+                root, rel = paths.EDITOR_NEXT, ("index.html" if not rest or TOKEN_RE.fullmatch(first) else rest)
             else:
                 root, rel = STATIC, "index.html" if path in ("/", "") else path.lstrip("/")
             target = (root / rel).resolve()

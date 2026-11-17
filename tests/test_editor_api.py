@@ -628,3 +628,59 @@ def test_next_without_build_is_404(api, tmp_path, monkeypatch):
     monkeypatch.setattr(paths, "EDITOR_NEXT", tmp_path / "nao-existe")
     status, _ = api.request("GET", "/next/")
     assert status == 404
+
+
+def test_token_is_short_and_old_ones_are_replaced(cfg_path, no_side_effects):
+    """XXXX-XXXX-XXXX (base32 de Crockford); um token no formato antigo, comprido, é trocado uma vez."""
+    from app import winutil
+    from app.editor.server import TOKEN_RE
+
+    f = winutil.data_dir() / "editor-token"
+    f.write_text("x" * 32, encoding="ascii")
+    srv = _server(cfg_path, None)
+    try:
+        assert TOKEN_RE.fullmatch(srv.token)
+        assert not set(srv.token) & set("ILOU")
+        assert f.read_text(encoding="ascii") == srv.token
+        assert srv.next_url.endswith(f"/next/{srv.token}/teclas")
+    finally:
+        srv.stop()
+        srv.httpd.server_close()
+
+
+def test_next_pages_carry_the_token_in_the_path(api, tmp_path, monkeypatch):
+    """/next/XXXX-XXXX-XXXX/qualquer/coisa é a página do editor (ele lê o caminho); arquivo continua arquivo."""
+    from app import paths
+
+    dist = tmp_path / "dist"
+    (dist / "assets").mkdir(parents=True)
+    (dist / "index.html").write_text("<!doctype html><title>novo</title>", encoding="utf-8")
+    (dist / "assets" / "app.js").write_text("export {}", encoding="utf-8")
+    monkeypatch.setattr(paths, "EDITOR_NEXT", dist)
+    tok = api.srv.token
+    for path in (
+        f"/next/{tok}",
+        f"/next/{tok}/teclas/main/4/aparencia",
+        "/next/ABCD-EFGH-JKMN/teclas",
+        f"/next/{tok}/teclas/v1.2",
+    ):
+        status, body = api.request("GET", path)
+        assert status == 200 and b"novo" in body, path
+    # o que não começa com um token é arquivo do build (ou 404), nunca o index por engano
+    for path in ("/next/teclas", "/next/nada.js", "/next/abcd-efgh-jkmn/teclas", f"/next/{tok}x/teclas"):
+        status, _ = api.request("GET", path)
+        assert status == 404, path
+    # nada fora do build, nem escondido atrás de um token
+    status, body = api.request("GET", f"/next/{tok}/../../config.yaml")
+    assert b"novo" in body or status == 404
+
+
+def test_every_response_says_no_referrer(api):
+    """O token vai no caminho do editor novo: o navegador não pode repassar o endereço a outro site."""
+    conn = http.client.HTTPConnection("127.0.0.1", api.srv.port, timeout=10)
+    for path in ("/", "/api/status"):
+        conn.request("GET", path, headers={"Host": f"127.0.0.1:{api.srv.port}", "X-Token": api.srv.token})
+        r = conn.getresponse()
+        r.read()
+        assert r.getheader("Referrer-Policy") == "no-referrer", path
+    conn.close()

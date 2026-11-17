@@ -3,11 +3,12 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { ApiError } from "@/core/api";
 import { normalizeLang, setLang, useT } from "@/core/i18n";
 import { queryClient, useInitialConfig, useSchema } from "@/core/queries";
 import { startAutosave } from "@/core/store/autosave";
 import { useConfig } from "@/core/store/config";
-import { startHashSync } from "@/core/store/ui";
+import { startUrlSync } from "@/core/store/ui";
 import { readToken } from "@/core/token";
 import { Shell } from "@/app/Shell";
 
@@ -40,7 +41,7 @@ function Boot() {
   useEffect(() => {
     if (!ready) return;
     const stopSave = startAutosave();
-    const stopHash = startHashSync();
+    const stopHash = startUrlSync();
     return () => {
       stopSave();
       stopHash();
@@ -48,6 +49,10 @@ function Boot() {
   }, [ready]);
 
   const error = config.error ?? schema.error;
+  // token que o app não reconhece: link antigo (ou de outro computador); recarregar não resolve
+  if (error instanceof ApiError && error.code === "token") {
+    return <Message title={t("This link no longer opens the editor")} text={t("Open the editor from the Deck icon in the tray (or from the link shown in the terminal).")} />;
+  }
   if (error) return <Message title={t("Couldn't open the editor")} text={error.message} />;
   if (!ready) return <main className="h-dvh bg-canvas" aria-busy="true" />;
   return <Shell />;
@@ -57,7 +62,7 @@ export function App() {
   const [token] = useState(readToken);
   const t = useT();
   if (!token) {
-    return <Message title={t("Couldn't open the editor")} text={t("Open it from the app address (with the token at the end).")} />;
+    return <Message title={t("Couldn't open the editor")} text={t("Open the editor from the Deck icon in the tray (or from the link shown in the terminal).")} />;
   }
   return (
     <ErrorBoundary fallbackRender={({ error }) => <Message title={t("Couldn't open the editor")} text={String(error)} />}>
