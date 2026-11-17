@@ -1,9 +1,12 @@
 // Galeria dos componentes (só em desenvolvimento: npm run dev, #...&dev=components). Serve para comparar com o
 // editor atual, peça por peça. Não entra no build que o app serve.
 import { Copy, Ellipsis, Undo2, Grid2x2, House, List, MonitorUp, Moon, Pencil, Save, Sun, SunMoon, Trash2 } from "lucide-react";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { Field, TextInput } from "@/components/Field";
+import { IconPicker, useLucideIndex } from "@/components/IconPicker";
+import { Chip, LibGroup, LibSub, SizeTile } from "@/components/Library";
 import { Segmented } from "@/components/Segmented";
 import { Select } from "@/components/Select";
 import { Stepper } from "@/components/Stepper";
@@ -15,6 +18,8 @@ import { toast } from "@/core/toast";
 import { IconButton } from "@/components/IconButton";
 import { ContextMenuArea, MenuButton, type MenuEntry } from "@/components/Menu";
 import { useT } from "@/core/i18n";
+import { luChar } from "@/core/icons/lucide";
+import { queryClient } from "@/core/queries";
 
 function Controls() {
   const t = useT();
@@ -68,17 +73,25 @@ function Controls() {
 function Overlays() {
   const t = useT();
   const [open, setOpen] = useState(false);
+  const [picker, setPicker] = useState(false);
+  const [icon, setIcon] = useState("mic");
+  const idx = useLucideIndex();
   const undo = { label: t("Undo"), icon: Undo2, run: () => {} };
   return (
     <section className="flex flex-col gap-3" data-gallery="overlays">
       <h2 className="m-0 text-lg font-bold">Folha e avisos</h2>
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => setOpen(true)}>Folha</Button>
+        <Button onClick={() => setPicker(true)}>
+          <span aria-hidden className="font-lucide text-(length:--icon-md) leading-none">{idx ? luChar(idx, icon) : ""}</span>
+          Seletor de ícone ({icon})
+        </Button>
         <Button onClick={() => toast(t("Saved"))}>Aviso</Button>
         <Button onClick={() => toast(t("Key {0} deleted.", [3]), { undo })}>Aviso com desfazer</Button>
         <Button onClick={() => toast(t("Page {0} deleted.", ["main"]), { undo, long: true })}>Aviso longo</Button>
         <Button onClick={() => toast(t("Error saving: ") + "timeout", { bad: true })}>Aviso de erro</Button>
       </div>
+      <IconPicker open={picker} onOpenChange={setPicker} onPick={setIcon} />
       <Sheet open={open} onOpenChange={setOpen} label={t("Choose icon")}>
         <SheetHead>
           <TextInput type="search" aria-label={t("Search")} placeholder={t("Search icons (e.g.: mic, play, folder, light)")} />
@@ -89,7 +102,64 @@ function Overlays() {
   );
 }
 
+// biblioteca de exemplo, montada como a do editor atual (aba Widgets com o Relógio aberto)
+function LibraryDemo() {
+  const t = useT();
+  const idx = useLucideIndex();
+  const [open, setOpen] = useState<Record<string, boolean>>({ time: true });
+  const toggle = (id: string) => setOpen((o) => ({ ...o, [id]: !o[id] }));
+  const ch = (name: string) => (idx ? luChar(idx, name) : "");
+  const row = (icon: string, label: string) => (
+    <div className="flex w-full items-center gap-3 rounded-md px-2 py-1.75 hover:bg-sunken">
+      <Chip glyph={ch(icon)} />
+      <span className="font-medium">{label}</span>
+    </div>
+  );
+  const sizes: [string, number, number][] = [["1×1", 1, 1], ["1×2", 1, 2], ["1×3", 1, 3], ["2×2", 2, 2]];
+  return (
+    <section className="flex flex-col gap-3" data-gallery="library">
+      <h2 className="m-0 text-lg font-bold">Biblioteca</h2>
+      <div data-spec="lib" className="w-66.75 px-2.5 pt-1 pb-3">
+        <LibGroup label={t("Time")} color="var(--cat-violet)" count={3} open={!!open.time} onToggle={() => toggle("time")}>
+          {row("clock", t("Clock"))}
+          <div className="flex flex-wrap gap-1.5 pt-1 pr-2 pb-2.5 pl-1">
+            {sizes.map(([label, rows, cols]) => (
+              <SizeTile key={label} label={label} rows={rows} unit={18} compact>
+                <span className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${cols}, 18px)`, gridAutoRows: 18 }}>
+                  {Array.from({ length: rows * cols }, (_, i) => <i key={i} className="rounded-xs bg-raised" />)}
+                </span>
+              </SizeTile>
+            ))}
+          </div>
+          {row("calendar", t("Date"))}
+          {row("hourglass", t("Countdown"))}
+        </LibGroup>
+        <LibGroup label={t("System")} color="var(--cat-green)" count={1} open={!!open.system} onToggle={() => toggle("system")}>
+          <LibSub origin="app" label={t("App")} />
+          {row("cpu", "CPU")}
+          <LibSub origin="plugin" label="Clima" />
+          {row("cloud-sun", t("Weather"))}
+        </LibGroup>
+        <LibGroup label={t("Weather")} color="var(--cat-sky)" count={1} open={!!open.weather} onToggle={() => toggle("weather")}>
+          {row("cloud-sun", t("Weather"))}
+        </LibGroup>
+        <LibGroup label={t("Other")} color="var(--cat-gray)" count={1} open={!!open.other} onToggle={() => toggle("other")}>
+          {row("type", t("Text"))}
+        </LibGroup>
+      </div>
+    </section>
+  );
+}
+
 export function Gallery() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <GalleryBody />
+    </QueryClientProvider>
+  );
+}
+
+function GalleryBody() {
   const t = useT();
   const pageMenu: MenuEntry[] = [
     { type: "head", label: t("Page {0}", ["main"]) },
@@ -134,6 +204,7 @@ export function Gallery() {
       </section>
       <Controls />
       <Overlays />
+      <LibraryDemo />
       <section className="flex flex-col gap-3" data-gallery="menus">
         <h2 className="m-0 text-lg font-bold">Menus</h2>
         <div className="flex items-center gap-6">

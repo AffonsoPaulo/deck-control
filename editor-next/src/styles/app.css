@@ -15,6 +15,8 @@
 @font-face { font-family: "Figtree"; font-weight: 500; font-display: swap; src: url("deck-static/fonts/figtree-latin-500-normal.woff2") format("woff2"); }
 @font-face { font-family: "Figtree"; font-weight: 600; font-display: swap; src: url("deck-static/fonts/figtree-latin-600-normal.woff2") format("woff2"); }
 @font-face { font-family: "Figtree"; font-weight: 700; font-display: swap; src: url("deck-static/fonts/figtree-latin-700-normal.woff2") format("woff2"); }
+/* ícones das teclas: Lucide em fonte (a mesma lucide.ttf que o app usa para desenhar as teclas) */
+@font-face { font-family: "Lucide"; font-display: block; src: url("deck-static/fonts/lucide.ttf") format("truetype"); }
 
 @theme inline reference {
   --color-*: initial;
@@ -62,6 +64,9 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-glyph: var(--font-glyph);
+  --font-lucide: "Lucide";
+  /* nome embaixo do ícone no seletor (o line-height: 1.2 do .glyph-item do editor atual) */
+  --leading-tight: 1.2;
 
   --text-2xs: var(--text-2xs);
   --text-2xs--line-height: var(--text-2xs--line-height);
@@ -143,6 +148,13 @@
   --color-cat-pink: var(--cat-pink);
   --color-cat-sky: var(--cat-sky);
   --color-cat-gray: var(--cat-gray);
+
+  /* a cor da categoria do lugar (style="--cat: var(--cat-blue)") e as fórmulas do tokens.css: chip = base 22%
+     sobre --cat-mix-bg; ícone/texto = base 55% com --cat-mix-fg; bloco = base 17% */
+  --color-cat: var(--cat);
+  --color-cat-chip: color-mix(in srgb, var(--cat) 22%, var(--cat-mix-bg));
+  --color-cat-ink: color-mix(in srgb, var(--cat) 55%, var(--cat-mix-fg));
+  --color-cat-block: color-mix(in srgb, var(--cat) 17%, var(--cat-mix-bg));
 
   /* paleta das teclas (vai para o Deck; não muda com o tema) */
   --color-key-graphite: var(--key-graphite);
