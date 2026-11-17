@@ -15,7 +15,7 @@ export function Problems() {
   const v = { errors: live.errors.length ? live.errors : saveErrors, conflicts: live.conflicts };
   if (!v.errors.length && !v.conflicts.length) return null;
   return (
-    <div role="status" className="mt-4 w-full max-w-150 rounded-lg bg-danger-bg px-4 py-3 text-sm text-fg-label">
+    <div id="problems" role="status" className="mt-4 w-full max-w-150 rounded-lg bg-danger-bg px-4 py-3 text-sm text-fg-label">
       {v.errors.length > 0 && (
         <>
           <p className="m-0 mb-1 font-semibold">{t("Fix before saving:")}</p>

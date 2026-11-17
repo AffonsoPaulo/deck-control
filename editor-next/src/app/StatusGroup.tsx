@@ -19,19 +19,24 @@ interface ItemProps {
 }
 
 function Item({ icon, name, state, bad = false, title, first = false, onClick }: ItemProps) {
-  return (
-    <span
-      title={title}
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-5.5 items-center gap-2 px-3",
-        !first && "border-l border-border-strong",
-        onClick && "cursor-pointer",
-      )}
-    >
+  const cls = cn("inline-flex h-5.5 items-center gap-2 px-3", !first && "border-l border-border-strong");
+  const body = (
+    <>
       <Icon icon={icon} className={bad ? "text-danger-fg" : "text-fg-muted"} />
       {name && <b className="font-semibold text-fg">{name}</b>}
       <span className={bad ? "text-danger-fg" : "text-fg-subtle"}>{state}</span>
+    </>
+  );
+  // clicável (o "Não salvo"): botão de verdade, que o teclado alcança
+  if (onClick)
+    return (
+      <button type="button" title={title} onClick={onClick} className={cn(cls, "cursor-pointer focus-visible:outline-2 focus-visible:outline-accent")}>
+        {body}
+      </button>
+    );
+  return (
+    <span title={title} className={cls}>
+      {body}
     </span>
   );
 }
