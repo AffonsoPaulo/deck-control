@@ -4,6 +4,7 @@ A gravação não reescreve o arquivo do zero: carrega o YAML original (ruamel,
 modo round-trip), aplica só as diferenças e salva. Assim comentários, aspas,
 ordem e indentação do que não mudou continuam iguais.
 """
+
 from __future__ import annotations
 
 import io
@@ -53,8 +54,10 @@ def read_plain(path: Path) -> dict:
 
 def _is_simple(d: dict) -> bool:
     """Objeto pequeno só com valores simples (ou listas simples) -> estilo { a: b } numa linha."""
+
     def scalar_list(v):
         return isinstance(v, list) and all(not isinstance(x, (dict, list)) for x in v)
+
     return len(d) <= 8 and all(not isinstance(v, (dict, list)) or scalar_list(v) for v in d.values())
 
 
@@ -104,7 +107,7 @@ def _merge_map(dst: CommentedMap, src: dict) -> None:
             else:
                 # no lugar em que o editor mandou (desfazer a exclusão de uma página a devolve onde estava)
                 order = list(src.keys())
-                prev = next((p for p in reversed(order[:order.index(k)]) if p in dst), None)
+                prev = next((p for p in reversed(order[: order.index(k)]) if p in dst), None)
                 _insert_key(dst, prev, k, node)
 
 
@@ -123,12 +126,13 @@ def _insert_key(dst: CommentedMap, prev, k, node) -> None:
     if entry and len(entry) > 2 and entry[2] is not None and isinstance(entry[2].value, str):
         val = entry[2].value
         nl = val.find("\n")
-        if nl != -1 and val[nl + 1:].strip():
-            entry[2].value, tail = val[:nl + 1], val[nl + 1:]
+        if nl != -1 and val[nl + 1 :].strip():
+            entry[2].value, tail = val[: nl + 1], val[nl + 1 :]
     dst.insert(list(dst.keys()).index(prev) + 1, k, node)
     if tail is not None:
         from ruamel.yaml.error import CommentMark
         from ruamel.yaml.tokens import CommentToken
+
         dst.ca.items[k] = [None, None, CommentToken("\n" + tail, CommentMark(0), None), None]
 
 
@@ -144,7 +148,7 @@ def _merge_seq(dst: CommentedSeq, src: list) -> None:
                 dst[i] = _to_node(v)
         else:
             dst.append(_to_node(v))
-    del dst[len(src):]
+    del dst[len(src) :]
 
 
 def _int_keys_in_pages(cfg: dict) -> dict:

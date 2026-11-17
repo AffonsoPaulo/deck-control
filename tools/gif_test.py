@@ -5,6 +5,7 @@ Tecla 15: GIF animado de 3 quadros (testa se ele anima sozinho).
 
 Uso: python tools/gif_test.py   (feche o app do D6 antes)
 """
+
 from __future__ import annotations
 
 import io
@@ -31,7 +32,9 @@ def gif_bytes(frames: list[Image.Image], duration: int = 400) -> bytes:
     if len(frames) == 1:
         frames[0].save(buf, format="GIF")
     else:
-        frames[0].save(buf, format="GIF", save_all=True, append_images=frames[1:], duration=duration, loop=0, disposal=1)
+        frames[0].save(
+            buf, format="GIF", save_all=True, append_images=frames[1:], duration=duration, loop=0, disposal=1
+        )
     return buf.getvalue()
 
 

@@ -26,6 +26,7 @@ Campos do ícone (todos opcionais):
     border       cor de uma borda de 4 px
     style        below | top | big
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -38,38 +39,112 @@ from d6 import render
 log = logs.get("icons")
 SIZE = render.TILE
 STYLES = ("below", "top", "big")
-TEXT_SIZE = 16          # texto junto com ícone
-TEXT_ONLY_RATIO = 1.4   # texto sozinho fica 40% maior
+TEXT_SIZE = 16  # texto junto com ícone
+TEXT_ONLY_RATIO = 1.4  # texto sozinho fica 40% maior
 MAX_W = SIZE - 12
-MAX_FRAMES = 120        # GIFs maiores perdem quadros (a duração total se mantém)
-MIN_FRAME_MS = 50       # mais rápido que isso o D6 não acompanha
+MAX_FRAMES = 120  # GIFs maiores perdem quadros (a duração total se mantém)
+MIN_FRAME_MS = 50  # mais rápido que isso o D6 não acompanha
 
 # posições (em px, tecla de 112) de cada estilo: centro do ícone, tamanho do glifo,
 # lado máximo da imagem e centro da faixa de texto (1 linha / 2 linhas)
 LAYOUT = {
     "below": {"art_y": 50, "glyph": 48, "image": 56, "text_y": (94, 91)},
-    "top":   {"art_y": 66, "glyph": 46, "image": 54, "text_y": (18, 21)},
-    "big":   {"art_y": 56, "glyph": 66, "image": 88, "text_y": None},
+    "top": {"art_y": 66, "glyph": 46, "image": 54, "text_y": (18, 21)},
+    "big": {"art_y": 56, "glyph": 66, "image": 88, "text_y": None},
 }
 
 
 # Ícones Segoe (formato antigo, campo 'glyph') -> o equivalente no Lucide (campo 'lucide')
 SEGOE_TO_LUCIDE = {
-    "E720": "mic", "EC54": "mic-off", "E7F6": "headphones", "E767": "volume-1", "E74F": "volume-x", "E993": "volume-1",
-    "E995": "volume-2", "E768": "play", "E769": "pause", "E71A": "square", "E892": "skip-back", "E893": "skip-forward",
-    "E8B1": "shuffle", "E8EE": "repeat", "E8D6": "music", "E7C8": "circle-dot", "E93E": "radio", "E714": "video",
-    "E722": "camera", "E7F4": "monitor", "E7FC": "gamepad-2", "E8BD": "message-square", "E8F2": "messages-square",
-    "E715": "mail", "E717": "phone", "E774": "globe", "E80F": "house", "E72B": "arrow-left", "E72A": "arrow-right",
-    "E8B7": "folder", "E8A5": "file-text", "E70B": "sticky-note", "E765": "keyboard", "E713": "settings", "E706": "sun",
-    "E708": "moon", "E7E8": "power", "E72E": "lock", "E785": "lock-open", "E77B": "user", "E716": "users", "E734": "star",
-    "E735": "star", "EB51": "heart", "EB52": "heart", "E945": "zap", "E968": "network", "E896": "download", "E898": "upload",
-    "E74E": "save", "E74D": "trash-2", "E710": "plus", "E738": "minus", "E711": "x", "E73E": "check", "E7BA": "triangle-alert",
-    "E946": "info", "E897": "circle-help", "E8C8": "copy", "E77F": "clipboard-paste", "E8C6": "scissors", "E7A7": "undo-2",
-    "E7A6": "redo-2", "E72C": "refresh-cw", "E787": "calendar", "E823": "clock", "E916": "timer", "E7B3": "eye",
-    "ED1A": "eye-off", "E8A7": "app-window", "E790": "palette", "E771": "paintbrush", "EA8F": "bell", "E7F8": "laptop",
-    "E701": "wifi", "E702": "bluetooth", "E719": "store", "E7BF": "shopping-cart", "E8EC": "tag", "E718": "pin",
-    "E71C": "filter", "E721": "search", "E8FD": "list", "E700": "menu", "E81C": "history", "E8F1": "library",
-    "E756": "terminal", "E71B": "link", "E70F": "text-cursor-input",
+    "E720": "mic",
+    "EC54": "mic-off",
+    "E7F6": "headphones",
+    "E767": "volume-1",
+    "E74F": "volume-x",
+    "E993": "volume-1",
+    "E995": "volume-2",
+    "E768": "play",
+    "E769": "pause",
+    "E71A": "square",
+    "E892": "skip-back",
+    "E893": "skip-forward",
+    "E8B1": "shuffle",
+    "E8EE": "repeat",
+    "E8D6": "music",
+    "E7C8": "circle-dot",
+    "E93E": "radio",
+    "E714": "video",
+    "E722": "camera",
+    "E7F4": "monitor",
+    "E7FC": "gamepad-2",
+    "E8BD": "message-square",
+    "E8F2": "messages-square",
+    "E715": "mail",
+    "E717": "phone",
+    "E774": "globe",
+    "E80F": "house",
+    "E72B": "arrow-left",
+    "E72A": "arrow-right",
+    "E8B7": "folder",
+    "E8A5": "file-text",
+    "E70B": "sticky-note",
+    "E765": "keyboard",
+    "E713": "settings",
+    "E706": "sun",
+    "E708": "moon",
+    "E7E8": "power",
+    "E72E": "lock",
+    "E785": "lock-open",
+    "E77B": "user",
+    "E716": "users",
+    "E734": "star",
+    "E735": "star",
+    "EB51": "heart",
+    "EB52": "heart",
+    "E945": "zap",
+    "E968": "network",
+    "E896": "download",
+    "E898": "upload",
+    "E74E": "save",
+    "E74D": "trash-2",
+    "E710": "plus",
+    "E738": "minus",
+    "E711": "x",
+    "E73E": "check",
+    "E7BA": "triangle-alert",
+    "E946": "info",
+    "E897": "circle-help",
+    "E8C8": "copy",
+    "E77F": "clipboard-paste",
+    "E8C6": "scissors",
+    "E7A7": "undo-2",
+    "E7A6": "redo-2",
+    "E72C": "refresh-cw",
+    "E787": "calendar",
+    "E823": "clock",
+    "E916": "timer",
+    "E7B3": "eye",
+    "ED1A": "eye-off",
+    "E8A7": "app-window",
+    "E790": "palette",
+    "E771": "paintbrush",
+    "EA8F": "bell",
+    "E7F8": "laptop",
+    "E701": "wifi",
+    "E702": "bluetooth",
+    "E719": "store",
+    "E7BF": "shopping-cart",
+    "E8EC": "tag",
+    "E718": "pin",
+    "E71C": "filter",
+    "E721": "search",
+    "E8FD": "list",
+    "E700": "menu",
+    "E81C": "history",
+    "E8F1": "library",
+    "E756": "terminal",
+    "E71B": "link",
+    "E70F": "text-cursor-input",
 }
 
 _GLYPH_FONTS = ("SegoeIcons.ttf", "segmdl2.ttf")
@@ -105,6 +180,7 @@ def lucide_code(name) -> int | None:
     global _lucide_codes
     if _lucide_codes is None:
         import json
+
         try:
             data = json.loads((_STATIC / "lucide-index.json").read_text(encoding="utf-8"))
             _lucide_codes = {k: v[0] for k, v in data.items()}
@@ -121,8 +197,15 @@ def _draw_lucide(img, name: str, size: int, cy: float, fg) -> None:
     """
     k = 2
     layer = Image.new("L", (SIZE * k, SIZE * k), 0)
-    ImageDraw.Draw(layer).text((SIZE * k / 2, cy * k), chr(lucide_code(name)), font=_lucide_font(size * k),
-                               fill=255, anchor="mm", stroke_width=1, stroke_fill=255)
+    ImageDraw.Draw(layer).text(
+        (SIZE * k / 2, cy * k),
+        chr(lucide_code(name)),
+        font=_lucide_font(size * k),
+        fill=255,
+        anchor="mm",
+        stroke_width=1,
+        stroke_fill=255,
+    )
     mask = layer.resize((SIZE, SIZE), Image.LANCZOS)
     img.paste(Image.new("RGB", (SIZE, SIZE), fg), (0, 0), mask)
 
@@ -150,12 +233,13 @@ def _luminance(rgb) -> float:
     def ch(v):
         v /= 255
         return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+
     r, g, b = rgb
     return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
 
 
 WHITE = (255, 255, 255)
-DARK_FG = (0x1A, 0x12, 0x05)   # --key-fg-dark no tokens.css do editor
+DARK_FG = (0x1A, 0x12, 0x05)  # --key-fg-dark no tokens.css do editor
 
 
 def _auto_fg(spec, bg):
@@ -176,6 +260,7 @@ def _glyph_char(glyph) -> str:
 
 
 # -- texto --------------------------------------------------------------------------
+
 
 def _wrap(draw, text: str, font) -> list[str]:
     """Quebra cada linha longa em duas, no espaço que deixa as metades mais parecidas."""
@@ -215,14 +300,16 @@ def _draw_lines(draw, lines, font, center_y: float, fill) -> None:
 
 # -- ícone ----------------------------------------------------------------------------
 
+
 def render_icon(spec: dict | None, base_dir: Path | None = None, defaults: dict | None = None) -> Image.Image:
     """defaults: a seção 'icons:' do config (style, text_size) para todas as teclas.
     Com GIF animado, devolve só o primeiro quadro (ver render_frames)."""
     return _render(spec, base_dir, defaults, None)
 
 
-def render_frames(spec: dict | None, base_dir: Path | None = None,
-                  defaults: dict | None = None) -> list[tuple[Image.Image, int]]:
+def render_frames(
+    spec: dict | None, base_dir: Path | None = None, defaults: dict | None = None
+) -> list[tuple[Image.Image, int]]:
     """Quadros do ícone com a duração de cada um (ms). Um só quadro se não for animado."""
     spec = spec or {}
     frames = _gif_frames(_image_path(spec, base_dir)) if spec.get("image") else None
@@ -300,7 +387,7 @@ def _render_info(img, draw, spec, base_dir, art, fg) -> None:
     sub = str(spec.get("sub")) if spec.get("sub") not in (None, "") else ""
     bar = spec.get("bar") if isinstance(spec.get("bar"), dict) else None
     has_art = bool(spec.get("image") or lucide_code(spec.get("lucide")))
-    sub_fg = _color(spec["sub_fg"], None) if spec.get("sub_fg") else tuple(min(255, int(c * .78 + 30)) for c in fg)
+    sub_fg = _color(spec["sub_fg"], None) if spec.get("sub_fg") else tuple(min(255, int(c * 0.78 + 30)) for c in fg)
     bar_h = 12 if bar else 0
     # alturas de cada parte, distribuídas no espaço útil
     parts = []
@@ -328,7 +415,7 @@ def _render_info(img, draw, spec, base_dir, art, fg) -> None:
             font = _fit_one_line(draw, sub, h, 9)
             draw.text((SIZE / 2, cy), sub, font=font, fill=sub_fg, anchor="mm")
         y += h + gap
-    if spec.get("edge"):                    # ex.: ":" na borda de dentro, entre duas teclas de um bloco
+    if spec.get("edge"):  # ex.: ":" na borda de dentro, entre duas teclas de um bloco
         side = spec.get("edge_side", "right")
         ex = SIZE - 7 if side == "right" else 7
         draw.text((ex, SIZE / 2 - 2), str(spec["edge"]), font=render._font(30), fill=sub_fg, anchor="mm")
@@ -340,16 +427,22 @@ def _render_info(img, draw, spec, base_dir, art, fg) -> None:
         x0, x1, yb = 14, SIZE - 14, SIZE - 14
         draw.rounded_rectangle([x0, yb - 3, x1, yb + 3], radius=3, fill=_color(bar.get("track"), (52, 60, 73)))
         if pct > 0:
-            draw.rounded_rectangle([x0, yb - 3, max(x0 + 6, x0 + (x1 - x0) * pct / 100), yb + 3], radius=3,
-                                   fill=_color(bar.get("color"), (245, 165, 36)))
+            draw.rounded_rectangle(
+                [x0, yb - 3, max(x0 + 6, x0 + (x1 - x0) * pct / 100), yb + 3],
+                radius=3,
+                fill=_color(bar.get("color"), (245, 165, 36)),
+            )
 
 
 def block_slices(path: Path, cols: int, rows: int, gap: int) -> list[Image.Image]:
     """Uma imagem cobrindo um bloco de teclas, pulando o vão entre as telas, cortada em cada tecla."""
     w, h = cols * SIZE + (cols - 1) * gap, rows * SIZE + (rows - 1) * gap
     big = ImageOps.fit(Image.open(path).convert("RGB"), (w, h), Image.Resampling.LANCZOS)
-    return [big.crop((c * (SIZE + gap), r * (SIZE + gap), c * (SIZE + gap) + SIZE, r * (SIZE + gap) + SIZE))
-            for r in range(rows) for c in range(cols)]
+    return [
+        big.crop((c * (SIZE + gap), r * (SIZE + gap), c * (SIZE + gap) + SIZE, r * (SIZE + gap) + SIZE))
+        for r in range(rows)
+        for c in range(cols)
+    ]
 
 
 def _background(bg, spec) -> Image.Image:
@@ -363,12 +456,12 @@ def _background(bg, spec) -> Image.Image:
     direction = spec.get("bg_dir") or "down"
     # máscara 0..255: 0 = cor inicial, 255 = cor final
     if direction == "radial":
-        mask = Image.radial_gradient("L").resize((SIZE, SIZE))        # escuro no centro
-        mask = mask.point(lambda v: min(255, int(v * 1.42)))           # chega na cor final nos cantos
+        mask = Image.radial_gradient("L").resize((SIZE, SIZE))  # escuro no centro
+        mask = mask.point(lambda v: min(255, int(v * 1.42)))  # chega na cor final nos cantos
     else:
-        mask = Image.linear_gradient("L").resize((SIZE, SIZE))         # de cima para baixo
+        mask = Image.linear_gradient("L").resize((SIZE, SIZE))  # de cima para baixo
         if direction == "right":
-            mask = mask.rotate(90)                                    # 0 fica à esquerda
+            mask = mask.rotate(90)  # 0 fica à esquerda
         elif direction == "diagonal":
             big = Image.linear_gradient("L").resize((SIZE * 2, SIZE * 2)).rotate(45, resample=Image.Resampling.BILINEAR)
             off = SIZE // 2
@@ -381,7 +474,7 @@ def _fill_image(img, draw, spec, base_dir, art) -> None:
     try:
         if art is None:
             art = Image.open(path).convert("RGBA")
-        art = ImageOps.fit(art, (SIZE, SIZE), Image.Resampling.LANCZOS)   # cobre a tecla, corta as sobras
+        art = ImageOps.fit(art, (SIZE, SIZE), Image.Resampling.LANCZOS)  # cobre a tecla, corta as sobras
         img.paste(art, (0, 0), art)
     except (OSError, ValueError) as e:
         draw.text((SIZE / 2, SIZE / 2), "?", font=render._font(40), fill=(255, 80, 80), anchor="mm")
@@ -409,16 +502,16 @@ def error_mark(img: Image.Image) -> Image.Image:
     if base.size != (SIZE, SIZE):
         base = base.resize((SIZE, SIZE), Image.Resampling.LANCZOS)
     out = Image.alpha_composite(base, Image.new("RGBA", base.size, (15, 18, 23, round(0.62 * 255))))
-    ss = 4                                             # desenha 4x maior e reduz (bordas suaves)
+    ss = 4  # desenha 4x maior e reduz (bordas suaves)
     n = SIZE * ss
     layer = Image.new("RGBA", (n, n), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    c, r = n / 2, n * 0.24                             # círculo com 48% da tecla
+    c, r = n / 2, n * 0.24  # círculo com 48% da tecla
     d.ellipse([c - r, c - r, c + r, c + r], fill=(0xB4, 0x23, 0x2A, 255))
     a, w = r * 0.42, max(ss, round(n * 0.05))
     for p, q in (((c - a, c - a), (c + a, c + a)), ((c - a, c + a), (c + a, c - a))):
         d.line([p, q], fill=(255, 255, 255, 255), width=w)
-        for x, y in (p, q):                            # pontas arredondadas
+        for x, y in (p, q):  # pontas arredondadas
             d.ellipse([x - w / 2, y - w / 2, x + w / 2, y + w / 2], fill=(255, 255, 255, 255))
     layer = layer.resize((SIZE, SIZE), Image.Resampling.LANCZOS)
     return Image.alpha_composite(out, layer).convert("RGB")
@@ -482,7 +575,7 @@ def _limit_frames(frames):
     out: list[list] = []
     for img, ms in frames:
         if out and out[-1][1] < MIN_FRAME_MS:
-            out[-1][1] += ms          # o anterior fica mais tempo; este é pulado
+            out[-1][1] += ms  # o anterior fica mais tempo; este é pulado
         else:
             out.append([img, ms])
     if len(out) > MAX_FRAMES:

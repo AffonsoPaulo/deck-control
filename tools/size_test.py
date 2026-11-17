@@ -6,9 +6,9 @@ JPEG, que não mudam a imagem). As recusadas continuam com "-".
 
 Uso: python tools/size_test.py   (feche o app do D6 antes)
 """
+
 from __future__ import annotations
 
-import io
 import os
 import struct
 import sys
@@ -26,7 +26,7 @@ def padded(jpeg: bytes, target: int) -> bytes:
     extra = target - len(jpeg)
     segs = b""
     while extra > 4:
-        n = min(extra - 4, 65533)          # dados do segmento
+        n = min(extra - 4, 65533)  # dados do segmento
         segs += b"\xff\xfe" + struct.pack(">H", n + 2) + b"\x00" * n
         extra -= n + 4
     return jpeg[:2] + segs + jpeg[2:]

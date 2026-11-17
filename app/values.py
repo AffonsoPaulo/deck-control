@@ -8,6 +8,7 @@ Cada valor tem um id ("clock.hour", "obs.streaming", "weather.temp"…). De onde
 Textos usam {id} e, se quiser, um formato: {clock.minute|nz} (sem zero na frente).
 Condições: {"value": "obs.streaming", "op": "eq", "to": true}.
 """
+
 from __future__ import annotations
 
 import re
@@ -151,7 +152,7 @@ class Values:
         self._lock = threading.Lock()
         self._plugin: dict[str, object] = {}
         self._timers: dict[str, dict] = {}
-        self._vol = (None, 0.0)        # (valor, hora da leitura): o volume é lido no máximo a cada 1 s
+        self._vol = (None, 0.0)  # (valor, hora da leitura): o volume é lido no máximo a cada 1 s
 
     # -- plugins
     def set(self, name: str, value) -> None:
@@ -174,9 +175,9 @@ class Values:
             if t is None or t["left"] <= 0 and t["since"] is None:
                 self._timers[tid] = {"total": seconds, "left": seconds, "since": now}
             elif t["since"] is None:
-                t["since"] = now                                         # continua
+                t["since"] = now  # continua
             else:
-                t["left"] = max(0.0, t["left"] - (now - t["since"]))     # pausa
+                t["left"] = max(0.0, t["left"] - (now - t["since"]))  # pausa
                 t["since"] = None
 
     def timer_reset(self, tid: str, seconds: float | None = None) -> None:
@@ -222,7 +223,7 @@ class Values:
             if callable(v):
                 try:
                     return v()
-                except Exception:      # valor calculado na hora (ex.: tempo de live); lido a cada desenho, sem log
+                except Exception:  # valor calculado na hora (ex.: tempo de live); lido a cada desenho, sem log
                     return None
             return v
         if e is not None and name in getattr(e, "_states", {}):
@@ -232,12 +233,17 @@ class Values:
     def _clock(self, what: str):
         t = time.localtime()
         return {
-            "hour": f"{t.tm_hour:02d}", "minute": f"{t.tm_min:02d}", "second": f"{t.tm_sec:02d}",
+            "hour": f"{t.tm_hour:02d}",
+            "minute": f"{t.tm_min:02d}",
+            "second": f"{t.tm_sec:02d}",
             "time": f"{t.tm_hour:02d}:{t.tm_min:02d}",
-            "hour12": str(t.tm_hour % 12 or 12), "time12": f"{t.tm_hour % 12 or 12}:{t.tm_min:02d}",
+            "hour12": str(t.tm_hour % 12 or 12),
+            "time12": f"{t.tm_hour % 12 or 12}:{t.tm_min:02d}",
             "ampm": "AM" if t.tm_hour < 12 else "PM",
-            "weekday": tr(WEEKDAYS[t.tm_wday]), "weekday_short": tr(WEEKDAYS_SHORT[t.tm_wday]),
-            "day": str(t.tm_mday), "month": tr(MONTHS_SHORT[t.tm_mon - 1]),
+            "weekday": tr(WEEKDAYS[t.tm_wday]),
+            "weekday_short": tr(WEEKDAYS_SHORT[t.tm_wday]),
+            "day": str(t.tm_mday),
+            "month": tr(MONTHS_SHORT[t.tm_mon - 1]),
             "date": tr("{m}/{d}/{y}", d=f"{t.tm_mday:02d}", m=f"{t.tm_mon:02d}", y=t.tm_year),
         }.get(what)
 
@@ -246,8 +252,9 @@ class Values:
         if time.monotonic() - at > 1.0:
             try:
                 from app import winutil
+
                 val = winutil.master_volume()
-            except Exception:          # lido toda hora para as teclas; sem áudio = sem valor, sem log
+            except Exception:  # lido toda hora para as teclas; sem áudio = sem valor, sem log
                 val = None
             self._vol = (val, time.monotonic())
         if val is None:
@@ -284,7 +291,9 @@ def resolve_icon(icon: dict, get) -> dict:
             color = band_color(n, v.get("bands"), v.get("color")) if v.get("bands") else v.get("color")
             out[k] = {"pct": pct, "color": color or "#F5A524"}
         elif k == "bg" and isinstance(v, dict):
-            out[k] = band_color(_ref(v.get("value"), get), v.get("bands"), v.get("default")) or v.get("default") or "#1d2330"
+            out[k] = (
+                band_color(_ref(v.get("value"), get), v.get("bands"), v.get("default")) or v.get("default") or "#1d2330"
+            )
         elif isinstance(v, str) and "{" in v:
             r = single(v, get)
             out[k] = render(v, get) if isinstance(r, str) and "{" in r else r
@@ -293,10 +302,12 @@ def resolve_icon(icon: dict, get) -> dict:
     return out
 
 
-VALUES = Values()          # um só para o app inteiro (o engine se registra nele)
+VALUES = Values()  # um só para o app inteiro (o engine se registra nele)
 
 
 def describe() -> list[dict]:
     """Os valores do app para o editor (os de plugins vêm do MANAGER)."""
-    return [{"id": i, "label": label, "group": group, "kind": kind, "sample": sample}
-            for i, label, group, kind, sample in BUILTIN]
+    return [
+        {"id": i, "label": label, "group": group, "kind": kind, "sample": sample}
+        for i, label, group, kind, sample in BUILTIN
+    ]

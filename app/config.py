@@ -1,4 +1,5 @@
 """Leitura e validação do config.yaml."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -30,15 +31,15 @@ class KeySpec:
     hold_ms: int
     release: object
     light: dict | None = None
-    double: object = None          # toque duplo
-    repeat: str | None = None      # "press" | "hold": repete enquanto a tecla estiver apertada
-    repeat_ms: int = 80            # intervalo da repetição
-    repeat_delay: int = 400        # repeat: press — espera antes de começar a repetir
-    rules: list = field(default_factory=list)   # [{if: condição, icon: {...}}]: a primeira que valer muda a aparência
-    span: tuple = (1, 1)           # bloco: (colunas, linhas) a partir desta tecla (canto de cima à esquerda)
-    cells: list = field(default_factory=list)   # bloco "distribuir": um ícone por tecla, em ordem de leitura
-    mode: str = "split"            # bloco: "split" (cada tecla uma parte) | "image" (uma imagem atravessando as telas)
-    dynamic: bool = False          # mostra valores ou tem regras: o engine redesenha sozinho
+    double: object = None  # toque duplo
+    repeat: str | None = None  # "press" | "hold": repete enquanto a tecla estiver apertada
+    repeat_ms: int = 80  # intervalo da repetição
+    repeat_delay: int = 400  # repeat: press — espera antes de começar a repetir
+    rules: list = field(default_factory=list)  # [{if: condição, icon: {...}}]: a primeira que valer muda a aparência
+    span: tuple = (1, 1)  # bloco: (colunas, linhas) a partir desta tecla (canto de cima à esquerda)
+    cells: list = field(default_factory=list)  # bloco "distribuir": um ícone por tecla, em ordem de leitura
+    mode: str = "split"  # bloco: "split" (cada tecla uma parte) | "image" (uma imagem atravessando as telas)
+    dynamic: bool = False  # mostra valores ou tem regras: o engine redesenha sozinho
 
 
 @dataclass
@@ -50,8 +51,8 @@ class Config:
     brightness: int
     draw_options: dict = field(default_factory=dict)
     lighting: dict | None = None
-    double_ms: int = 250           # janela do toque duplo
-    cover: dict = field(default_factory=dict)   # {página: {tecla coberta: (tecla do bloco, índice da célula)}}
+    double_ms: int = 250  # janela do toque duplo
+    cover: dict = field(default_factory=dict)  # {página: {tecla coberta: (tecla do bloco, índice da célula)}}
     automations: list = field(default_factory=list)
     temp_pages: list = field(default_factory=list)
     _mtime: float = 0.0
@@ -186,7 +187,9 @@ def _check_logging(lg) -> list[str]:
         else:
             for a in areas:
                 if a not in logs.AREAS:
-                    errors.append(tr("logging.areas: unknown area '{area}' (use {areas})", area=a, areas=", ".join(logs.AREAS)))
+                    errors.append(
+                        tr("logging.areas: unknown area '{area}' (use {areas})", area=a, areas=", ".join(logs.AREAS))
+                    )
     return errors
 
 
@@ -197,7 +200,7 @@ def load_config(path: Path) -> Config:
     except yaml.YAMLError as e:
         raise ConfigError(tr("{file}: invalid YAML: {error}", file=path.name, error=e)) from None
     if isinstance(raw, dict):
-        i18n.set_language(raw.get("language"))     # antes de validar: as mensagens já saem no idioma certo
+        i18n.set_language(raw.get("language"))  # antes de validar: as mensagens já saem no idioma certo
     cfg = build_config(raw, path)
     cfg.mark_seen()
     return cfg
@@ -221,7 +224,7 @@ def build_config(raw: dict, path: Path) -> Config:
         problem = widgets.check(str(name), wd)
         if problem:
             errors.append(problem)
-    wdefs = None                                   # os modelos só são lidos se alguma tecla usar widget
+    wdefs = None  # os modelos só são lidos se alguma tecla usar widget
     pages: dict[str, dict[int, KeySpec]] = {}
     for page_name, keys in raw_pages.items():
         page_name = str(page_name)
@@ -241,9 +244,28 @@ def build_config(raw: dict, path: Path) -> Config:
             if not isinstance(k, dict):
                 errors.append(tr("{where}: expected an object with icon/action", where=where))
                 continue
-            unknown = set(k) - {"icon", "active_icon", "state", "action", "double", "hold", "hold_ms", "release", "light",
-                                "repeat", "repeat_ms", "repeat_delay", "rules", "span", "cells", "mode",
-                                "widget", "size", "options", "colors"}
+            unknown = set(k) - {
+                "icon",
+                "active_icon",
+                "state",
+                "action",
+                "double",
+                "hold",
+                "hold_ms",
+                "release",
+                "light",
+                "repeat",
+                "repeat_ms",
+                "repeat_delay",
+                "rules",
+                "span",
+                "cells",
+                "mode",
+                "widget",
+                "size",
+                "options",
+                "colors",
+            }
             if unknown:
                 errors.append(tr("{where}: unknown fields {fields}", where=where, fields=sorted(unknown)))
             if k.get("widget") is not None:
@@ -256,8 +278,12 @@ def build_config(raw: dict, path: Path) -> Config:
                 if wdefs is None:
                     wdefs = widgets.all_defs(raw_widgets)
                 built = widgets.expand(k, wdefs, f"{page_name}-{n}")
-                k = {**{f: v for f, v in k.items() if f not in ("widget", "size", "options", "colors")},
-                     "span": list(built["span"]), "cells": built["cells"], "icon": built["icon"]}
+                k = {
+                    **{f: v for f, v in k.items() if f not in ("widget", "size", "options", "colors")},
+                    "span": list(built["span"]),
+                    "cells": built["cells"],
+                    "icon": built["icon"],
+                }
             for field_name in ("action", "double", "hold", "release"):
                 errors += actions.validate(k.get(field_name), f"{where}.{field_name}")
             rules = k.get("rules") or []
@@ -265,7 +291,9 @@ def build_config(raw: dict, path: Path) -> Config:
                 errors.append(tr("{where}.rules: expected a list", where=where))
                 rules = []
             for ri, rule in enumerate(rules):
-                errors += values.check_cond((rule or {}).get("if") if isinstance(rule, dict) else None, f"{where}.rules.{ri + 1}")
+                errors += values.check_cond(
+                    (rule or {}).get("if") if isinstance(rule, dict) else None, f"{where}.rules.{ri + 1}"
+                )
             span = _span(k.get("span"), n, where, errors)
             if k.get("mode") not in (None, "split", "image"):
                 errors.append(tr("{where}.mode: use split or image", where=where))
@@ -318,9 +346,25 @@ def build_config(raw: dict, path: Path) -> Config:
                     other = n + r * COLS + c
                     if other != n:
                         if other in keys:
-                            errors.append(tr("pages.{page}.{key}: the key is inside the {w}x{h} block of key {anchor}", page=page_name, key=other, w=rows, h=cols, anchor=n))
+                            errors.append(
+                                tr(
+                                    "pages.{page}.{key}: the key is inside the {w}x{h} block of key {anchor}",
+                                    page=page_name,
+                                    key=other,
+                                    w=rows,
+                                    h=cols,
+                                    anchor=n,
+                                )
+                            )
                         elif other in cov:
-                            errors.append(tr("pages.{page}: blocks of keys {a} and {b} overlap", page=page_name, a=cov[other][0], b=n))
+                            errors.append(
+                                tr(
+                                    "pages.{page}: blocks of keys {a} and {b} overlap",
+                                    page=page_name,
+                                    a=cov[other][0],
+                                    b=n,
+                                )
+                            )
                         cov[other] = (n, idx)
                     idx += 1
 
@@ -339,7 +383,14 @@ def build_config(raw: dict, path: Path) -> Config:
         for n, k in keys.items():
             for ref in sum((_page_refs(a) for a in (k.action, k.double, k.hold, k.release)), []):
                 if ref not in pages and ref not in ("back", "home"):
-                    errors.append(tr("pages.{page}.{key}: 'page' action points to '{ref}', which doesn't exist", page=page_name, key=n, ref=ref))
+                    errors.append(
+                        tr(
+                            "pages.{page}.{key}: 'page' action points to '{ref}', which doesn't exist",
+                            page=page_name,
+                            key=n,
+                            ref=ref,
+                        )
+                    )
 
     errors += lighting.validate(raw.get("lighting"))
     dt = raw.get("double_tap_ms")
@@ -355,8 +406,16 @@ def build_config(raw: dict, path: Path) -> Config:
 
     dev = raw.get("device") or {}
     draw_options = {k: dev[k] for k in ("session", "per_key_session", "key_delay", "pace") if k in dev}
-    return Config(path=path, raw=raw, pages=pages, home=home,
-                  brightness=int(raw.get("brightness", 100)), draw_options=draw_options,
-                  lighting=raw.get("lighting") if isinstance(raw.get("lighting"), dict) else None,
-                  double_ms=int(raw.get("double_tap_ms", 250)),
-                  cover=cover, automations=[a for a in autos if isinstance(a, dict)], temp_pages=temp_pages)
+    return Config(
+        path=path,
+        raw=raw,
+        pages=pages,
+        home=home,
+        brightness=int(raw.get("brightness", 100)),
+        draw_options=draw_options,
+        lighting=raw.get("lighting") if isinstance(raw.get("lighting"), dict) else None,
+        double_ms=int(raw.get("double_tap_ms", 250)),
+        cover=cover,
+        automations=[a for a in autos if isinstance(a, dict)],
+        temp_pages=temp_pages,
+    )

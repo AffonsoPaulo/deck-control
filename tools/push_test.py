@@ -4,6 +4,7 @@ continuam respondendo durante a animação.
 
 Uso: python tools/push_test.py [gif] [tecla] [segundos]   (feche os outros apps do D6)
 """
+
 from __future__ import annotations
 
 import os
@@ -28,7 +29,7 @@ def main() -> int:
     durs = [ms / 1000 for _, ms in frames]
     print(f"{len(jpegs)} quadros, {[len(j) for j in jpegs]} bytes, {durs} s")
     with D6() as deck:
-        deck.enable_keys(100)   # uma vez só, como na abertura do app
+        deck.enable_keys(100)  # uma vez só, como na abertura do app
         i, due, end = 0, time.monotonic(), time.monotonic() + secs
         while time.monotonic() < end:
             now = time.monotonic()

@@ -13,6 +13,7 @@ mode: rpc — conexão direta (Client ID + Client Secret de uma aplicação da p
   Fala com o Discord aberto no PC pelo RPC local (rpc.py). Muta e ensurdece de verdade e as
   teclas mostram o estado real, mesmo se a pessoa mutar pelo mouse.
 """
+
 from __future__ import annotations
 
 from app import keys, logs
@@ -21,10 +22,31 @@ from app.i18n import tr
 
 from .rpc import DiscordRPC  # noqa: E402  (carregado como pacote pelo PluginManager)
 
-SHORTCUT_ACTIONS = ("ptt", "ptt_priority", "push_to_mute", "vad_priority", "toggle_vad", "streamer_mode",
-                    "voice_chat", "overlay_lock", "overlay_chat", "nav_back", "nav_forward", "switch_channel",
-                    "disconnect", "soundboard", "soundboard_hold", "save_clip")
-DEFAULTS = {"mode": "keys", "mute": "ctrl+shift+alt+f23", "deafen": "ctrl+shift+alt+f24", "client_id": "", "client_secret": ""}
+SHORTCUT_ACTIONS = (
+    "ptt",
+    "ptt_priority",
+    "push_to_mute",
+    "vad_priority",
+    "toggle_vad",
+    "streamer_mode",
+    "voice_chat",
+    "overlay_lock",
+    "overlay_chat",
+    "nav_back",
+    "nav_forward",
+    "switch_channel",
+    "disconnect",
+    "soundboard",
+    "soundboard_hold",
+    "save_clip",
+)
+DEFAULTS = {
+    "mode": "keys",
+    "mute": "ctrl+shift+alt+f23",
+    "deafen": "ctrl+shift+alt+f24",
+    "client_id": "",
+    "client_secret": "",
+}
 log = logs.get("plugins.discord")
 PROBLEM = "plugin.discord.connect"
 # motivo (rótulo de status do RPC) -> texto do problema em aberto (traduzido na tela)
@@ -86,16 +108,22 @@ class _Plugin:
         old = self._status
         self._status = (state, label, kw, error)
         if (state, label, kw) != old[:3]:
-            log.debug("RPC status: %s (%s)%s", label.format(**kw) if kw else label, state, f": {error}" if error else "")
+            log.debug(
+                "RPC status: %s (%s)%s", label.format(**kw) if kw else label, state, f": {error}" if error else ""
+            )
         if state == "ok":
             if old[0] != "ok":
                 log.info("Discord connected: %s", label.format(**kw) if kw else label)
             logs.resolve(PROBLEM)
         elif state == "error":
             log.error("Discord RPC: %s%s", label, f": {error}" if error else "")
-            logs.problem(PROBLEM, PROBLEM_TEXT.get(label, "Discord can't connect: {reason}"), "integrations:discord",
-                         reason=error or label)
-        elif error:           # falha inesperada: tenta de novo, mas fica avisado
+            logs.problem(
+                PROBLEM,
+                PROBLEM_TEXT.get(label, "Discord can't connect: {reason}"),
+                "integrations:discord",
+                reason=error or label,
+            )
+        elif error:  # falha inesperada: tenta de novo, mas fica avisado
             logs.problem(PROBLEM, "Discord can't connect: {reason}", "integrations:discord", reason=error)
 
     def _on_voice(self, v: dict) -> None:
@@ -147,7 +175,7 @@ def setup(api):
         """Dispara um atalho nomeado da seção 'discord:' do config (ex.: name: ptt_toggle)."""
         combo = plugin.settings.get(spec["name"])
         if not combo:
-            raise ValueError(tr("shortcut '{name}' isn't defined in discord: in the config", name=spec['name']))
+            raise ValueError(tr("shortcut '{name}' isn't defined in discord: in the config", name=spec["name"]))
         keys.press_combo(combo)
 
     return plugin

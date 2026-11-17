@@ -5,6 +5,7 @@ Mexe só nessas linhas, então comentários e formatação do arquivo ficam igua
 
     python tools/migrate_lucide.py config.yaml
 """
+
 import re
 import sys
 from pathlib import Path
@@ -23,6 +24,7 @@ def migrate(text: str) -> tuple[str, int, list[str]]:
             left.append(code)
             return m.group(0)
         return f"lucide: {name}"
+
     out, n = re.subn(r'\bglyph:\s*["\']?([0-9A-Fa-f]{4,5})["\']?', sub, text)
     return out, n - len(left), left
 

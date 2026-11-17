@@ -9,6 +9,7 @@ tanto para o Deck (config.build_config) quanto para as prévias do editor. Nos t
 De onde vêm os modelos: os do app (BUILTIN), os dos plugins ("widgets" no plugin.json) e os da pessoa
 ("widgets:" no config, criados com "Salvar como widget").
 """
+
 from __future__ import annotations
 
 import copy
@@ -44,46 +45,119 @@ def builtin() -> dict:
     hour = {"text": "{clock.hour{opt.format}}", "style": "info", "text_size": 46, "bg": BG, "edge": ":"}
     minute = {"text": "{clock.minute}", "style": "info", "text_size": 46, "bg": BG}
     day = {"text": "{clock.weekday_short}", "sub": "{clock.day} {clock.month}", "bg": BG}
-    clock_fmt = {"name": "format", "kind": "choice", "label": tr("Format"), "default": "",
-                 "choices": [["", tr("24 h")], ["12", tr("12 h")]]}
-    timer_cell = {"lucide": "hourglass", "text": "{timer.$id}", "sub": tr("Countdown"), "bg": "#2b2440", "fg": "#ffffff"}
-    gauge = {"lucide": "{opt.icon}", "text": "{{opt.value}}%", "bg": BG,
-             "bar": {"value": "{opt.value}", "min": 0, "max": 100, "color": "{opt.color}"}}
-    gauge_opts = [{"name": "value", "kind": "value", "label": tr("Value"), "default": "system.volume", "kinds": ["number"]},
-                  {"name": "icon", "kind": "glyph", "label": tr("Icon"), "default": "volume-2"},
-                  {"name": "color", "kind": "color", "label": tr("Bar color"), "default": "#F5A524"}]
+    clock_fmt = {
+        "name": "format",
+        "kind": "choice",
+        "label": tr("Format"),
+        "default": "",
+        "choices": [["", tr("24 h")], ["12", tr("12 h")]],
+    }
+    timer_cell = {
+        "lucide": "hourglass",
+        "text": "{timer.$id}",
+        "sub": tr("Countdown"),
+        "bg": "#2b2440",
+        "fg": "#ffffff",
+    }
+    gauge = {
+        "lucide": "{opt.icon}",
+        "text": "{{opt.value}}%",
+        "bg": BG,
+        "bar": {"value": "{opt.value}", "min": 0, "max": 100, "color": "{opt.color}"},
+    }
+    gauge_opts = [
+        {"name": "value", "kind": "value", "label": tr("Value"), "default": "system.volume", "kinds": ["number"]},
+        {"name": "icon", "kind": "glyph", "label": tr("Icon"), "default": "volume-2"},
+        {"name": "color", "kind": "color", "label": tr("Bar color"), "default": "#F5A524"},
+    ]
     return {
-        "app.clock": {"label": tr("Clock"), "icon": "clock", "category": "time", "options": [clock_fmt], "sizes": {
-            "1x1": [[{"text": "{clock.time{opt.format}}", "sub": "{clock.weekday_short}, {clock.day} {clock.month}", "bg": BG}]],
-            "1x2": [[hour, minute]],
-            "1x3": [[hour, minute, day]],
-            "2x2": [[hour, minute], [{"text": "{clock.weekday}", "style": "info", "bg": BG}, {"text": "{clock.day}", "sub": "{clock.month}", "bg": BG}]],
-        }},
-        "app.date": {"label": tr("Date"), "icon": "calendar", "category": "time", "sizes": {
-            "1x1": [[{"text": "{clock.day}", "sub": "{clock.weekday_short}, {clock.month}", "bg": BG}]],
-            "1x2": [[{"text": "{clock.weekday_short}", "style": "info", "bg": BG}, {"text": "{clock.day}", "sub": "{clock.month}", "bg": BG}]],
-        }},
-        "app.countdown": {"label": tr("Countdown"), "icon": "hourglass", "category": "time",
-                          "options": [{"name": "minutes", "kind": "number", "label": tr("Minutes"), "default": 5}],
-                          "action": {"type": "timer.toggle", "id": "$id", "minutes": "{opt.minutes}"},
-                          "hold": {"type": "timer.reset", "id": "$id"}, "sizes": {
-            "1x1": [[timer_cell]],
-            "1x2": [[{"lucide": "hourglass", "style": "big", "bg": "#2b2440"},
-                     {"text": "{timer.$id}", "sub": tr("Countdown"), "bg": "#2b2440",
-                      "bar": {"value": "timer.$id.pct", "color": "#d9ccff"}}]],
-        }},
-        "app.gauge": {"label": tr("Gauge"), "icon": "gauge", "category": "system", "options": gauge_opts, "sizes": {
-            "1x1": [[gauge]],
-            "1x2": [[{"lucide": "{opt.icon}", "style": "big", "bg": BG}, {**gauge, "lucide": None}]],
-        }},
-        "app.free": {"label": tr("Free value"), "icon": "braces", "category": "other",
-                     "options": [{"name": "value", "kind": "value", "label": tr("Value"), "default": "deck.page"},
-                                 {"name": "caption", "kind": "text", "label": tr("Second line"), "default": tr("page")}],
-                     "sizes": {"1x1": [[{"text": "{{opt.value}}", "sub": "{opt.caption}", "bg": BG}]]}},
+        "app.clock": {
+            "label": tr("Clock"),
+            "icon": "clock",
+            "category": "time",
+            "options": [clock_fmt],
+            "sizes": {
+                "1x1": [
+                    [
+                        {
+                            "text": "{clock.time{opt.format}}",
+                            "sub": "{clock.weekday_short}, {clock.day} {clock.month}",
+                            "bg": BG,
+                        }
+                    ]
+                ],
+                "1x2": [[hour, minute]],
+                "1x3": [[hour, minute, day]],
+                "2x2": [
+                    [hour, minute],
+                    [
+                        {"text": "{clock.weekday}", "style": "info", "bg": BG},
+                        {"text": "{clock.day}", "sub": "{clock.month}", "bg": BG},
+                    ],
+                ],
+            },
+        },
+        "app.date": {
+            "label": tr("Date"),
+            "icon": "calendar",
+            "category": "time",
+            "sizes": {
+                "1x1": [[{"text": "{clock.day}", "sub": "{clock.weekday_short}, {clock.month}", "bg": BG}]],
+                "1x2": [
+                    [
+                        {"text": "{clock.weekday_short}", "style": "info", "bg": BG},
+                        {"text": "{clock.day}", "sub": "{clock.month}", "bg": BG},
+                    ]
+                ],
+            },
+        },
+        "app.countdown": {
+            "label": tr("Countdown"),
+            "icon": "hourglass",
+            "category": "time",
+            "options": [{"name": "minutes", "kind": "number", "label": tr("Minutes"), "default": 5}],
+            "action": {"type": "timer.toggle", "id": "$id", "minutes": "{opt.minutes}"},
+            "hold": {"type": "timer.reset", "id": "$id"},
+            "sizes": {
+                "1x1": [[timer_cell]],
+                "1x2": [
+                    [
+                        {"lucide": "hourglass", "style": "big", "bg": "#2b2440"},
+                        {
+                            "text": "{timer.$id}",
+                            "sub": tr("Countdown"),
+                            "bg": "#2b2440",
+                            "bar": {"value": "timer.$id.pct", "color": "#d9ccff"},
+                        },
+                    ]
+                ],
+            },
+        },
+        "app.gauge": {
+            "label": tr("Gauge"),
+            "icon": "gauge",
+            "category": "system",
+            "options": gauge_opts,
+            "sizes": {
+                "1x1": [[gauge]],
+                "1x2": [[{"lucide": "{opt.icon}", "style": "big", "bg": BG}, {**gauge, "lucide": None}]],
+            },
+        },
+        "app.free": {
+            "label": tr("Free value"),
+            "icon": "braces",
+            "category": "other",
+            "options": [
+                {"name": "value", "kind": "value", "label": tr("Value"), "default": "deck.page"},
+                {"name": "caption", "kind": "text", "label": tr("Second line"), "default": tr("page")},
+            ],
+            "sizes": {"1x1": [[{"text": "{{opt.value}}", "sub": "{opt.caption}", "bg": BG}]]},
+        },
     }
 
 
 # ---------------------------------------------------------------------------- validação de um modelo
+
 
 def parse_size(size) -> tuple[int, int] | None:
     """'2x3' -> (2 linhas, 3 colunas), ou None se não for um tamanho válido."""
@@ -100,16 +174,29 @@ def check(name: str, d) -> str | None:
         return tr("the widget '{name}' needs 'sizes'", name=name)
     for size, rows in d["sizes"].items():
         rc = parse_size(size)
-        ok = rc is not None and isinstance(rows, list) and len(rows) == rc[0] and \
-            all(isinstance(x, list) and len(x) == rc[1] for x in rows)
+        ok = (
+            rc is not None
+            and isinstance(rows, list)
+            and len(rows) == rc[0]
+            and all(isinstance(x, list) and len(x) == rc[1] for x in rows)
+        )
         if not ok:
-            return tr("the widget '{name}' has an invalid size '{size}' (rows x columns, with that many cells)", name=name, size=size)
+            return tr(
+                "the widget '{name}' has an invalid size '{size}' (rows x columns, with that many cells)",
+                name=name,
+                size=size,
+            )
     opts = d.get("options", [])
     if not isinstance(opts, list):
         return tr("the widget '{name}': 'options' must be a list", name=name)
     for o in opts:
         if not isinstance(o, dict) or not o.get("name") or o.get("kind") not in OPTION_KINDS:
-            return tr("the widget '{name}' has an invalid option {option} (kind: {kinds})", name=name, option=repr(o), kinds=", ".join(OPTION_KINDS))
+            return tr(
+                "the widget '{name}' has an invalid option {option} (kind: {kinds})",
+                name=name,
+                option=repr(o),
+                kinds=", ".join(OPTION_KINDS),
+            )
         if o["kind"] == "choice" and not isinstance(o.get("choices"), list):
             return tr("the widget '{name}': the option '{option}' needs 'choices'", name=name, option=o["name"])
     return None
@@ -118,10 +205,17 @@ def check(name: str, d) -> str | None:
 def normalize(d: dict, plugin: str | None = None, color: str | None = None) -> dict:
     """O modelo como o editor e o expand() esperam (categoria válida, campos que faltam)."""
     cat = d.get("category")
-    return {"label": d.get("label") or "?", "icon": d.get("icon") or "layout-grid",
-            "category": cat if cat in CATEGORY_IDS else "other", "plugin": plugin, "color": color,
-            "options": d.get("options") or [], "sizes": d.get("sizes") or {},
-            **({"action": d["action"]} if d.get("action") else {}), **({"hold": d["hold"]} if d.get("hold") else {})}
+    return {
+        "label": d.get("label") or "?",
+        "icon": d.get("icon") or "layout-grid",
+        "category": cat if cat in CATEGORY_IDS else "other",
+        "plugin": plugin,
+        "color": color,
+        "options": d.get("options") or [],
+        "sizes": d.get("sizes") or {},
+        **({"action": d["action"]} if d.get("action") else {}),
+        **({"hold": d["hold"]} if d.get("hold") else {}),
+    }
 
 
 def user_defs(raw_widgets) -> dict:
@@ -137,10 +231,12 @@ def user_defs(raw_widgets) -> dict:
 def all_defs(raw_widgets=None) -> dict:
     """Todos os modelos: do app, dos plugins ligados e da pessoa."""
     from app.plugins import MANAGER
+
     return {**{k: normalize(v) for k, v in builtin().items()}, **MANAGER.widget_schemas(), **user_defs(raw_widgets)}
 
 
 # ---------------------------------------------------------------------------- montar uma tecla
+
 
 def option_values(d: dict, chosen) -> dict:
     vals = {o["name"]: o.get("default", "") for o in d.get("options", [])}
@@ -180,7 +276,12 @@ def expand(k: dict, defs: dict, fallback_id: str = "key") -> dict:
     if d is None or size not in d["sizes"]:
         label = d["label"] if d else str(k.get("widget"))
         cell = {"lucide": "circle-help", "text": label, "sub": tr("unavailable"), "bg": "#262d38", "fg": "#c4cad4"}
-        return {"span": (rc[1], rc[0]), "cells": [dict(cell) for _ in range(rc[0] * rc[1])], "icon": dict(cell), "missing": True}
+        return {
+            "span": (rc[1], rc[0]),
+            "cells": [dict(cell) for _ in range(rc[0] * rc[1])],
+            "icon": dict(cell),
+            "missing": True,
+        }
     opts = option_values(d, k.get("options"))
     kid = key_id(k.get("options"), fallback_id)
     cells = [c for row in _fill(copy.deepcopy(d["sizes"][size]), opts, kid) for c in row]

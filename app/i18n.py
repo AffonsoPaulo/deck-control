@@ -7,14 +7,15 @@ As traduções ficam em app/locales/<idioma>.json ({"texto em inglês": "traduç
 O idioma vem do config ('language: en' ou 'language: pt-BR'); sem ele, segue o do Windows.
 Os logs do app ficam sempre em inglês (app/logs.py); só o que a pessoa vê passa pelo tr().
 """
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
 LANGS = ("pt-BR", "en")
-SOURCE = "en"          # idioma das chaves (o texto no código)
-DEFAULT = "pt-BR"       # se não der para descobrir o do Windows
+SOURCE = "en"  # idioma das chaves (o texto no código)
+DEFAULT = "pt-BR"  # se não der para descobrir o do Windows
 _DIR = Path(__file__).parent / "locales"
 _lang: str | None = None
 _catalogs: dict[str, dict] = {}
@@ -24,9 +25,10 @@ def detect() -> str:
     """Idioma da interface do Windows: português -> pt-BR, qualquer outro -> en."""
     try:
         import ctypes
+
         langid = ctypes.windll.kernel32.GetUserDefaultUILanguage()
         return "pt-BR" if (langid & 0x3FF) == 0x16 else "en"
-    except Exception:          # fora do Windows (testes) não há kernel32: fica o padrão
+    except Exception:  # fora do Windows (testes) não há kernel32: fica o padrão
         return DEFAULT
 
 

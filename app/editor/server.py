@@ -5,6 +5,7 @@ execução) no cabeçalho X-Token de toda chamada /api, e confere o Host
 (contra DNS rebinding). Sem isso, qualquer site aberto no navegador poderia
 mandar o app gravar uma ação 'command' no config.
 """
+
 from __future__ import annotations
 
 import base64
@@ -62,7 +63,7 @@ class EditorServer:
         self.httpd = self._bind(port)
         self.port = self.httpd.server_address[1]
         self._thread = threading.Thread(target=self.httpd.serve_forever, daemon=True, name="editor")
-        history.record(self.config_path)   # garante que o estado atual está no histórico
+        history.record(self.config_path)  # garante que o estado atual está no histórico
 
     def _register_token(self) -> None:
         """O token do editor não pode aparecer no log (ele dá permissão de gravar o config)."""
@@ -72,6 +73,7 @@ class EditorServer:
             return
         # sem engine (testes): as mesmas regras, lidas direto do arquivo
         from app.plugins import MANAGER
+
         try:
             raw = yaml.safe_load(self.config_path.read_text(encoding="utf-8")) or {}
         except (OSError, yaml.YAMLError):
@@ -97,7 +99,7 @@ class EditorServer:
 
     def start(self) -> None:
         self._thread.start()
-        log.info("Editor at %s", self.url)      # o token sai como **** (logs.configure)
+        log.info("Editor at %s", self.url)  # o token sai como **** (logs.configure)
 
     def stop(self) -> None:
         self.httpd.shutdown()
@@ -159,10 +161,11 @@ class EditorServer:
 
     def api_validate(self, body):
         from app.binds import conflicts
+
         raw = body.get("config") or {}
         try:
             out = {"conflicts": conflicts(raw)}
-        except Exception:                     # um config pela metade não pode derrubar a validação
+        except Exception:  # um config pela metade não pode derrubar a validação
             log.debug("Shortcut conflict check failed (config being edited)", exc_info=True)
             out = {"conflicts": []}
         try:
@@ -182,11 +185,17 @@ class EditorServer:
             if not item:
                 out.append(None)
                 continue
-            if item.get("widget"):                 # widget: monta as células do tamanho escolhido
+            if item.get("widget"):  # widget: monta as células do tamanho escolhido
                 if wdefs is None:
                     wdefs = widgets.all_defs(body.get("widgets"))
                 built = widgets.expand(item, wdefs, "preview")
-                item = {**item, "span": list(built["span"]), "cells": built["cells"], "icon": built["icon"], "mode": "split"}
+                item = {
+                    **item,
+                    "span": list(built["span"]),
+                    "cells": built["cells"],
+                    "icon": built["icon"],
+                    "mode": "split",
+                }
             icon = item.get("icon") or {}
             if isinstance(icon, str):
                 icon = {"text": icon}
@@ -201,8 +210,13 @@ class EditorServer:
                 continue
             if span != [1, 1] and item.get("cells"):
                 cells = [c if isinstance(c, dict) else {"text": str(c)} for c in item["cells"]]
-                out.append({"normal": None, "active": None,
-                            "cells": [_preview(values.resolve_icon(c, get), base, defaults) for c in cells]})
+                out.append(
+                    {
+                        "normal": None,
+                        "active": None,
+                        "cells": [_preview(values.resolve_icon(c, get), base, defaults) for c in cells],
+                    }
+                )
                 continue
             icon = values.resolve_icon(icon, get)
             res = {"normal": _preview(icon, base, defaults), "active": None}
@@ -224,6 +238,7 @@ class EditorServer:
     def api_values(self, _body):
         """Valor atual de cada valor (para a lista do editor e as etiquetas de prévia)."""
         from app.schema import schema as _schema
+
         get = _sample_getter()
         out = {}
         for v in _schema()["values"]:
@@ -244,28 +259,45 @@ class EditorServer:
         e = self.engine
         if e is None:
             s = logs.summary()
-            return {"engine": False, "logs": {"new_errors": s["new_errors"], "last": s["last"]},
-                    "problems": logs.problems()}
+            return {
+                "engine": False,
+                "logs": {"new_errors": s["new_errors"], "last": s["last"]},
+                "problems": logs.problems(),
+            }
         from app.plugins import MANAGER
+
         s = logs.summary()
-        return {"engine": True, "device": e.device_connected, "page": e.page,
-                "obs": bool(e.obs and e.obs.req is not None), "plugins": MANAGER.status(),
-                "logs": {"new_errors": s["new_errors"], "last": s["last"]}, "problems": logs.problems()}
+        return {
+            "engine": True,
+            "device": e.device_connected,
+            "page": e.page,
+            "obs": bool(e.obs and e.obs.req is not None),
+            "plugins": MANAGER.status(),
+            "logs": {"new_errors": s["new_errors"], "last": s["last"]},
+            "problems": logs.problems(),
+        }
 
     def api_about(self, _body):
         """Dados da seção Sobre e o 'iniciar com o Windows'."""
         from app import winutil
+
         e = self.engine
         try:
             autostart = winutil.autostart_enabled()
         except Exception:
             log.debug("Couldn't read the autostart setting", exc_info=True)
             autostart = None
-        return {"firmware": e.firmware if e else None, "device": bool(e and e.device_connected),
-                "autostart": autostart, "config": str(self.config_path), "log": str(winutil.log_path())}
+        return {
+            "firmware": e.firmware if e else None,
+            "device": bool(e and e.device_connected),
+            "autostart": autostart,
+            "config": str(self.config_path),
+            "log": str(winutil.log_path()),
+        }
 
     def api_autostart(self, body):
         from app import winutil
+
         winutil.set_autostart(bool(body.get("enabled")), self.config_path)
         return {"autostart": winutil.autostart_enabled()}
 
@@ -273,6 +305,7 @@ class EditorServer:
         """Abre o log, a pasta dos logs ou a pasta do app no Windows (só esses)."""
         import os
         from app import winutil
+
         what = body.get("what")
         target = {"log": winutil.log_path(), "logs": logs.log_dir(), "folder": self.config_path.parent}.get(what)
         if target is None:
@@ -287,11 +320,17 @@ class EditorServer:
             after = int(query.get("after") or 0)
         except (TypeError, ValueError):
             after = 0
-        return {"records": logs.records(after), "summary": logs.summary(), "problems": logs.problems(),
-                "files": logs.files_info(),
-                "detail": {"detail": bool(getattr(logs, "_detail", False)),
-                           "areas": sorted(getattr(logs, "_areas", ()) or ()),
-                           "force": bool(getattr(logs, "_force_debug", False))}}
+        return {
+            "records": logs.records(after),
+            "summary": logs.summary(),
+            "problems": logs.problems(),
+            "files": logs.files_info(),
+            "detail": {
+                "detail": bool(getattr(logs, "_detail", False)),
+                "areas": sorted(getattr(logs, "_areas", ()) or ()),
+                "force": bool(getattr(logs, "_force_debug", False)),
+            },
+        }
 
     def api_logs_seen(self, body):
         upto = body.get("upto")
@@ -302,16 +341,21 @@ class EditorServer:
         """Pacote para pedir ajuda: logs, config sem as senhas, versões, plugins e o aparelho."""
         from app import configio
         from app.plugins import MANAGER
+
         try:
             text = configio.without_secrets(self.config_path.read_text(encoding="utf-8"), MANAGER.secret_paths())
         except OSError as e:
             log.warning("Diagnostics: couldn't read the config: %s", e)
             text = None
         e = self.engine
-        extra = {"plugins": [{"id": p.id, "version": p.manifest.get("version"), "running": p.running,
-                              "builtin": p.builtin} for p in MANAGER.plugins.values()],
-                 "device": e.device_info() if e is not None else {"connected": False},
-                 "page": e.page if e is not None else None}
+        extra = {
+            "plugins": [
+                {"id": p.id, "version": p.manifest.get("version"), "running": p.running, "builtin": p.builtin}
+                for p in MANAGER.plugins.values()
+            ],
+            "device": e.device_info() if e is not None else {"connected": False},
+            "page": e.page if e is not None else None,
+        }
         data = logs.diagnostics_zip(text, extra=extra)
         name = f"deck-diagnostics-{time.strftime('%Y%m%d-%H%M')}.zip"
         log.info("Diagnostics package created: %s (%d KB)", name, len(data) // 1024)
@@ -323,6 +367,7 @@ class EditorServer:
         import tempfile
         import zipfile
         from app.plugins import PluginError, read_manifest
+
         raw = base64.b64decode(str(body["data"]).split(",", 1)[-1])
         if len(raw) > MAX_BODY:
             raise ValueError(tr("file too large"))
@@ -354,15 +399,30 @@ class EditorServer:
         import shutil
         from app.plugins import MANAGER
         from app.plugins import localize, read_locales
+
         folder, m = self._plugin_zip(body)
         try:
             existing = MANAGER.plugins.get(m["id"])
             m = localize(m, read_locales(folder))
-            return {"manifest": {k: m.get(k) for k in ("id", "name", "version", "author", "description", "icon", "color",
-                                                       "permissions", "homepage")},
-                    "actions": [d.get("label") for d in m.get("actions", {}).values()],
-                    "installed": existing.manifest.get("version") if existing and not existing.builtin else None,
-                    "builtin_conflict": bool(existing and existing.builtin)}
+            return {
+                "manifest": {
+                    k: m.get(k)
+                    for k in (
+                        "id",
+                        "name",
+                        "version",
+                        "author",
+                        "description",
+                        "icon",
+                        "color",
+                        "permissions",
+                        "homepage",
+                    )
+                },
+                "actions": [d.get("label") for d in m.get("actions", {}).values()],
+                "installed": existing.manifest.get("version") if existing and not existing.builtin else None,
+                "builtin_conflict": bool(existing and existing.builtin),
+            }
         finally:
             shutil.rmtree(folder if folder.name.startswith("d6plugin-") else folder.parent, ignore_errors=True)
 
@@ -370,6 +430,7 @@ class EditorServer:
         import shutil
         from app.plugins import MANAGER
         from app.schema import schema
+
         folder, m = self._plugin_zip(body)
         try:
             MANAGER.install(folder, replace=bool(body.get("replace")))
@@ -380,6 +441,7 @@ class EditorServer:
     def api_plugin_remove(self, body):
         from app.plugins import MANAGER
         from app.schema import schema
+
         MANAGER.remove(str(body.get("id", "")))
         return {"ok": True, "schema": schema()}
 
@@ -413,11 +475,16 @@ class EditorServer:
     def api_image_info(self, body):
         """Nome, tamanho, quadros (GIF) e uma miniatura da imagem de um ícone, para o cartão da aba Aparência."""
         from PIL import Image
+
         path = icons._image_path({"image": str(body.get("path") or "")}, self.config_path.parent)
         try:
             with Image.open(path) as im:
-                info = {"name": path.name, "width": im.width, "height": im.height,
-                        "frames": int(getattr(im, "n_frames", 1) or 1)}
+                info = {
+                    "name": path.name,
+                    "width": im.width,
+                    "height": im.height,
+                    "frames": int(getattr(im, "n_frames", 1) or 1),
+                }
                 first = im.convert("RGBA")
         except (OSError, ValueError):
             return {"name": path.name, "missing": True}
@@ -425,10 +492,19 @@ class EditorServer:
         if len(frames) > 1:
             small = []
             for fr, ms in frames:
-                t = fr.copy(); t.thumbnail((88, 88)); small.append((t, ms))
+                t = fr.copy()
+                t.thumbnail((88, 88))
+                small.append((t, ms))
             buf = io.BytesIO()
-            small[0][0].save(buf, format="WEBP", save_all=True, append_images=[f for f, _ in small[1:]],
-                             duration=[ms for _, ms in small], loop=0, quality=80)
+            small[0][0].save(
+                buf,
+                format="WEBP",
+                save_all=True,
+                append_images=[f for f, _ in small[1:]],
+                duration=[ms for _, ms in small],
+                loop=0,
+                quality=80,
+            )
             info["thumb"] = "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode()
         else:
             first.thumbnail((88, 88))
@@ -438,8 +514,11 @@ class EditorServer:
     def api_free_bind(self, body):
         """Próximas combinações livres, considerando o config em edição (ainda não salvo)."""
         from app.binds import free_combos
+
         rules = body.get("rules") if isinstance(body.get("rules"), dict) else None
-        return {"combos": free_combos(body.get("config") or {}, int(body.get("count", 1)), rules, body.get("taken") or ())}
+        return {
+            "combos": free_combos(body.get("config") or {}, int(body.get("count", 1)), rules, body.get("taken") or ())
+        }
 
     def api_record(self, body):
         """Gravar pela tecla do D6: a próxima tecla apertada só manda o atalho (sem rodar a ação)."""
@@ -448,6 +527,7 @@ class EditorServer:
             e.cancel_record()
             return {"ok": True}
         from app import keys
+
         combo = str(body["keys"])
         keys.parse_combo(combo)
         e.arm_record(combo, float(body.get("seconds", 30)))
@@ -459,6 +539,7 @@ class EditorServer:
     def api_send_combo(self, body):
         """Aperta uma combinação depois de N segundos (para gravar o atalho em outro programa)."""
         from app import keys
+
         combo = str(body["keys"])
         keys.parse_combo(combo)  # valida antes de agendar
         delay = max(0.0, min(15.0, float(body.get("delay", 5))))
@@ -475,6 +556,7 @@ def _persistent_token() -> str:
     """Token guardado no perfil do usuário: continua o mesmo quando o app reinicia,
     para uma aba do editor já aberta não perder a permissão de salvar."""
     from app import winutil
+
     f = winutil.data_dir() / "editor-token"
     try:
         t = f.read_text(encoding="ascii").strip()
@@ -492,6 +574,7 @@ def _sample_getter():
     samples = {}
     try:
         from app.plugins import MANAGER
+
         for v in values.describe() + MANAGER.value_schemas():
             samples[v["id"]] = v.get("sample")
     except Exception:
@@ -502,6 +585,7 @@ def _sample_getter():
         if v is None and name.startswith("timer."):
             return "05:00" if name.count(".") == 1 else 100 if name.endswith(".pct") else False
         return samples.get(name) if v is None else v
+
     return get
 
 
@@ -513,8 +597,15 @@ def _preview(icon, base, defaults) -> str:
     if len(frames) < 2:
         return _png(frames[0][0])
     buf = io.BytesIO()
-    frames[0][0].save(buf, format="WEBP", save_all=True, append_images=[f for f, _ in frames[1:]],
-                      duration=[ms for _, ms in frames], loop=0, quality=85)
+    frames[0][0].save(
+        buf,
+        format="WEBP",
+        save_all=True,
+        append_images=[f for f, _ in frames[1:]],
+        duration=[ms for _, ms in frames],
+        loop=0,
+        quality=85,
+    )
     return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
@@ -558,7 +649,7 @@ ROUTES = {
 }
 
 
-_token_warned = [0.0]        # quando avisou do token antigo (uma aba velha pergunta a cada segundo)
+_token_warned = [0.0]  # quando avisou do token antigo (uma aba velha pergunta a cada segundo)
 
 
 def _make_handler(server: EditorServer):
@@ -595,7 +686,9 @@ def _make_handler(server: EditorServer):
             try:
                 self._route(method, path)
             finally:
-                log.debug("%s %s %s in %d ms", method, path, self.status or "-", round((time.perf_counter() - t0) * 1000))
+                log.debug(
+                    "%s %s %s in %d ms", method, path, self.status or "-", round((time.perf_counter() - t0) * 1000)
+                )
 
         def _route(self, method: str, path: str) -> None:
             if not self._host_ok():

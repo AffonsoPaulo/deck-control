@@ -13,6 +13,7 @@ Níveis: erros, avisos e informações são sempre gravados; DEBUG depende de co
 Problemas em aberto (OBS que não conecta, plugin que parou, Deck desconectado) ficam num registro
 à parte: o editor mostra uma faixa, a bandeja um alerta, e opcionalmente o Windows notifica.
 """
+
 from __future__ import annotations
 
 import collections
@@ -30,22 +31,30 @@ from pathlib import Path
 ROOT = "deck"
 AREAS = ("keys", "values", "automations", "plugins", "editor", "device")
 # de qual área do "Detalhado" é o debug de cada origem (as que não estão aqui valem com qualquer área ligada)
-AREA_OF = {"keys": "keys", "actions": "keys", "values": "values", "automations": "automations",
-           "plugins": "plugins", "editor": "editor", "device": "device", "deck": "device"}
+AREA_OF = {
+    "keys": "keys",
+    "actions": "keys",
+    "values": "values",
+    "automations": "automations",
+    "plugins": "plugins",
+    "editor": "editor",
+    "device": "device",
+    "deck": "device",
+}
 LEVEL_NAME = {"DEBUG": "DEBUG", "INFO": "INFO", "WARNING": "WARN", "ERROR": "ERROR", "CRITICAL": "ERROR"}
 MAX_BYTES = 2_000_000
-BACKUPS = 4                     # app.log + 4 antigos = 5 arquivos
-BUFFER = 3000                   # linhas guardadas na memória para a aba Logs
+BACKUPS = 4  # app.log + 4 antigos = 5 arquivos
+BUFFER = 3000  # linhas guardadas na memória para a aba Logs
 
 _lock = threading.RLock()
 _secrets: set[str] = set()
 _detail = False
 _areas: set[str] = set()
-_force_debug = False            # --debug: tudo detalhado, sem olhar o config
+_force_debug = False  # --debug: tudo detalhado, sem olhar o config
 _records: collections.deque = collections.deque(maxlen=BUFFER)
 _seq = 0
 _counts = {"ERROR": 0, "WARN": 0}
-_seen = 0                       # último id visto na aba Logs (para o número de erros novos)
+_seen = 0  # último id visto na aba Logs (para o número de erros novos)
 _problems: dict[str, dict] = {}
 _listeners: list = []
 _started = time.time()
@@ -58,13 +67,25 @@ def get(name: str) -> logging.Logger:
 
 def short(name: str) -> str:
     """'deck.plugins.obs' -> 'obs'; 'deck.engine' -> 'engine'."""
-    n = name[len(ROOT) + 1:] if name.startswith(ROOT + ".") else name
-    return n[len("plugins."):] if n.startswith("plugins.") else n
+    n = name[len(ROOT) + 1 :] if name.startswith(ROOT + ".") else name
+    return n[len("plugins.") :] if n.startswith("plugins.") else n
 
 
 # nomes de campo que sempre escondem o valor (em qualquer nível, ex.: headers de uma ação http)
-SENSITIVE = ("password", "passwd", "secret", "token", "authorization", "auth", "api_key", "apikey", "cookie",
-             "bearer", "credential", "session")
+SENSITIVE = (
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "authorization",
+    "auth",
+    "api_key",
+    "apikey",
+    "cookie",
+    "bearer",
+    "credential",
+    "session",
+)
 _URL_QUERY = re.compile(r"(https?://[^\s?#]+)\?[^\s#]*")
 
 
@@ -94,8 +115,10 @@ def _mask_obj(v):
 
 # ---------------------------------------------------------------------------- filtros e formatos
 
+
 class _AreaFilter(logging.Filter):
     """DEBUG só passa com o Detalhado ligado para a área de onde veio."""
+
     def filter(self, record: logging.LogRecord) -> bool:
         if record.levelno >= logging.INFO:
             return True
@@ -103,7 +126,7 @@ class _AreaFilter(logging.Filter):
             return True
         if not _detail:
             return False
-        n = record.name[len(ROOT) + 1:] if record.name.startswith(ROOT + ".") else record.name
+        n = record.name[len(ROOT) + 1 :] if record.name.startswith(ROOT + ".") else record.name
         area = AREA_OF.get(n.split(".", 1)[0])
         return bool(_areas) if area is None else area in _areas
 
@@ -119,7 +142,9 @@ class _Formatter(logging.Formatter):
         line = f"{stamp} {LEVEL_NAME.get(record.levelname, record.levelname):<5} {short(record.name):<12} {mask(record.getMessage())}"
         ctx = getattr(record, "ctx", None)
         if ctx:
-            line += "  " + " ".join(f"{k}={_mask_obj(v)!r}" if isinstance(v, str) else f"{k}={_mask_obj(v)}" for k, v in ctx.items())
+            line += "  " + " ".join(
+                f"{k}={_mask_obj(v)!r}" if isinstance(v, str) else f"{k}={_mask_obj(v)}" for k, v in ctx.items()
+            )
         if record.exc_info:
             line += "\n" + mask("".join(traceback.format_exception(*record.exc_info)).rstrip())
         elif record.stack_info:
@@ -131,6 +156,7 @@ class _Formatter(logging.Formatter):
 
 class _Buffer(logging.Handler):
     """Guarda as últimas linhas, já estruturadas, para a aba Logs do editor."""
+
     def emit(self, record: logging.LogRecord) -> None:
         global _seq
         try:
@@ -141,8 +167,17 @@ class _Buffer(logging.Handler):
             ctx = getattr(record, "ctx", None)
             with _lock:
                 _seq += 1
-                _records.append({"id": _seq, "t": record.created, "level": level, "area": short(record.name),
-                                 "msg": mask(record.getMessage()), "ctx": _mask_obj(ctx) if ctx else None, "tb": tb})
+                _records.append(
+                    {
+                        "id": _seq,
+                        "t": record.created,
+                        "level": level,
+                        "area": short(record.name),
+                        "msg": mask(record.getMessage()),
+                        "ctx": _mask_obj(ctx) if ctx else None,
+                        "tb": tb,
+                    }
+                )
                 if level in _counts:
                     _counts[level] += 1
         except Exception:
@@ -151,7 +186,8 @@ class _Buffer(logging.Handler):
 
 class _Stream(io.TextIOBase):
     """print() e saídas de bibliotecas viram linhas do log (sem console no modo bandeja)."""
-    GAP = 0.1   # linhas escritas em sequência (um traceback, por exemplo) viram um registro só
+
+    GAP = 0.1  # linhas escritas em sequência (um traceback, por exemplo) viram um registro só
 
     def __init__(self, logger: logging.Logger, level: int):
         self.logger, self.level, self._buf = logger, level, ""
@@ -192,8 +228,10 @@ class _Stream(io.TextIOBase):
 
 # ---------------------------------------------------------------------------- preparar
 
+
 def log_dir() -> Path:
     from app import winutil
+
     d = winutil.data_dir() / "logs"
     d.mkdir(parents=True, exist_ok=True)
     return d
@@ -252,8 +290,12 @@ def _hooks() -> None:
         if args.exc_type is SystemExit:
             return
         name = args.thread.name if args.thread else "?"
-        crash.critical("Unhandled error in thread %r: %s", name, args.exc_value,
-                       exc_info=(args.exc_type, args.exc_value, args.exc_traceback))
+        crash.critical(
+            "Unhandled error in thread %r: %s",
+            name,
+            args.exc_value,
+            exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+        )
 
     sys.excepthook = excepthook
     threading.excepthook = thread_hook
@@ -271,8 +313,14 @@ def configure(settings: dict | None, secrets=()) -> None:
         _secrets.clear()
         _secrets.update(x for x in (str(v) for v in secrets if v) if len(x) >= 3)
     if changed:
-        get("app").info("Log detail: %s", ("detailed (" + ", ".join(sorted(_areas)) + ")") if _detail and _areas
-                        else "detailed (no areas)" if _detail else "normal")
+        get("app").info(
+            "Log detail: %s",
+            ("detailed (" + ", ".join(sorted(_areas)) + ")")
+            if _detail and _areas
+            else "detailed (no areas)"
+            if _detail
+            else "normal",
+        )
 
 
 def setting(settings: dict | None, name: str, default):
@@ -282,15 +330,22 @@ def setting(settings: dict | None, name: str, default):
 
 def startup(config: Path, debug: bool) -> None:
     from app import __version__
+
     log = get("app")
     log.info("Deck %s starting", __version__)
-    log.info("Python %s (%s), Windows %s (%s)", platform.python_version(), platform.architecture()[0],
-             platform.version(), platform.machine())
+    log.info(
+        "Python %s (%s), Windows %s (%s)",
+        platform.python_version(),
+        platform.architecture()[0],
+        platform.version(),
+        platform.machine(),
+    )
     log.info("Config: %s", config)
     log.info("Log file: %s%s", log_file(), " (--debug: everything detailed)" if debug else "")
 
 
 # ---------------------------------------------------------------------------- aba Logs
+
 
 def records(after: int = 0, limit: int = 1000) -> list[dict]:
     with _lock:
@@ -302,8 +357,14 @@ def summary() -> dict:
     """Contagens para o editor: erros novos desde a última visita à aba Logs."""
     with _lock:
         new = sum(1 for r in _records if r["id"] > _seen and r["level"] == "ERROR")
-        return {"last": _seq, "seen": _seen, "new_errors": new, "errors": _counts["ERROR"], "warnings": _counts["WARN"],
-                "since": _started}
+        return {
+            "last": _seq,
+            "seen": _seen,
+            "new_errors": new,
+            "errors": _counts["ERROR"],
+            "warnings": _counts["WARN"],
+            "since": _started,
+        }
 
 
 def mark_seen(upto: int | None = None) -> None:
@@ -313,6 +374,7 @@ def mark_seen(upto: int | None = None) -> None:
 
 
 # ---------------------------------------------------------------------------- problemas em aberto
+
 
 def problem(pid: str, text: str, where: str | None = None, **fmt) -> None:
     """Abre (ou atualiza) um problema que continua. text é a chave em inglês (traduzida na tela)."""
@@ -347,6 +409,7 @@ def resolve_prefix(prefix: str) -> None:
 def _render(text: str, fmt: dict, translate=False) -> str:
     if translate:
         from app.i18n import tr
+
         return tr(text, **fmt)
     try:
         return text.format(**fmt)
@@ -357,8 +420,16 @@ def _render(text: str, fmt: dict, translate=False) -> str:
 def problems(translate: bool = True) -> list[dict]:
     with _lock:
         items = [dict(p) for p in _problems.values()]
-    return [{"id": p["id"], "text": _render(p["text"], p["fmt"], translate), "where": p.get("where"),
-             "since": p["since"], "count": p["count"]} for p in sorted(items, key=lambda x: x["since"])]
+    return [
+        {
+            "id": p["id"],
+            "text": _render(p["text"], p["fmt"], translate),
+            "where": p.get("where"),
+            "since": p["since"],
+            "count": p["count"],
+        }
+        for p in sorted(items, key=lambda x: x["since"])
+    ]
 
 
 def on_problem(cb) -> None:
@@ -376,11 +447,13 @@ def _notify(kind: str, pid: str) -> None:
 
 # ---------------------------------------------------------------------------- pacote de diagnóstico
 
+
 def diagnostics_zip(config_text: str | None, extra: dict | None = None) -> bytes:
     """.zip com os logs, o config (já sem senhas, quem chama tira) e as versões."""
     import json
     import zipfile
     from app import __version__
+
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         d = log_dir()
@@ -391,9 +464,15 @@ def diagnostics_zip(config_text: str | None, extra: dict | None = None) -> bytes
                 pass
         if config_text is not None:
             z.writestr("config.yaml", mask(config_text))
-        info = {"app": __version__, "python": platform.python_version(), "windows": platform.version(),
-                "machine": platform.machine(), "created": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "problems": problems(translate=False), **(extra or {})}
+        info = {
+            "app": __version__,
+            "python": platform.python_version(),
+            "windows": platform.version(),
+            "machine": platform.machine(),
+            "created": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "problems": problems(translate=False),
+            **(extra or {}),
+        }
         z.writestr("about.json", json.dumps(_mask_obj(info), indent=2, ensure_ascii=False))
     return buf.getvalue()
 
@@ -401,6 +480,9 @@ def diagnostics_zip(config_text: str | None, extra: dict | None = None) -> bytes
 def files_info() -> dict:
     d = log_dir()
     files = list(d.glob("app.log*"))
-    return {"folder": str(d), "file": str(log_file()), "count": len(files),
-            "bytes": sum(f.stat().st_size for f in files if f.exists())}
-
+    return {
+        "folder": str(d),
+        "file": str(log_file()),
+        "count": len(files),
+        "bytes": sum(f.stat().st_size for f in files if f.exists()),
+    }

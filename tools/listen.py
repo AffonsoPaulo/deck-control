@@ -8,6 +8,7 @@ Uso:
 Feche o app "fifine Control Deck" antes (inclusive da bandeja), senão os dois
 programas brigam pelo dispositivo.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -25,8 +26,9 @@ def fifine_app_running() -> bool:
     if sys.platform != "win32":
         return False
     try:
-        out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq fifine Control Deck.exe"],
-                             capture_output=True, text=True, timeout=5).stdout
+        out = subprocess.run(
+            ["tasklist", "/FI", "IMAGENAME eq fifine Control Deck.exe"], capture_output=True, text=True, timeout=5
+        ).stdout
     except Exception:
         return False
     return "fifine Control Deck.exe" in out
@@ -52,8 +54,10 @@ def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
 
     if fifine_app_running():
-        print("AVISO: o 'fifine Control Deck' está aberto. Feche-o (inclusive da bandeja)\n"
-              "       para evitar conflito. Continuando mesmo assim...\n")
+        print(
+            "AVISO: o 'fifine Control Deck' está aberto. Feche-o (inclusive da bandeja)\n"
+            "       para evitar conflito. Continuando mesmo assim...\n"
+        )
 
     try:
         deck = D6().open()
@@ -82,8 +86,9 @@ def main() -> int:
             for ev in evs:
                 (pressed.add if ev.pressed else pressed.discard)(ev.key)
                 state = "APERTOU" if ev.pressed else "soltou "
-                print(f"{time.strftime('%H:%M:%S')}  tecla {ev.key:>2} {state}  "
-                      f"(linha {ev.row + 1}, coluna {ev.col + 1})")
+                print(
+                    f"{time.strftime('%H:%M:%S')}  tecla {ev.key:>2} {state}  (linha {ev.row + 1}, coluna {ev.col + 1})"
+                )
                 print(grid(pressed) + "\n")
     except KeyboardInterrupt:
         pass

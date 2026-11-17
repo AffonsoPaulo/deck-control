@@ -1,11 +1,12 @@
 """Inicia o app.
 
-    python -m app                 terminal (log na tela), editor em http://127.0.0.1:8765
-    python -m app --tray          ícone na bandeja, sem janela (use pythonw para não abrir console)
-    python -m app --debug         log detalhado de tudo (teclas, estados, desenho, plugins, editor)
-    python -m app --check         só valida o config
-    python -m app --autostart on|off   liga/desliga iniciar com o Windows (modo bandeja)
+python -m app                 terminal (log na tela), editor em http://127.0.0.1:8765
+python -m app --tray          ícone na bandeja, sem janela (use pythonw para não abrir console)
+python -m app --debug         log detalhado de tudo (teclas, estados, desenho, plugins, editor)
+python -m app --check         só valida o config
+python -m app --autostart on|off   liga/desliga iniciar com o Windows (modo bandeja)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -25,9 +26,12 @@ if str(ROOT) not in sys.path:
 
 def main() -> int:
     from app.i18n import tr
+
     ap = argparse.ArgumentParser(prog="python -m app")
     ap.add_argument("--config", type=Path, default=ROOT / "config.yaml")
-    ap.add_argument("--debug", action="store_true", help="log detalhado de tudo (teclas, valores, desenho, plugins, editor)")
+    ap.add_argument(
+        "--debug", action="store_true", help="log detalhado de tudo (teclas, valores, desenho, plugins, editor)"
+    )
     ap.add_argument("--check", action="store_true", help="só valida o config e sai")
     ap.add_argument("--tray", action="store_true", help="roda na bandeja do Windows")
     ap.add_argument("--editor", action="store_true", help="abre o editor no navegador ao iniciar")
@@ -38,7 +42,7 @@ def main() -> int:
     from app import logs, winutil
 
     config = args.config.resolve()
-    cli = bool(args.check or args.autostart)          # só responde no terminal e sai: sem arquivo de log
+    cli = bool(args.check or args.autostart)  # só responde no terminal e sai: sem arquivo de log
     if cli:
         if sys.stdout is not None:
             sys.stdout.reconfigure(line_buffering=True)
@@ -70,6 +74,7 @@ def main() -> int:
             log.info("%s", msg)
 
     from app.config import ConfigError, load_config
+
     try:
         cfg = load_config(config)
     except ConfigError as e:
@@ -96,6 +101,7 @@ def main() -> int:
 
     if args.tray:
         from app.tray import run_tray
+
         run_tray(engine, editor, config)
         return 0
 

@@ -8,6 +8,7 @@ uma versão por letra digitada.
 Fica em %LOCALAPPDATA%\\D6Deck\\history\\<id do config>\\, separado por arquivo
 de config, para configs de teste não se misturarem com o de verdade.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -23,7 +24,7 @@ from app import winutil
 from app.i18n import tr
 
 MAX_ENTRIES = 300
-MERGE_SECONDS = 90          # mudanças dentro desse intervalo viram uma versão só
+MERGE_SECONDS = 90  # mudanças dentro desse intervalo viram uma versão só
 MAX_SUMMARY = 8
 
 _lock = threading.Lock()
@@ -54,6 +55,7 @@ def _safe_yaml(text: str) -> dict | None:
 
 # -- resumo das mudanças ------------------------------------------------------------
 
+
 def _key_name(spec) -> str:
     if not isinstance(spec, dict):
         return ""
@@ -78,7 +80,7 @@ def summarize(old: dict | None, new: dict | None) -> list[str]:
     op, np = old.get("pages") or {}, new.get("pages") or {}
     created = [p for p in np if p not in op]
     deleted = [p for p in op if p not in np]
-    for d in list(deleted):           # mesma página com outro nome = renomeada
+    for d in list(deleted):  # mesma página com outro nome = renomeada
         for c in list(created):
             if op[d] == np[c]:
                 out.append(tr("Page {old} renamed to {new}", old=d, new=c))
@@ -100,21 +102,39 @@ def summarize(old: dict | None, new: dict | None) -> list[str]:
                 out.append(tr("Page {page}: key {key}{name} removed", page=p, key=k, name=_key_name(ok[k])))
             else:
                 out.append(tr("Page {page}: key {key}{name} changed", page=p, key=k, name=_key_name(nk[k])))
-    labels = {"obs": "OBS connection changed", "discord": "Discord settings changed",
-              "icons": "Key appearance changed", "device": "Image sending changed",
-              "brightness": "Brightness changed", "lighting": "Deck light changed",
-              "plugins": "Plugins changed", "language": "Language changed"}
+    labels = {
+        "obs": "OBS connection changed",
+        "discord": "Discord settings changed",
+        "icons": "Key appearance changed",
+        "device": "Image sending changed",
+        "brightness": "Brightness changed",
+        "lighting": "Deck light changed",
+        "plugins": "Plugins changed",
+        "language": "Language changed",
+    }
     for sec, label in labels.items():
         if old.get(sec) != new.get(sec):
             out.append(tr(label))
     if old.get("home") != new.get("home") and new.get("home"):
-        out.append(tr("Home page is now {page}", page=new['home']))
+        out.append(tr("Home page is now {page}", page=new["home"]))
     return out or [tr("Only formatting or comments")]
 
 
 # os dois idiomas: versões antigas podem ter sido gravadas no outro
-_STRUCTURAL = (" criada", " excluída", " renomeada", " apagada", "Primeira versão", "Página inicial agora",
-               " created", " deleted", " renamed to ", " removed", "First saved version", "Home page is now")
+_STRUCTURAL = (
+    " criada",
+    " excluída",
+    " renomeada",
+    " apagada",
+    "Primeira versão",
+    "Página inicial agora",
+    " created",
+    " deleted",
+    " renamed to ",
+    " removed",
+    "First saved version",
+    "Home page is now",
+)
 _MORE = ("e mais ", "and ")
 
 
@@ -125,6 +145,7 @@ def _structural(items: list[str]) -> bool:
 def _identity(item: str) -> str:
     """'Página main: tecla 1 ("Mi") alterada' e '... ("Mic") alterada' são a mesma edição."""
     import re
+
     return re.sub(r' \("[^"]*"\)', "", item)
 
 
@@ -134,11 +155,12 @@ def _merge_summaries(a: list[str], b: list[str]) -> list[str]:
         if x not in out:
             out.append(x)
     if len(out) > MAX_SUMMARY:
-        out = out[:MAX_SUMMARY - 1] + [tr("and {n} more changes", n=len(out) - MAX_SUMMARY + 1)]
+        out = out[: MAX_SUMMARY - 1] + [tr("and {n} more changes", n=len(out) - MAX_SUMMARY + 1)]
     return out
 
 
 # -- API ------------------------------------------------------------------------------
+
 
 def record(config_path: Path, reason: str | None = None) -> None:
     """Guarda o estado atual do arquivo, se for diferente da última versão."""
@@ -158,18 +180,25 @@ def record(config_path: Path, reason: str | None = None) -> None:
         # criar/apagar tecla, restaurar e importar sempre viram versões próprias.
         step = summarize(_safe_yaml(last["text"]), _safe_yaml(text)) if last else []
         mergeable = (
-            last and not reason and not last.get("reason")
+            last
+            and not reason
+            and not last.get("reason")
             and last.get("base_text") is not None
             and now - last["time"] < MERGE_SECONDS
-            and not _structural(step) and not _structural(last["summary"])
+            and not _structural(step)
+            and not _structural(last["summary"])
             and {_identity(x) for x in step} <= {_identity(x) for x in last["summary"]}
         )
         if mergeable:
             # continua a mesma "sessão" de edição: atualiza a última versão
             base = _safe_yaml(last.get("base_text", "")) if last.get("base_text") is not None else None
-            last.update(text=text, time=now,
-                        summary=summarize(base, _safe_yaml(text)) if last.get("base_text") is not None
-                        else _merge_summaries(last["summary"], summarize(_safe_yaml(last["text"]), _safe_yaml(text))))
+            last.update(
+                text=text,
+                time=now,
+                summary=summarize(base, _safe_yaml(text))
+                if last.get("base_text") is not None
+                else _merge_summaries(last["summary"], summarize(_safe_yaml(last["text"]), _safe_yaml(text))),
+            )
             files[-1].write_text(json.dumps(last, ensure_ascii=False), encoding="utf-8")
             return
         entry = {
@@ -177,7 +206,7 @@ def record(config_path: Path, reason: str | None = None) -> None:
             "time": now,
             "reason": reason,
             "summary": summarize(_safe_yaml(last["text"]) if last else None, _safe_yaml(text)),
-            "base_text": last["text"] if last else None,   # para refazer o resumo ao juntar mudanças
+            "base_text": last["text"] if last else None,  # para refazer o resumo ao juntar mudanças
             "text": text,
         }
         (_dir(path) / f"{entry['id']}.json").write_text(json.dumps(entry, ensure_ascii=False), encoding="utf-8")

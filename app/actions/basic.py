@@ -1,4 +1,5 @@
 """Ações genéricas."""
+
 from __future__ import annotations
 
 import json
@@ -132,8 +133,9 @@ def _toggle_state(spec: dict, key_id: str) -> str:
     return spec.get("state") or f"toggle:{key_id}"
 
 
-@action("toggle", required=("on",), state=_toggle_state,
-        children=lambda s: [s["on"]] + ([s["off"]] if "off" in s else []))
+@action(
+    "toggle", required=("on",), state=_toggle_state, children=lambda s: [s["on"]] + ([s["off"]] if "off" in s else [])
+)
 def toggle(spec: dict, ctx: Context) -> None:
     """Alterna entre dois estados. Na 1ª vez roda 'on', na 2ª 'off' (ou 'on' de novo se não houver 'off').
     O ícone usa 'active_icon' enquanto estiver ligado. state: nome para compartilhar o estado entre teclas."""
@@ -150,6 +152,7 @@ def _if_children(spec: dict) -> list:
 def _check_if(spec: dict) -> list[str]:
     if spec.get("value"):
         from app import values
+
         return values.check_cond(spec, "if")
     return [] if spec.get("state") else [tr("'if' needs a 'state' or a 'value' to test")]
 
@@ -161,6 +164,7 @@ def if_(spec: dict, ctx: Context) -> None:
     Com valor:  {type: if, value: weather.temp, op: gt, to: 30, then: [...]}"""
     if spec.get("value"):
         from app import values
+
         current = values.test(spec, ctx.engine.values.get)
         wanted = spec.get("is", True) is not False
     else:
@@ -203,6 +207,7 @@ def none(spec: dict, ctx: Context) -> None:
 
 # -- respostas temporárias: tomam conta do Deck por alguns segundos e devolvem tudo como estava ------
 
+
 def _secs(spec, default):
     try:
         return max(0.3, min(600.0, float(spec.get("seconds", default))))
@@ -226,7 +231,9 @@ def screens_paint(spec: dict, ctx: Context) -> None:
         icon["style"] = "big"
     if spec.get("text"):
         icon["text"] = str(spec["text"])
-    ctx.engine.paint_screens(icon, _secs(spec, 3), spec.get("dismiss", True) is not False, bool(spec.get("passthrough")))
+    ctx.engine.paint_screens(
+        icon, _secs(spec, 3), spec.get("dismiss", True) is not False, bool(spec.get("passthrough"))
+    )
 
 
 @action("page.temp", required=("page",))
@@ -234,8 +241,14 @@ def page_temp(spec: dict, ctx: Context) -> None:
     """Mostra uma página por alguns segundos e volta sozinho para a anterior.
     dismiss: apertar uma tecla fecha antes (padrão true). passthrough: a tecla apertada roda a ação dela.
     show_left: uma tecla vazia da página vira "Fechar" com o tempo que falta. light: cor do anel enquanto aparece."""
-    ctx.engine.show_temp_page(str(spec["page"]), _secs(spec, 10), spec.get("dismiss", True) is not False,
-                              bool(spec.get("passthrough")), spec.get("show_left", True) is not False, spec.get("light"))
+    ctx.engine.show_temp_page(
+        str(spec["page"]),
+        _secs(spec, 10),
+        spec.get("dismiss", True) is not False,
+        bool(spec.get("passthrough")),
+        spec.get("show_left", True) is not False,
+        spec.get("light"),
+    )
 
 
 @action("timer.toggle", required=("id",))

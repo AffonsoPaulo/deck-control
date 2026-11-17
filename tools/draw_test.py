@@ -9,6 +9,7 @@ Uso:
 Cada execução gasta um "ciclo de desenho" do D6. Se ele parar de mostrar
 imagens, tire e recoloque o cabo.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -53,9 +54,15 @@ def main() -> int:
 
     with D6() as deck:
         t0 = time.time()
-        deck.draw(tiles, brightness=args.brightness, chunk=args.chunk,
-                  per_key_session=not args.batch, clear=args.clear,
-                  key_delay=args.key_delay, pace=args.pace)
+        deck.draw(
+            tiles,
+            brightness=args.brightness,
+            chunk=args.chunk,
+            per_key_session=not args.batch,
+            clear=args.clear,
+            key_delay=args.key_delay,
+            pace=args.pace,
+        )
         print(f"Enviado em {time.time() - t0:.1f}s. Olhe o D6.")
     return 0
 

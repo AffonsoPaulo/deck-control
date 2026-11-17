@@ -10,6 +10,7 @@ Para criar uma ação nova:
 'state' (opcional) diz qual estado a tecla deve refletir quando usa essa ação,
 para trocar o ícone automaticamente (ex.: OBS gravando -> ícone ativo).
 """
+
 from __future__ import annotations
 
 import time
@@ -29,8 +30,8 @@ class Context:
     engine: "Engine"
     page: str
     key: int
-    moment: str = "press"          # press | double | hold | release | repeat | automation | test
-    label: str | None = None       # nome da tecla (texto do ícone) ou da automação, para o log
+    moment: str = "press"  # press | double | hold | release | repeat | automation | test
+    label: str | None = None  # nome da tecla (texto do ícone) ou da automação, para o log
 
     @property
     def key_id(self) -> str:
@@ -44,9 +45,9 @@ class ActionDef:
     required: tuple[str, ...]
     state: Callable[[dict, str], str | None] | None
     children: Callable[[dict], list] | None
-    check: Callable[[dict], list[str]] | None = None   # validação extra (lista de erros)
-    plugin: str | None = None                            # de qual plugin é (None = do app)
-    mirror: bool = False     # ação principal da tecla: segura 'keys' enquanto a tecla do D6 estiver apertada
+    check: Callable[[dict], list[str]] | None = None  # validação extra (lista de erros)
+    plugin: str | None = None  # de qual plugin é (None = do app)
+    mirror: bool = False  # ação principal da tecla: segura 'keys' enquanto a tecla do D6 estiver apertada
 
 
 REGISTRY: dict[str, ActionDef] = {}
@@ -56,6 +57,7 @@ def action(name: str, required: tuple[str, ...] = (), state=None, children=None,
     def deco(fn):
         REGISTRY[name] = ActionDef(name, fn, tuple(required), state, children, check)
         return fn
+
     return deco
 
 
@@ -67,8 +69,15 @@ def normalize(spec) -> dict | None:
     if isinstance(spec, str):
         # atalho: "page:obs", "hotkey:ctrl+c", "launch:notepad"
         kind, _, arg = spec.partition(":")
-        field = {"page": "page", "hotkey": "keys", "launch": "target", "text": "text",
-                 "media": "key", "command": "command", "obs.scene": "scene"}.get(kind, "value")
+        field = {
+            "page": "page",
+            "hotkey": "keys",
+            "launch": "target",
+            "text": "text",
+            "media": "key",
+            "command": "command",
+            "obs.scene": "scene",
+        }.get(kind, "value")
         return {"type": kind, field: arg} if arg else {"type": kind}
     if isinstance(spec, dict) and (True in spec or False in spec):
         # YAML 1.1 lê as chaves 'on:'/'off:' como true/false; desfaz isso.
@@ -85,9 +94,20 @@ def validate(spec, where: str) -> list[str]:
     d = REGISTRY.get(spec["type"])
     if d is None:
         if _from_missing_plugin(spec["type"]):
-            return []      # ação de um plugin que não está instalado: a tecla só não faz nada
-        return [tr("{where}: unknown action type '{type}'. Known: {known}", where=where, type=spec['type'], known=', '.join(sorted(REGISTRY)))]
-    errors = [tr("{where}: action '{action}' needs the field '{field}'", where=where, action=d.name, field=f) for f in d.required if f not in spec]
+            return []  # ação de um plugin que não está instalado: a tecla só não faz nada
+        return [
+            tr(
+                "{where}: unknown action type '{type}'. Known: {known}",
+                where=where,
+                type=spec["type"],
+                known=", ".join(sorted(REGISTRY)),
+            )
+        ]
+    errors = [
+        tr("{where}: action '{action}' needs the field '{field}'", where=where, action=d.name, field=f)
+        for f in d.required
+        if f not in spec
+    ]
     if d.check and not errors:
         errors += [f"{where}: {msg}" for msg in d.check(spec)]
     if d.children and not errors:
@@ -120,8 +140,14 @@ def _where(ctx: Context) -> str:
 
 
 def _info(spec: dict, ctx: Context) -> dict:
-    return {"action": spec.get("type"), "label": ctx.label, "key": ctx.key or None, "page": ctx.page,
-            "moment": ctx.moment, "params": {k: v for k, v in spec.items() if k != "type"}}
+    return {
+        "action": spec.get("type"),
+        "label": ctx.label,
+        "key": ctx.key or None,
+        "page": ctx.page,
+        "moment": ctx.moment,
+        "params": {k: v for k, v in spec.items() if k != "type"},
+    }
 
 
 def run(spec, ctx: Context) -> None:
@@ -130,13 +156,18 @@ def run(spec, ctx: Context) -> None:
         return
     d = REGISTRY.get(spec["type"])
     if d is None:
-        log.warning("%s on %s: the plugin of this action isn't installed", spec.get("type"), _where(ctx),
-                    extra={"ctx": _info(spec, ctx)})
+        log.warning(
+            "%s on %s: the plugin of this action isn't installed",
+            spec.get("type"),
+            _where(ctx),
+            extra={"ctx": _info(spec, ctx)},
+        )
         return
     t0 = time.perf_counter()
     try:
         if d.plugin:
             from app.plugins import run_guard
+
             run_guard(d)
         d.fn(spec, ctx)
     except Exception as e:  # uma ação com erro não derruba o app
@@ -148,8 +179,7 @@ def run(spec, ctx: Context) -> None:
         except Exception:
             log.debug("Couldn't show the error mark on %s", _where(ctx), exc_info=True)
         return
-    log.debug("%s ran on %s (%s) in %d ms", d.name, _where(ctx), ctx.moment,
-              round((time.perf_counter() - t0) * 1000))
+    log.debug("%s ran on %s (%s) in %d ms", d.name, _where(ctx), ctx.moment, round((time.perf_counter() - t0) * 1000))
 
 
 # registra as ações do app e as dos plugins (OBS, Discord e os de terceiros)

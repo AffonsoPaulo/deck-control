@@ -7,6 +7,7 @@ Tirando uma foto de frente, dá para ler quantos pixels somem em cada lado.
 
 Uso: python tools/calibrate.py [--keys 1 8 15] [--size 100]
 """
+
 from __future__ import annotations
 
 import argparse

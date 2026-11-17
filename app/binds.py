@@ -9,6 +9,7 @@ exemplo, não aceita Ctrl com F13–F24). Sem regras, a ordem é: primeiro as co
 modificadores (quase impossível colidir com algo), por último F13–F24 sozinhas (alguns softwares
 de mouse e teclado gamer usam essas). Evita Win (o Windows intercepta) e Alt sozinho (ativa menus).
 """
+
 from __future__ import annotations
 
 from app import actions
@@ -18,8 +19,22 @@ MOD_ORDER = ["ctrl+shift+alt", "ctrl+shift", "ctrl+alt", "shift+alt", "ctrl", "s
 DEFAULT_RULES = {"keys": "f13-f24", "modifiers": MOD_ORDER}
 ALL_COMBOS = [f"{m}+f{n}" if m else f"f{n}" for m in MOD_ORDER for n in range(13, 25)]
 
-_MOD_RANK = {"ctrl": 0, "control": 0, "lctrl": 0, "rctrl": 0, "shift": 1, "lshift": 1, "rshift": 1,
-             "alt": 2, "lalt": 2, "ralt": 2, "altgr": 2, "win": 3, "lwin": 3, "rwin": 3}
+_MOD_RANK = {
+    "ctrl": 0,
+    "control": 0,
+    "lctrl": 0,
+    "rctrl": 0,
+    "shift": 1,
+    "lshift": 1,
+    "rshift": 1,
+    "alt": 2,
+    "lalt": 2,
+    "ralt": 2,
+    "altgr": 2,
+    "win": 3,
+    "lwin": 3,
+    "rwin": 3,
+}
 _MOD_NAME = {0: "ctrl", 1: "shift", 2: "alt", 3: "win"}
 
 
@@ -33,10 +48,11 @@ def canonical(combo: str) -> str:
 
 # -- regras de cada programa ---------------------------------------------------------------
 
+
 def _expand_keys(keys) -> list[str]:
-    """"f13-f24" ou ["f13", "f14-f16"] -> ["f13", ..., "f24"]."""
+    """ "f13-f24" ou ["f13", "f14-f16"] -> ["f13", ..., "f24"]."""
     out = []
-    for item in ([keys] if isinstance(keys, str) else list(keys or [])):
+    for item in [keys] if isinstance(keys, str) else list(keys or []):
         item = str(item).lower().strip()
         if "-" in item and item.count("f") == 2:
             a, b = item.split("-")
@@ -63,6 +79,7 @@ def check_rules(rules) -> None:
     if not isinstance(rules, dict) or not combos_for(rules):
         raise ValueError("shortcut_rules")
     from app import keys
+
     for c in combos_for(rules):
         keys.parse_combo(c)
 
@@ -70,6 +87,7 @@ def check_rules(rules) -> None:
 # -- onde cada atalho é usado ----------------------------------------------------------------
 # Cada uso tem um "dono": dois usos com o mesmo dono podem dividir a combinação (duas teclas de
 # "Apertar para falar" mandam o mesmo atalho de propósito); donos diferentes = sobreposição.
+
 
 def _walk(spec, found: list, page, key, moment) -> None:
     spec = actions.normalize(spec)
@@ -102,7 +120,8 @@ def usages(raw: dict) -> list[dict]:
             for moment in ("action", "double", "hold", "release"):
                 _walk(spec.get(moment), found, page, key, moment)
     from app.plugins import MANAGER
-    for combo, plugin, setting in MANAGER.shortcuts_in(raw):   # inclui os padrões que nem estão no config
+
+    for combo, plugin, setting in MANAGER.shortcuts_in(raw):  # inclui os padrões que nem estão no config
         found.append({"combo": canonical(combo), "owner": f"{plugin}.{setting}", "plugin": plugin, "setting": setting})
     return found
 
@@ -119,7 +138,9 @@ def conflicts(raw: dict) -> list[dict]:
     out = []
     for combo, us in by.items():
         if len({u["owner"] for u in us}) > 1:
-            out.append({"combo": combo, "places": [{k: v for k, v in u.items() if k not in ("combo", "owner")} for u in us]})
+            out.append(
+                {"combo": combo, "places": [{k: v for k, v in u.items() if k not in ("combo", "owner")} for u in us]}
+            )
     return out
 
 

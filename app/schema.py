@@ -6,212 +6,323 @@ Tipos de campo ('kind'):
     page, scene, input, source (listas vindas do config/OBS)
 Uma ação registrada sem entrada aqui ainda funciona no editor, editada como JSON.
 """
+
 from __future__ import annotations
 
 from app.actions import REGISTRY
 from app import i18n, values, widgets
 
-MODE_TSS = [['toggle', 'Toggle (on/off)'], ['start', 'Start'], ['stop', 'Stop']]
+MODE_TSS = [["toggle", "Toggle (on/off)"], ["start", "Start"], ["stop", "Stop"]]
 
 # Textos em inglês (a chave); o editor traduz com app/editor/static/locales/<idioma>.json.
-ACTIONS: dict[str, dict] = {'hotkey': {'label': 'Keyboard shortcut',
-            'group': 'Keyboard and text',
-            'help': 'Presses a key combination, as if you had typed it.',
-            'fields': [{'name': 'keys',
-                        'kind': 'combo',
-                        'label': 'Key combination',
-                        'required': True,
-                        'help': 'E.g.: ctrl+shift+m. To press several in a row, put one per line.'},
-                       {'name': 'hold_ms', 'kind': 'number', 'label': 'Hold time (ms)', 'placeholder': 30},
-                       {'name': 'delay_ms',
-                        'kind': 'number',
-                        'label': 'Interval between shortcuts (ms)',
-                        'placeholder': 50}]},
- 'bind': {'label': 'Shortcut for another program',
-          'group': 'Keyboard and text',
-          'help': 'Gives this key a shortcut of its own. In Discord, OBS or a game, click to record a shortcut and '
-                  'press this Deck key (after saving).',
-          'fields': [{'name': 'keys', 'kind': 'bind', 'label': 'Key combination', 'required': True},
-                     {'name': 'mirror',
-                      'kind': 'bool',
-                      'label': 'Hold together with the Deck key',
-                      'default': True,
-                      'help': 'While you hold the Deck key, the shortcut stays pressed. That\'s what makes "push to '
-                              'talk" work.'}]},
- 'text': {'label': 'Type text',
-          'group': 'Keyboard and text',
-          'help': 'Types the text wherever the cursor is.',
-          'fields': [{'name': 'text', 'kind': 'textarea', 'label': 'Text', 'required': True},
-                     {'name': 'enter', 'kind': 'bool', 'label': 'Press Enter at the end'},
-                     {'name': 'delay_ms',
-                      'kind': 'number',
-                      'label': 'Interval between letters (ms)',
-                      'placeholder': 0}]},
- 'media': {'label': 'Media and volume',
-           'group': 'Programs and system',
-           'help': 'Controls whatever is playing (Spotify, YouTube…) and the Windows volume.',
-           'fields': [{'name': 'key',
-                       'kind': 'enum',
-                       'label': 'Command',
-                       'required': True,
-                       'options': [['play_pause', 'Play/pause'],
-                                   ['next', 'Next track'],
-                                   ['prev', 'Previous track'],
-                                   ['stop', 'Stop'],
-                                   ['vol_up', 'Raise volume'],
-                                   ['vol_down', 'Lower volume'],
-                                   ['mute', 'Mute/unmute the PC']]},
-                      {'name': 'repeat',
-                       'kind': 'number',
-                       'label': 'How many times',
-                       'placeholder': 1,
-                       'help': 'Useful for volume: 2 or 3 steps per press.'}]},
- 'launch': {'label': 'Open program, file or website',
-            'group': 'Programs and system',
-            'help': 'Opens it the same way as a double-click in Windows.',
-            'fields': [{'name': 'target',
-                        'kind': 'text',
-                        'label': 'Program, file or address',
-                        'required': True,
-                        'help': 'E.g.: notepad.exe, C:\\Games\\game.exe, https://twitch.tv, %USERPROFILE%\\Downloads'},
-                       {'name': 'args', 'kind': 'text', 'label': 'Parameters (optional)'},
-                       {'name': 'cwd', 'kind': 'text', 'label': 'Start in folder (optional)'}]},
- 'command': {'label': 'Run command',
-             'group': 'Programs and system',
-             'help': 'Runs a command in Command Prompt or PowerShell.',
-             'fields': [{'name': 'command', 'kind': 'textarea', 'label': 'Command', 'required': True},
-                        {'name': 'shell',
-                         'kind': 'enum',
-                         'label': 'Where to run',
-                         'options': [['cmd', 'Command Prompt'], ['powershell', 'PowerShell']]},
-                        {'name': 'hide', 'kind': 'bool', 'label': "Don't show the window", 'default': True},
-                        {'name': 'wait', 'kind': 'bool', 'label': 'Wait for the command to finish'}]},
- 'http': {'label': 'Call URL (webhook)',
-          'group': 'Programs and system',
-          'help': 'Makes an HTTP request. Good for webhooks, bots, Home Assistant and the like.',
-          'fields': [{'name': 'url', 'kind': 'text', 'label': 'Address', 'required': True},
-                     {'name': 'method',
-                      'kind': 'enum',
-                      'label': 'Method',
-                      'options': [['', 'Automatic'],
-                                  ['GET', 'GET'],
-                                  ['POST', 'POST'],
-                                  ['PUT', 'PUT'],
-                                  ['PATCH', 'PATCH'],
-                                  ['DELETE', 'DELETE']]},
-                     {'name': 'json', 'kind': 'json', 'label': 'Body (JSON)'},
-                     {'name': 'headers', 'kind': 'json', 'label': 'Headers (JSON)'}]},
- 'delay': {'label': 'Wait',
-           'group': 'Pages and logic',
-           'help': 'Pauses before the next step of the sequence.',
-           'fields': [{'name': 'ms',
-                       'kind': 'number',
-                       'label': 'Time (ms)',
-                       'required': True,
-                       'help': '1000 ms = 1 second.'}]},
- 'multi': {'label': 'Action sequence',
-           'group': 'Pages and logic',
-           'help': 'Does several actions, one after the other.',
-           'fields': [{'name': 'actions', 'kind': 'actions', 'label': 'Steps', 'required': True}]},
- 'toggle': {'label': 'On/off',
-            'group': 'Pages and logic',
-            'state': True,
-            'help': 'Each press switches between on and off, and the icon follows.',
-            'fields': [{'name': 'on', 'kind': 'action', 'label': 'When turned on', 'required': True},
-                       {'name': 'off',
-                        'kind': 'action',
-                        'label': 'When turned off',
-                        'help': 'If left empty, it repeats the turn-on action.'},
-                       {'name': 'state',
-                        'kind': 'text',
-                        'label': 'Turn on together with other keys (optional)',
-                        'help': 'Keys with the same name here turn on and off together.'}]},
- 'if': {'label': 'If… then… else',
-        'group': 'Pages and logic',
-        'help': 'Does one thing or another depending on a situation, like "if recording".',
-        'fields': [{'name': 'state', 'kind': 'state', 'label': 'If', 'required': True},
-                   {'name': 'is', 'kind': 'bool', 'label': "Invert (when it's NOT like that)", 'default': True},
-                   {'name': 'then', 'kind': 'actions', 'label': 'Then'},
-                   {'name': 'else', 'kind': 'actions', 'label': 'Else'}]},
- 'set_state': {'label': 'Change an icon state',
-               'group': 'Pages and logic',
-               'help': 'Turns an icon state on or off without doing anything else. Useful to fix an icon that got out '
-                       'of sync.',
-               'fields': [{'name': 'state',
-                           'kind': 'text',
-                           'label': 'State',
-                           'required': True,
-                           'help': 'E.g.: discord.mute, obs.recording, toggle:main:3'},
-                          {'name': 'value',
-                           'kind': 'enum',
-                           'label': 'Change to',
-                           'required': True,
-                           'options': [['toggle', 'The opposite of the current one'],
-                                       [True, 'Turned on'],
-                                       [False, 'Turned off']]}]},
- 'page': {'label': 'Change page',
-          'group': 'Pages and logic',
-          'help': '',
-          'fields': [{'name': 'page', 'kind': 'page', 'label': 'Page', 'required': True}]},
- 'brightness': {'label': 'Deck brightness',
-                'group': 'Pages and logic',
-                'help': 'Changes the brightness of the key screens.',
-                'fields': [{'name': 'value', 'kind': 'number', 'label': 'Fixed brightness (0 to 100)'},
-                           {'name': 'step',
-                            'kind': 'number',
-                            'label': 'Or increase on each press',
-                            'placeholder': 25,
-                            'help': 'Adds this value on each press; after the maximum, it goes back to the minimum.'}]},
- 'none': {'label': 'None',
-          'group': 'Pages and logic',
-          'help': 'The key does nothing. Good for titles and separators.',
-          'fields': []}}
+ACTIONS: dict[str, dict] = {
+    "hotkey": {
+        "label": "Keyboard shortcut",
+        "group": "Keyboard and text",
+        "help": "Presses a key combination, as if you had typed it.",
+        "fields": [
+            {
+                "name": "keys",
+                "kind": "combo",
+                "label": "Key combination",
+                "required": True,
+                "help": "E.g.: ctrl+shift+m. To press several in a row, put one per line.",
+            },
+            {"name": "hold_ms", "kind": "number", "label": "Hold time (ms)", "placeholder": 30},
+            {"name": "delay_ms", "kind": "number", "label": "Interval between shortcuts (ms)", "placeholder": 50},
+        ],
+    },
+    "bind": {
+        "label": "Shortcut for another program",
+        "group": "Keyboard and text",
+        "help": "Gives this key a shortcut of its own. In Discord, OBS or a game, click to record a shortcut and "
+        "press this Deck key (after saving).",
+        "fields": [
+            {"name": "keys", "kind": "bind", "label": "Key combination", "required": True},
+            {
+                "name": "mirror",
+                "kind": "bool",
+                "label": "Hold together with the Deck key",
+                "default": True,
+                "help": "While you hold the Deck key, the shortcut stays pressed. That's what makes \"push to "
+                'talk" work.',
+            },
+        ],
+    },
+    "text": {
+        "label": "Type text",
+        "group": "Keyboard and text",
+        "help": "Types the text wherever the cursor is.",
+        "fields": [
+            {"name": "text", "kind": "textarea", "label": "Text", "required": True},
+            {"name": "enter", "kind": "bool", "label": "Press Enter at the end"},
+            {"name": "delay_ms", "kind": "number", "label": "Interval between letters (ms)", "placeholder": 0},
+        ],
+    },
+    "media": {
+        "label": "Media and volume",
+        "group": "Programs and system",
+        "help": "Controls whatever is playing (Spotify, YouTube…) and the Windows volume.",
+        "fields": [
+            {
+                "name": "key",
+                "kind": "enum",
+                "label": "Command",
+                "required": True,
+                "options": [
+                    ["play_pause", "Play/pause"],
+                    ["next", "Next track"],
+                    ["prev", "Previous track"],
+                    ["stop", "Stop"],
+                    ["vol_up", "Raise volume"],
+                    ["vol_down", "Lower volume"],
+                    ["mute", "Mute/unmute the PC"],
+                ],
+            },
+            {
+                "name": "repeat",
+                "kind": "number",
+                "label": "How many times",
+                "placeholder": 1,
+                "help": "Useful for volume: 2 or 3 steps per press.",
+            },
+        ],
+    },
+    "launch": {
+        "label": "Open program, file or website",
+        "group": "Programs and system",
+        "help": "Opens it the same way as a double-click in Windows.",
+        "fields": [
+            {
+                "name": "target",
+                "kind": "text",
+                "label": "Program, file or address",
+                "required": True,
+                "help": "E.g.: notepad.exe, C:\\Games\\game.exe, https://twitch.tv, %USERPROFILE%\\Downloads",
+            },
+            {"name": "args", "kind": "text", "label": "Parameters (optional)"},
+            {"name": "cwd", "kind": "text", "label": "Start in folder (optional)"},
+        ],
+    },
+    "command": {
+        "label": "Run command",
+        "group": "Programs and system",
+        "help": "Runs a command in Command Prompt or PowerShell.",
+        "fields": [
+            {"name": "command", "kind": "textarea", "label": "Command", "required": True},
+            {
+                "name": "shell",
+                "kind": "enum",
+                "label": "Where to run",
+                "options": [["cmd", "Command Prompt"], ["powershell", "PowerShell"]],
+            },
+            {"name": "hide", "kind": "bool", "label": "Don't show the window", "default": True},
+            {"name": "wait", "kind": "bool", "label": "Wait for the command to finish"},
+        ],
+    },
+    "http": {
+        "label": "Call URL (webhook)",
+        "group": "Programs and system",
+        "help": "Makes an HTTP request. Good for webhooks, bots, Home Assistant and the like.",
+        "fields": [
+            {"name": "url", "kind": "text", "label": "Address", "required": True},
+            {
+                "name": "method",
+                "kind": "enum",
+                "label": "Method",
+                "options": [
+                    ["", "Automatic"],
+                    ["GET", "GET"],
+                    ["POST", "POST"],
+                    ["PUT", "PUT"],
+                    ["PATCH", "PATCH"],
+                    ["DELETE", "DELETE"],
+                ],
+            },
+            {"name": "json", "kind": "json", "label": "Body (JSON)"},
+            {"name": "headers", "kind": "json", "label": "Headers (JSON)"},
+        ],
+    },
+    "delay": {
+        "label": "Wait",
+        "group": "Pages and logic",
+        "help": "Pauses before the next step of the sequence.",
+        "fields": [
+            {"name": "ms", "kind": "number", "label": "Time (ms)", "required": True, "help": "1000 ms = 1 second."}
+        ],
+    },
+    "multi": {
+        "label": "Action sequence",
+        "group": "Pages and logic",
+        "help": "Does several actions, one after the other.",
+        "fields": [{"name": "actions", "kind": "actions", "label": "Steps", "required": True}],
+    },
+    "toggle": {
+        "label": "On/off",
+        "group": "Pages and logic",
+        "state": True,
+        "help": "Each press switches between on and off, and the icon follows.",
+        "fields": [
+            {"name": "on", "kind": "action", "label": "When turned on", "required": True},
+            {
+                "name": "off",
+                "kind": "action",
+                "label": "When turned off",
+                "help": "If left empty, it repeats the turn-on action.",
+            },
+            {
+                "name": "state",
+                "kind": "text",
+                "label": "Turn on together with other keys (optional)",
+                "help": "Keys with the same name here turn on and off together.",
+            },
+        ],
+    },
+    "if": {
+        "label": "If… then… else",
+        "group": "Pages and logic",
+        "help": 'Does one thing or another depending on a situation, like "if recording".',
+        "fields": [
+            {"name": "state", "kind": "state", "label": "If", "required": True},
+            {"name": "is", "kind": "bool", "label": "Invert (when it's NOT like that)", "default": True},
+            {"name": "then", "kind": "actions", "label": "Then"},
+            {"name": "else", "kind": "actions", "label": "Else"},
+        ],
+    },
+    "set_state": {
+        "label": "Change an icon state",
+        "group": "Pages and logic",
+        "help": "Turns an icon state on or off without doing anything else. Useful to fix an icon that got out "
+        "of sync.",
+        "fields": [
+            {
+                "name": "state",
+                "kind": "text",
+                "label": "State",
+                "required": True,
+                "help": "E.g.: discord.mute, obs.recording, toggle:main:3",
+            },
+            {
+                "name": "value",
+                "kind": "enum",
+                "label": "Change to",
+                "required": True,
+                "options": [["toggle", "The opposite of the current one"], [True, "Turned on"], [False, "Turned off"]],
+            },
+        ],
+    },
+    "page": {
+        "label": "Change page",
+        "group": "Pages and logic",
+        "help": "",
+        "fields": [{"name": "page", "kind": "page", "label": "Page", "required": True}],
+    },
+    "brightness": {
+        "label": "Deck brightness",
+        "group": "Pages and logic",
+        "help": "Changes the brightness of the key screens.",
+        "fields": [
+            {"name": "value", "kind": "number", "label": "Fixed brightness (0 to 100)"},
+            {
+                "name": "step",
+                "kind": "number",
+                "label": "Or increase on each press",
+                "placeholder": 25,
+                "help": "Adds this value on each press; after the maximum, it goes back to the minimum.",
+            },
+        ],
+    },
+    "none": {
+        "label": "None",
+        "group": "Pages and logic",
+        "help": "The key does nothing. Good for titles and separators.",
+        "fields": [],
+    },
+}
 
 # respostas temporárias e contagem (mostram algo por alguns segundos e devolvem tudo como estava)
-_DISMISS = [{'name': 'dismiss', 'kind': 'bool', 'label': 'Pressing a key ends it early', 'default': True},
-            {'name': 'passthrough', 'kind': 'bool', 'label': 'The pressed key also runs its action', 'default': False}]
-ACTIONS.update({
-    'light.flash': {'label': 'Color on the light', 'group': 'Temporary responses', 'icon': 'lightbulb',
-                    'help': 'Paints the whole light ring in one color for a few seconds, then goes back to the effect.',
-                    'fields': [{'name': 'color', 'kind': 'color', 'label': 'Color', 'default': '#22c55e'},
-                               {'name': 'seconds', 'kind': 'number', 'label': 'Seconds', 'placeholder': 3},
-                               {'name': 'blink', 'kind': 'bool', 'label': 'Blink', 'default': False}]},
-    'screens.paint': {'label': 'Paint the screens', 'group': 'Temporary responses', 'icon': 'monitor',
-                      'help': 'Paints all key screens in one color, with an icon if you want, for a few seconds.',
-                      'fields': [{'name': 'color', 'kind': 'color', 'label': 'Color', 'default': '#b4232a'},
-                                 {'name': 'lucide', 'kind': 'icon', 'label': 'Icon'},
-                                 {'name': 'text', 'kind': 'text', 'label': 'Text'},
-                                 {'name': 'seconds', 'kind': 'number', 'label': 'Seconds', 'placeholder': 3}] + _DISMISS},
-    'page.temp': {'label': 'Show a temporary page', 'group': 'Temporary responses', 'icon': 'layers',
-                  'help': 'Shows a page for a few seconds and goes back on its own. Good for showing information.',
-                  'fields': [{'name': 'page', 'kind': 'page', 'label': 'Page', 'required': True},
-                             {'name': 'seconds', 'kind': 'number', 'label': 'Seconds', 'placeholder': 10}] + _DISMISS + [
-                             {'name': 'show_left', 'kind': 'bool', 'label': 'Show the time left on an empty key', 'default': True},
-                             {'name': 'light', 'kind': 'color', 'label': 'Light color while it shows (optional)'}]},
-    'timer.toggle': {'label': 'Start or pause a countdown', 'group': 'Temporary responses', 'icon': 'hourglass',
-                     'help': 'Starts, pauses or resumes a countdown. A key can show it with {timer.<name>}.',
-                     'fields': [{'name': 'id', 'kind': 'text', 'label': 'Countdown name', 'required': True},
-                                {'name': 'minutes', 'kind': 'number', 'label': 'Minutes', 'placeholder': 5}]},
-    'timer.reset': {'label': 'Reset a countdown', 'group': 'Temporary responses', 'icon': 'rotate-ccw',
-                    'help': 'Puts the countdown back to the start, stopped.',
-                    'fields': [{'name': 'id', 'kind': 'text', 'label': 'Countdown name', 'required': True}]},
-})
-ACTIONS['if']['fields'][0] = {'name': 'state', 'kind': 'state', 'label': 'If'}
+_DISMISS = [
+    {"name": "dismiss", "kind": "bool", "label": "Pressing a key ends it early", "default": True},
+    {"name": "passthrough", "kind": "bool", "label": "The pressed key also runs its action", "default": False},
+]
+ACTIONS.update(
+    {
+        "light.flash": {
+            "label": "Color on the light",
+            "group": "Temporary responses",
+            "icon": "lightbulb",
+            "help": "Paints the whole light ring in one color for a few seconds, then goes back to the effect.",
+            "fields": [
+                {"name": "color", "kind": "color", "label": "Color", "default": "#22c55e"},
+                {"name": "seconds", "kind": "number", "label": "Seconds", "placeholder": 3},
+                {"name": "blink", "kind": "bool", "label": "Blink", "default": False},
+            ],
+        },
+        "screens.paint": {
+            "label": "Paint the screens",
+            "group": "Temporary responses",
+            "icon": "monitor",
+            "help": "Paints all key screens in one color, with an icon if you want, for a few seconds.",
+            "fields": [
+                {"name": "color", "kind": "color", "label": "Color", "default": "#b4232a"},
+                {"name": "lucide", "kind": "icon", "label": "Icon"},
+                {"name": "text", "kind": "text", "label": "Text"},
+                {"name": "seconds", "kind": "number", "label": "Seconds", "placeholder": 3},
+            ]
+            + _DISMISS,
+        },
+        "page.temp": {
+            "label": "Show a temporary page",
+            "group": "Temporary responses",
+            "icon": "layers",
+            "help": "Shows a page for a few seconds and goes back on its own. Good for showing information.",
+            "fields": [
+                {"name": "page", "kind": "page", "label": "Page", "required": True},
+                {"name": "seconds", "kind": "number", "label": "Seconds", "placeholder": 10},
+            ]
+            + _DISMISS
+            + [
+                {"name": "show_left", "kind": "bool", "label": "Show the time left on an empty key", "default": True},
+                {"name": "light", "kind": "color", "label": "Light color while it shows (optional)"},
+            ],
+        },
+        "timer.toggle": {
+            "label": "Start or pause a countdown",
+            "group": "Temporary responses",
+            "icon": "hourglass",
+            "help": "Starts, pauses or resumes a countdown. A key can show it with {timer.<name>}.",
+            "fields": [
+                {"name": "id", "kind": "text", "label": "Countdown name", "required": True},
+                {"name": "minutes", "kind": "number", "label": "Minutes", "placeholder": 5},
+            ],
+        },
+        "timer.reset": {
+            "label": "Reset a countdown",
+            "group": "Temporary responses",
+            "icon": "rotate-ccw",
+            "help": "Puts the countdown back to the start, stopped.",
+            "fields": [{"name": "id", "kind": "text", "label": "Countdown name", "required": True}],
+        },
+    }
+)
+ACTIONS["if"]["fields"][0] = {"name": "state", "kind": "state", "label": "If"}
 
 
-ICON_FIELDS = [{'name': 'text', 'kind': 'textarea', 'label': 'Text'},
- {'name': 'bg', 'kind': 'color', 'label': 'Background'},
- {'name': 'bg_to', 'kind': 'color', 'label': 'Second gradient color'},
- {'name': 'bg_dir', 'kind': 'text', 'label': 'Gradient direction'},
- {'name': 'fg', 'kind': 'color', 'label': 'Text and icon color'},
- {'name': 'lucide', 'kind': 'glyph', 'label': 'Icon'},
- {'name': 'glyph', 'kind': 'text', 'label': 'Icon (Segoe, old format)'},
- {'name': 'image', 'kind': 'image', 'label': 'Image'},
- {'name': 'text_size', 'kind': 'number', 'label': 'Text size'},
- {'name': 'glyph_size', 'kind': 'number', 'label': 'Icon size'},
- {'name': 'image_scale', 'kind': 'number', 'label': 'Image size (0 to 1)', 'step': 0.05},
- {'name': 'image_fill', 'kind': 'bool', 'label': 'Fill the whole key'},
- {'name': 'border', 'kind': 'color', 'label': 'Border'}]
+ICON_FIELDS = [
+    {"name": "text", "kind": "textarea", "label": "Text"},
+    {"name": "bg", "kind": "color", "label": "Background"},
+    {"name": "bg_to", "kind": "color", "label": "Second gradient color"},
+    {"name": "bg_dir", "kind": "text", "label": "Gradient direction"},
+    {"name": "fg", "kind": "color", "label": "Text and icon color"},
+    {"name": "lucide", "kind": "glyph", "label": "Icon"},
+    {"name": "glyph", "kind": "text", "label": "Icon (Segoe, old format)"},
+    {"name": "image", "kind": "image", "label": "Image"},
+    {"name": "text_size", "kind": "number", "label": "Text size"},
+    {"name": "glyph_size", "kind": "number", "label": "Icon size"},
+    {"name": "image_scale", "kind": "number", "label": "Image size (0 to 1)", "step": 0.05},
+    {"name": "image_fill", "kind": "bool", "label": "Fill the whole key"},
+    {"name": "border", "kind": "color", "label": "Border"},
+]
 
 # nomes internos dos campos -> como aparecem no editor (para as mensagens de erro)
 FIELD_LABELS = {f["name"]: f["label"] for d in ACTIONS.values() for f in d["fields"]}
@@ -219,20 +330,32 @@ FIELD_LABELS = {f["name"]: f["label"] for d in ACTIONS.values() for f in d["fiel
 
 def schema() -> dict:
     from app.plugins import MANAGER
+
     acts = dict(ACTIONS)
     acts.update(MANAGER.action_schemas())
     for name, d in REGISTRY.items():  # ações sem descrição aparecem como JSON livre
-        acts.setdefault(name, {"label": name, "group": "Other", "fields": None, "help": "",
-                               "state": d.state is not None})
+        acts.setdefault(
+            name, {"label": name, "group": "Other", "fields": None, "help": "", "state": d.state is not None}
+        )
     from app.icons import SEGOE_TO_LUCIDE
+
     labels = dict(FIELD_LABELS)
     for d in acts.values():
         for f in d.get("fields") or []:
             if isinstance(f, dict) and f.get("name") and f.get("label"):
                 labels.setdefault(f["name"], f["label"])
-    return {"actions": acts, "icon_fields": ICON_FIELDS, "field_labels": labels, "segoe_to_lucide": SEGOE_TO_LUCIDE,
-            "plugins": MANAGER.describe(), "plugin_groups": MANAGER.groups(), "plugin_errors": MANAGER.errors,
-            "default_language": i18n.detect(),
-            "values": [{**v, "label": i18n.tr(v["label"]), "group": i18n.tr(v["group"])} for v in values.describe()] + MANAGER.value_schemas(),
-            "widgets": widgets.all_defs(), "widget_categories": widgets.categories(),
-            "value_ops": list(values.OPS)}
+    return {
+        "actions": acts,
+        "icon_fields": ICON_FIELDS,
+        "field_labels": labels,
+        "segoe_to_lucide": SEGOE_TO_LUCIDE,
+        "plugins": MANAGER.describe(),
+        "plugin_groups": MANAGER.groups(),
+        "plugin_errors": MANAGER.errors,
+        "default_language": i18n.detect(),
+        "values": [{**v, "label": i18n.tr(v["label"]), "group": i18n.tr(v["group"])} for v in values.describe()]
+        + MANAGER.value_schemas(),
+        "widgets": widgets.all_defs(),
+        "widget_categories": widgets.categories(),
+        "value_ops": list(values.OPS),
+    }

@@ -6,6 +6,7 @@ Fileira de baixo: qualidade 95, cor inteira (4:4:4)
 
 Uso: python tools/quality_test.py   (feche o app do D6 antes)
 """
+
 from __future__ import annotations
 
 import io
@@ -39,7 +40,9 @@ def lines() -> Image.Image:
     d = ImageDraw.Draw(img)
     for i in range(0, S, 4):
         d.line([(i, 0), (i, S)], fill=(255, 60, 60) if i % 8 else (60, 200, 255))
-    d.text((S / 2, S / 2), "Linhas", font=render._font(20), fill="white", anchor="mm", stroke_width=3, stroke_fill="black")
+    d.text(
+        (S / 2, S / 2), "Linhas", font=render._font(20), fill="white", anchor="mm", stroke_width=3, stroke_fill="black"
+    )
     return img
 
 
@@ -54,7 +57,9 @@ SAMPLES = [
 
 def jpeg(img, quality, subsampling) -> bytes:
     buf = io.BytesIO()
-    img.rotate(180).save(buf, format="JPEG", quality=quality, subsampling=subsampling, optimize=False, progressive=False)
+    img.rotate(180).save(
+        buf, format="JPEG", quality=quality, subsampling=subsampling, optimize=False, progressive=False
+    )
     return buf.getvalue()
 
 

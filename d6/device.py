@@ -14,6 +14,7 @@ Resumo do que importa aqui:
     com teclas em ordem de leitura (1 = canto superior esquerdo).
   * NÃO usar 'CONNECT': ele apaga as imagens das telas.
 """
+
 from __future__ import annotations
 
 import logging
@@ -24,24 +25,24 @@ from typing import Iterator
 
 import hid
 
-log = logging.getLogger("deck.device")      # o mesmo que app.logs.get("device"), sem o d6 depender do app
+log = logging.getLogger("deck.device")  # o mesmo que app.logs.get("device"), sem o d6 depender do app
 VENDOR_ID = 0x3142
 PRODUCT_ID = 0x0060
 VENDOR_USAGE_PAGE = 0xFFA0
 
 COLS, ROWS = 5, 3
 KEY_COUNT = COLS * ROWS
-LED_COUNT = 18          # anel de LEDs em volta do aparelho
+LED_COUNT = 18  # anel de LEDs em volta do aparelho
 
 ACK_PREFIX = b"ACK\x00\x00OK\x00\x00"
 
-MODE_KEYS = 1      # envia eventos de tecla
-MODE_DISPLAY = 2   # aceita upload de imagens (Fase 2)
+MODE_KEYS = 1  # envia eventos de tecla
+MODE_DISPLAY = 2  # aceita upload de imagens (Fase 2)
 
 
 @dataclass(frozen=True)
 class KeyEvent:
-    key: int          # 1..15, ordem de leitura
+    key: int  # 1..15, ordem de leitura
     pressed: bool
     timestamp: float
 
@@ -64,10 +65,7 @@ def find_vendor_interface() -> dict:
     for d in devs:
         if d.get("usage_page") == VENDOR_USAGE_PAGE or d.get("interface_number") == 0:
             return d
-    raise DeviceNotFound(
-        "Fifine D6 (3142:0060) not found. Is it plugged in? "
-        f"Interfaces seen: {len(devs)}"
-    )
+    raise DeviceNotFound(f"Fifine D6 (3142:0060) not found. Is it plugged in? Interfaces seen: {len(devs)}")
 
 
 def crt(cmd: str, *args: int) -> bytes:
@@ -79,7 +77,7 @@ class D6:
     def __init__(self, path: bytes | None = None):
         self._info = find_vendor_interface() if path is None else {"path": path}
         self._dev: hid.device | None = None
-        self._out_size = 1024   # bytes de dados por output report (sem o report ID)
+        self._out_size = 1024  # bytes de dados por output report (sem o report ID)
         self._in_size = 512
         self._buf = b""
         # Multiplica as pausas entre comandos de sessão. 1.0 = valores conservadores
@@ -92,6 +90,7 @@ class D6:
         path = self._info["path"]
         if sys.platform == "win32":
             from .wincaps import report_sizes
+
             sizes = report_sizes(path)
             self._out_size = sizes["output"] - 1
             self._in_size = sizes["input"] - 1
@@ -144,11 +143,16 @@ class D6:
         LIG n → STP. Sem o CONNECT, que apagaria as telas.
         """
         w = self._wait
-        self.wake_display();                     w(0.15)
-        self.send(crt("LIG", 0, 0, 0, 0));       w(0.15)
-        self.set_mode(MODE_KEYS);                w(0.15)
-        self.set_brightness(brightness);         w(0.15)
-        self.send(crt("STP"));                   w(0.15)
+        self.wake_display()
+        w(0.15)
+        self.send(crt("LIG", 0, 0, 0, 0))
+        w(0.15)
+        self.set_mode(MODE_KEYS)
+        w(0.15)
+        self.set_brightness(brightness)
+        w(0.15)
+        self.send(crt("STP"))
+        w(0.15)
 
     def _wait(self, seconds: float) -> None:
         if self.settle > 0:
@@ -180,13 +184,18 @@ class D6:
     def _session(self, mode: int, brightness: int, clear: bool = False) -> None:
         """Abre uma sessão no modo pedido (DIS, LIG 0, MOD n, LIG n, [CLE], STP)."""
         w = self._wait
-        self.wake_display();                     w(0.1)
-        self.send(crt("LIG", 0, 0, 0, 0));       w(0.1)
-        self.set_mode(mode);                     w(0.2)
-        self.set_brightness(brightness);         w(0.2)
+        self.wake_display()
+        w(0.1)
+        self.send(crt("LIG", 0, 0, 0, 0))
+        w(0.1)
+        self.set_mode(mode)
+        w(0.2)
+        self.set_brightness(brightness)
+        w(0.2)
         if clear:
             self.send(crt("CLE", 0, 0, 0, 0xFF))
-        self.send(crt("STP"));                   w(0.25)
+        self.send(crt("STP"))
+        w(0.25)
 
     def _upload(self, screen: int, jpeg: bytes, chunk: int, pace: float) -> None:
         """BAT <tamanho> <tela>, dados em pedaços, STP."""
@@ -195,7 +204,7 @@ class D6:
             raise ValueError("image too large")
         self.send(crt("BAT", 0, 0, (n >> 8) & 0xFF, n & 0xFF, screen))
         for off in range(0, n, chunk):
-            self.send(jpeg[off:off + chunk])
+            self.send(jpeg[off : off + chunk])
             time.sleep(pace)
         self.send(crt("STP"))
 
@@ -222,9 +231,16 @@ class D6:
             data += bytes((max(0, min(255, int(r))), max(0, min(255, int(g))), max(0, min(255, int(b)))))
         self.send(bytes(data))
 
-    def draw(self, tiles: dict[int, bytes], brightness: int = 100, chunk: int | None = None,
-             pace: float = 0.005, key_delay: float = 0.3, per_key_session: bool = True,
-             clear: bool = False) -> None:
+    def draw(
+        self,
+        tiles: dict[int, bytes],
+        brightness: int = 100,
+        chunk: int | None = None,
+        pace: float = 0.005,
+        key_delay: float = 0.3,
+        per_key_session: bool = True,
+        clear: bool = False,
+    ) -> None:
         """Envia imagens JPEG, indexadas pela TECLA (1..15).
 
         Cuidados que vêm dos projetos de referência:
@@ -282,5 +298,5 @@ class D6:
             if 1 <= key <= KEY_COUNT:
                 out.append(KeyEvent(key=key, pressed=state == 1, timestamp=time.time()))
             # key 0 / 0xFF = ACK interno de pacote de imagem; ignorado aqui.
-        self._buf = buf[max(i, len(buf) - len(ACK_PREFIX) - 1):]
+        self._buf = buf[max(i, len(buf) - len(ACK_PREFIX) - 1) :]
         return out

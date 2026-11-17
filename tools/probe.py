@@ -4,6 +4,7 @@ Uso: python -u tools/probe.py [--step-seconds 12]
 Durante TODO o teste, fique apertando uma tecla do D6 (~1 vez por segundo).
 Nenhum passo envia imagem; no pior caso o CONNECT apaga as telas.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -20,11 +21,17 @@ CONNECT = crt("CONNECT")
 # Cada passo: (nome, [payloads], mandar CONNECT a cada 2 s?)
 STEPS = [
     ("A: MOD 0x31 (akksmash, só modo)", [crt("MOD", 0, 0, 0x31)], False),
-    ("B: DIS, LIG 0, MOD 0x31, LIG 100 (akksmash, sessão completa)",
-     [crt("DIS"), crt("LIG", 0, 0, 0, 0), crt("MOD", 0, 0, 0x31), crt("LIG", 0, 0, 100), crt("STP")], False),
+    (
+        "B: DIS, LIG 0, MOD 0x31, LIG 100 (akksmash, sessão completa)",
+        [crt("DIS"), crt("LIG", 0, 0, 0, 0), crt("MOD", 0, 0, 0x31), crt("LIG", 0, 0, 100), crt("STP")],
+        False,
+    ),
     ("C: CONNECT, MOD 0x31", [CONNECT, crt("MOD", 0, 0, 0x31)], False),
-    ("D: CONNECT, BLEF, MOD 0x01, DIS 0x01, LIG 100 + CONNECT a cada 2 s (micah)",
-     [CONNECT, crt("BLEF"), crt("MOD", 0, 0, 0x01), crt("DIS", 0, 0, 0x01), crt("LIG", 0, 0, 100)], True),
+    (
+        "D: CONNECT, BLEF, MOD 0x01, DIS 0x01, LIG 100 + CONNECT a cada 2 s (micah)",
+        [CONNECT, crt("BLEF"), crt("MOD", 0, 0, 0x01), crt("DIS", 0, 0, 0x01), crt("LIG", 0, 0, 100)],
+        True,
+    ),
 ]
 
 

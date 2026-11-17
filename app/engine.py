@@ -5,6 +5,7 @@ As ações rodam num pool de threads, para uma ação lenta (delay, http) não
 travar as teclas. Mudanças de estado/página só marcam teclas como "sujas";
 o loop principal redesenha apenas as que mudaram de fato.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -21,70 +22,71 @@ from d6 import render
 from d6.device import KEY_COUNT, D6
 
 log = logs.get("engine")
-klog = logs.get("keys")          # aperto/soltura e a decisão (toque, duplo, segurar, repetir)
-dlog = logs.get("device")        # USB: conectar, desconectar, desenhar
+klog = logs.get("keys")  # aperto/soltura e a decisão (toque, duplo, segurar, repetir)
+dlog = logs.get("device")  # USB: conectar, desconectar, desenhar
 clog = logs.get("config")
 vlog = logs.get("values")
 
-DISCONNECTED_PROBLEM = 5.0       # s sem o Deck até virar um problema em aberto
-ERROR_MARK_S = 1.0               # quanto tempo a tecla mostra a marca de erro
+DISCONNECTED_PROBLEM = 5.0  # s sem o Deck até virar um problema em aberto
+ERROR_MARK_S = 1.0  # quanto tempo a tecla mostra a marca de erro
 
 
 class Engine:
     def __init__(self, config_path: Path, debug: bool = False):
         self.config_path = config_path
-        self.debug = debug               # --debug: tudo detalhado (quem filtra é o logs.py)
+        self.debug = debug  # --debug: tudo detalhado (quem filtra é o logs.py)
         if debug and not logs._force_debug:
-            logs._force_debug = True     # Engine(debug=True) sem ter passado pelo logs.setup (testes)
-        self.log_secrets: set[str] = set()   # o que esconder do log além das senhas do config (token do editor)
+            logs._force_debug = True  # Engine(debug=True) sem ter passado pelo logs.setup (testes)
+        self.log_secrets: set[str] = set()  # o que esconder do log além das senhas do config (token do editor)
         self.cfg: Config = load_config(config_path)
         self.deck: D6 | None = None
 
         self._lock = threading.RLock()
         self._states: dict[str, bool] = {}
         self._dirty: set[int] = set(range(1, KEY_COUNT + 1))
-        self._sent: dict[int, str] = {}           # hash do JPEG atualmente em cada tecla
+        self._sent: dict[int, str] = {}  # hash do JPEG atualmente em cada tecla
         self._page = self.cfg.home
         self._history: list[str] = []
         self._brightness = self.cfg.brightness
         self._brightness_dirty = False
-        self._pressed: dict[int, float] = {}      # tecla -> momento em que foi apertada
+        self._pressed: dict[int, float] = {}  # tecla -> momento em que foi apertada
         self._hold_fired: set[int] = set()
         self._pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="acao")
         self._stop_event = threading.Event()
         self._waiting_deck = False
-        self._mirrored: dict[int, str] = {}       # tecla -> combinação segurada (ação 'bind')
-        self._taps: dict[int, dict] = {}          # toque simples esperando ver se vem o 2º (toque duplo)
-        self._doubled: set[int] = set()           # teclas cujo 2º toque já rodou o 'double'
-        self._repeat: dict[int, dict] = {}        # tecla -> {action, next, every, since} (repetir enquanto segura)
-        self._deferred: dict[int, dict] = {}      # aperto adiado: página com toque duplo espera igual em todas
-        self._record: dict | None = None          # "enviar pelo Deck": {combo, until}
-        self._recorded: set[int] = set()          # teclas usadas para gravar (o soltar não roda nada)
-        self._record_sent: dict | None = None     # último envio: {combo, key, at}
-        self._anims: dict[int, dict] = {}         # tecla -> GIF tocando (quadros, durações, posição)
+        self._mirrored: dict[int, str] = {}  # tecla -> combinação segurada (ação 'bind')
+        self._taps: dict[int, dict] = {}  # toque simples esperando ver se vem o 2º (toque duplo)
+        self._doubled: set[int] = set()  # teclas cujo 2º toque já rodou o 'double'
+        self._repeat: dict[int, dict] = {}  # tecla -> {action, next, every, since} (repetir enquanto segura)
+        self._deferred: dict[int, dict] = {}  # aperto adiado: página com toque duplo espera igual em todas
+        self._record: dict | None = None  # "enviar pelo Deck": {combo, until}
+        self._recorded: set[int] = set()  # teclas usadas para gravar (o soltar não roda nada)
+        self._record_sent: dict | None = None  # último envio: {combo, key, at}
+        self._anims: dict[int, dict] = {}  # tecla -> GIF tocando (quadros, durações, posição)
         self._frame_cache: dict[str, tuple[list[bytes], list[float]]] = {}
         self.firmware: str | None = None
         self.light = lighting.Lighting()
         self.light.configure(self.cfg.lighting)
-        self._led_sent: list | None = None        # último quadro mandado ao anel de LEDs
-        self._led_at = 0.0                        # quando foi mandado
+        self._led_sent: list | None = None  # último quadro mandado ao anel de LEDs
+        self._led_at = 0.0  # quando foi mandado
         self._screen_off = False
         self._screen_checked = 0.0
         self._register_states()
         from app.values import VALUES
+
         self.values = VALUES
         VALUES.engine = self
         self.automations = automations.Automations(self)
         self.automations.configure(self.cfg.automations)
-        self._overlay: dict | None = None         # telas pintadas (resposta temporária)
-        self._temp: dict | None = None            # página temporária
-        self._flash: dict | None = None           # cor no anel (resposta temporária)
-        self._swallow: set[int] = set()           # teclas que só fecharam uma resposta (o soltar não roda nada)
-        self._dyn: dict[int, str] = {}            # tecla que mostra valores -> último ícone resolvido
+        self._overlay: dict | None = None  # telas pintadas (resposta temporária)
+        self._temp: dict | None = None  # página temporária
+        self._flash: dict | None = None  # cor no anel (resposta temporária)
+        self._swallow: set[int] = set()  # teclas que só fecharam uma resposta (o soltar não roda nada)
+        self._dyn: dict[int, str] = {}  # tecla que mostra valores -> último ícone resolvido
         self._dyn_at = 0.0
-        self._slices: dict = {}                   # bloco "imagem contínua": imagem grande já cortada
-        self._key_errors: dict[int, dict] = {}    # tecla -> marca de erro {at, until} (until None: ainda não desenhou)
-        self._lost_at: float | None = time.monotonic()   # desde quando está sem o Deck (None = conectado)
+        self._slices: dict = {}  # bloco "imagem contínua": imagem grande já cortada
+        self._key_errors: dict[int, dict] = {}  # tecla -> marca de erro {at, until} (until None: ainda não desenhou)
+        self._lost_at: float | None = time.monotonic()  # desde quando está sem o Deck (None = conectado)
         self.apply_log_settings()
 
     # -- config ----------------------------------------------------------------
@@ -96,6 +98,7 @@ class Engine:
     def apply_log_settings(self) -> None:
         """config.logging (detalhado, áreas) e as senhas a esconder; a cada leitura do config."""
         from app.plugins import MANAGER
+
         logs.configure(self.cfg.raw.get("logging"), secrets=[*MANAGER.secret_values(self.cfg.raw), *self.log_secrets])
 
     def _register_states(self) -> None:
@@ -110,8 +113,12 @@ class Engine:
             new = load_config(self.config_path)
         except Exception as e:
             # ConfigError já diz tudo; outra exceção é inesperada e vai com o traceback
-            clog.warning("Config reload failed, keeping the previous version: %s", e,
-                         exc_info=not isinstance(e, ValueError), extra={"ctx": {"file": str(self.config_path)}})
+            clog.warning(
+                "Config reload failed, keeping the previous version: %s",
+                e,
+                exc_info=not isinstance(e, ValueError),
+                extra={"ctx": {"file": str(self.config_path)}},
+            )
             self.cfg.mark_seen()
             return
         with self._lock:
@@ -128,11 +135,16 @@ class Engine:
             if new.brightness != self._brightness:
                 self._brightness, self._brightness_dirty = new.brightness, True
         self.apply_log_settings()
-        clog.info("Config reloaded: %d pages, %d keys (page %s)", len(new.pages),
-                  sum(len(k) for k in new.pages.values()), self._page)
+        clog.info(
+            "Config reloaded: %d pages, %d keys (page %s)",
+            len(new.pages),
+            sum(len(k) for k in new.pages.values()),
+            self._page,
+        )
         try:
             from app import history
-            history.record(self.config_path)   # pega edições feitas direto no arquivo (o editor já registra as dele)
+
+            history.record(self.config_path)  # pega edições feitas direto no arquivo (o editor já registra as dele)
         except Exception as e:
             logs.get("history").warning("Couldn't save the version in the history: %s", e, exc_info=True)
         self._apply_device_options()
@@ -147,6 +159,7 @@ class Engine:
     def _sync_plugins(self) -> None:
         """Liga, atualiza ou desliga cada plugin (OBS, Discord, terceiros) conforme o config."""
         from app.plugins import MANAGER
+
         MANAGER.attach(self)
         MANAGER.sync(self.cfg.raw)
 
@@ -154,6 +167,7 @@ class Engine:
     def obs(self):
         """Conexão com o OBS (do plugin embutido), ou None se ele estiver desligado."""
         from app.plugins import MANAGER
+
         inst = MANAGER.instance("obs")
         return getattr(inst, "client", None)
 
@@ -172,7 +186,7 @@ class Engine:
             for key, spec in self.cfg.page_keys(self._page).items():
                 if spec.state == name:
                     self._dirty.add(key)
-            for key in range(1, KEY_COUNT + 1):          # teclas com regras/valores podem depender do estado
+            for key in range(1, KEY_COUNT + 1):  # teclas com regras/valores podem depender do estado
                 sp = self.cfg.spec_at(self._page, key)[0]
                 if sp is not None and sp.dynamic:
                     self._dirty.add(key)
@@ -200,11 +214,11 @@ class Engine:
                 target = name
             self._page = target
             self._dirty = set(range(1, KEY_COUNT + 1))
-            self._repeat.clear()                  # repetição é da tecla da página anterior
-            self._key_errors.clear()              # a marca de erro era de uma tecla da outra página
+            self._repeat.clear()  # repetição é da tecla da página anterior
+            self._key_errors.clear()  # a marca de erro era de uma tecla da outra página
         log.info("Page changed: %s -> %s", before, target)
         if self._temp is not None and target != self._temp["page"]:
-            self._temp = None                             # saiu da página temporária na mão
+            self._temp = None  # saiu da página temporária na mão
         self._dyn.clear()
         self.automations.on_page(target)
 
@@ -235,9 +249,9 @@ class Engine:
     def action_failed(self, key: int, page: str | None = None) -> None:
         """Uma ação da tecla deu erro: ela mostra a marca de erro por 1 s (config logging.key_error)."""
         if not isinstance(key, int) or not 1 <= key <= KEY_COUNT:
-            return                                # automação (tecla 0) ou fora do Deck
+            return  # automação (tecla 0) ou fora do Deck
         if page is not None and page != self._page:
-            return                                # a página já mudou: a tecla na tela é outra
+            return  # a página já mudou: a tecla na tela é outra
         if logs.setting(self.cfg.raw.get("logging"), "key_error", True) is False:
             return
         with self._lock:
@@ -330,12 +344,14 @@ class Engine:
             self._hold_fired.discard(key)
             tap = self._taps.pop(key, None)
             if tap is not None and spec.double is not None:
-                self._doubled.add(key)                # 2º toque dentro da janela: toque duplo
-                klog.debug("Key %d pressed again within %d ms (page %s) -> double tap", key, self.cfg.double_ms, self._page)
+                self._doubled.add(key)  # 2º toque dentro da janela: toque duplo
+                klog.debug(
+                    "Key %d pressed again within %d ms (page %s) -> double tap", key, self.cfg.double_ms, self._page
+                )
                 self._submit(spec.double, key, "double")
                 return
             if tap is not None:
-                self._submit(tap["action"], key)      # (a tecla mudou no meio) roda o que estava esperando
+                self._submit(tap["action"], key)  # (a tecla mudou no meio) roda o que estava esperando
             combo = self._mirror_combo(spec)
             if combo:
                 # direto nesta thread (SendInput é instantâneo) para manter a ordem aperta/solta
@@ -344,28 +360,48 @@ class Engine:
                 self._mirrored[key] = combo
             elif spec.repeat == "press" and spec.action is not None:
                 # roda já e, se continuar segurando, repete (como uma tecla de teclado)
-                klog.debug("Key %d pressed (page %s) -> runs now and repeats every %d ms while held",
-                           key, self._page, spec.repeat_ms)
+                klog.debug(
+                    "Key %d pressed (page %s) -> runs now and repeats every %d ms while held",
+                    key,
+                    self._page,
+                    spec.repeat_ms,
+                )
                 self._submit(spec.action, key)
-                self._repeat[key] = {"action": spec.action, "next": now + spec.repeat_delay / 1000,
-                                     "every": spec.repeat_ms / 1000, "since": now, "n": 0, "moment": "repeat"}
+                self._repeat[key] = {
+                    "action": spec.action,
+                    "next": now + spec.repeat_delay / 1000,
+                    "every": spec.repeat_ms / 1000,
+                    "since": now,
+                    "n": 0,
+                    "moment": "repeat",
+                }
             elif spec.hold is None and spec.double is None:
                 if self._page_waits():
                     # página com toque duplo: todas as teclas esperam igual (a luz já reagiu)
-                    klog.debug("Key %d pressed (page %s) -> single, waits %d ms (the page has double taps)",
-                               key, self._page, self.cfg.double_ms)
+                    klog.debug(
+                        "Key %d pressed (page %s) -> single, waits %d ms (the page has double taps)",
+                        key,
+                        self._page,
+                        self.cfg.double_ms,
+                    )
                     self._deferred[key] = {"due": now + self.cfg.double_ms / 1000, "action": spec.action}
                 else:
                     klog.debug("Key %d pressed (page %s) -> single (runs on press)", key, self._page)
-                    self._submit(spec.action, key)   # responde já no aperto
+                    self._submit(spec.action, key)  # responde já no aperto
             else:
-                klog.debug("Key %d pressed (page %s), waiting: %s", key, self._page,
-                           " / ".join(x for x, on in (("hold", spec.hold is not None), ("double tap", spec.double is not None)) if on))
+                klog.debug(
+                    "Key %d pressed (page %s), waiting: %s",
+                    key,
+                    self._page,
+                    " / ".join(
+                        x for x, on in (("hold", spec.hold is not None), ("double tap", spec.double is not None)) if on
+                    ),
+                )
         else:
             t0 = self._pressed.pop(key, None)
             ms = round((now - t0) * 1000) if t0 is not None else -1
             rep = self._repeat.pop(key, None)
-            if key in self._doubled:                  # soltou o 2º toque: o duplo já rodou
+            if key in self._doubled:  # soltou o 2º toque: o duplo já rodou
                 self._doubled.discard(key)
                 klog.debug("Key %d released after %d ms (2nd tap of the double tap)", key, ms)
                 self._submit(spec.release, key, "release")
@@ -374,12 +410,17 @@ class Engine:
             if short and spec.repeat != "press" and (spec.hold is not None or spec.double is not None):
                 if spec.double is not None:
                     # toque simples: espera a janela para ver se vem o segundo
-                    klog.debug("Key %d pressed (page %s), released after %d ms -> waiting %d ms for a double tap",
-                               key, self._page, ms, self.cfg.double_ms)
+                    klog.debug(
+                        "Key %d pressed (page %s), released after %d ms -> waiting %d ms for a double tap",
+                        key,
+                        self._page,
+                        ms,
+                        self.cfg.double_ms,
+                    )
                     self._taps[key] = {"due": now + self.cfg.double_ms / 1000, "action": spec.action}
                 else:
                     klog.debug("Key %d pressed (page %s), released after %d ms -> single tap", key, self._page, ms)
-                    self._submit(spec.action, key)   # toque curto
+                    self._submit(spec.action, key)  # toque curto
             elif rep is not None:
                 klog.debug("Key %d released after %d ms (repeated %d times)", key, ms, rep.get("n", 0))
             elif key in self._hold_fired:
@@ -411,7 +452,12 @@ class Engine:
     # -- respostas temporárias --------------------------------------------------------
     def paint_screens(self, icon: dict, seconds: float, dismiss: bool, passthrough: bool) -> None:
         with self._lock:
-            self._overlay = {"icon": icon, "until": time.monotonic() + seconds, "dismiss": dismiss, "passthrough": passthrough}
+            self._overlay = {
+                "icon": icon,
+                "until": time.monotonic() + seconds,
+                "dismiss": dismiss,
+                "passthrough": passthrough,
+            }
             self._dirty = set(range(1, KEY_COUNT + 1))
 
     def _end_overlay(self) -> None:
@@ -419,20 +465,29 @@ class Engine:
             self._overlay = None
             self._dirty = set(range(1, KEY_COUNT + 1))
 
-    def show_temp_page(self, page: str, seconds: float, dismiss: bool, passthrough: bool, show_left: bool, light) -> None:
+    def show_temp_page(
+        self, page: str, seconds: float, dismiss: bool, passthrough: bool, show_left: bool, light
+    ) -> None:
         if page not in self.cfg.pages:
             raise ValueError(tr("page '{page}' doesn't exist", page=page))
         now = time.monotonic()
         with self._lock:
             ret = self._temp["ret"] if self._temp else self._page
             close = None
-            if show_left:                              # a última tecla vazia vira "Fechar" com o tempo que falta
+            if show_left:  # a última tecla vazia vira "Fechar" com o tempo que falta
                 for k in range(KEY_COUNT, 0, -1):
                     if self.cfg.spec_at(page, k)[0] is None:
                         close = k
                         break
-            self._temp = {"page": page, "ret": ret, "until": now + seconds, "total": seconds,
-                          "dismiss": dismiss, "passthrough": passthrough, "close_key": close}
+            self._temp = {
+                "page": page,
+                "ret": ret,
+                "until": now + seconds,
+                "total": seconds,
+                "dismiss": dismiss,
+                "passthrough": passthrough,
+                "close_key": close,
+            }
             before = self._page
             self._page = page
             self._dirty = set(range(1, KEY_COUNT + 1))
@@ -461,7 +516,7 @@ class Engine:
             return
         h = color.lstrip("#")
         try:
-            rgb = tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+            rgb = tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
         except ValueError:
             rgb = (34, 197, 94)
         self._flash = {"rgb": rgb, "until": time.monotonic() + seconds, "blink": blink}
@@ -481,7 +536,7 @@ class Engine:
                     # acabou o tempo, ou nunca chegou a desenhar (tecla presa, Deck fora): some
                     if (m["until"] is not None and now >= m["until"]) or now - m["at"] > 10:
                         del self._key_errors[key]
-                        self._dirty.add(key)              # volta ao normal
+                        self._dirty.add(key)  # volta ao normal
 
     # -- teclas que mostram valores ----------------------------------------------------
     def _icon_for(self, key: int):
@@ -492,8 +547,13 @@ class Engine:
         t = self._temp
         if t is not None and key == t.get("close_key") and self._page == t["page"]:
             left = max(0.0, t["until"] - time.monotonic())
-            return {"lucide": "x", "text": tr("Close"), "bg": "#262d38", "style": "info",
-                    "bar": {"pct": 100 * left / t["total"] if t["total"] else 0, "color": "#eceef2"}}
+            return {
+                "lucide": "x",
+                "text": tr("Close"),
+                "bg": "#262d38",
+                "style": "info",
+                "bar": {"pct": 100 * left / t["total"] if t["total"] else 0, "color": "#eceef2"},
+            }
         spec, idx = self.cfg.spec_at(self._page, key)
         if spec is None:
             return None
@@ -516,6 +576,7 @@ class Engine:
     def _block_slice(self, key: int, icon: dict):
         """Bloco "imagem contínua": a imagem cobre o bloco inteiro, pulando o vão entre as telas."""
         from PIL import Image, ImageOps
+
         spec, idx = icon["__anchor__"], icon["__slice__"]
         cols, rows = spec.span
         gap = int((self.cfg.raw.get("device") or {}).get("gap_px", 28))
@@ -605,8 +666,14 @@ class Engine:
                     # "ao segurar" repetindo: roda agora e de novo a cada repeat_ms até soltar
                     klog.debug("Key %d held %d ms -> hold, repeating every %d ms", key, spec.hold_ms, spec.repeat_ms)
                     self._submit(spec.hold, key, "hold")
-                    self._repeat[key] = {"action": spec.hold, "next": now + spec.repeat_ms / 1000,
-                                         "every": spec.repeat_ms / 1000, "since": now, "n": 0, "moment": "hold"}
+                    self._repeat[key] = {
+                        "action": spec.hold,
+                        "next": now + spec.repeat_ms / 1000,
+                        "every": spec.repeat_ms / 1000,
+                        "since": now,
+                        "n": 0,
+                        "moment": "hold",
+                    }
                     continue
                 combo = self._mirror_of(spec.hold)
                 if combo:
@@ -654,8 +721,7 @@ class Engine:
             frames = icons.render_frames(icon, self.cfg.base_dir, defaults)
             if len(self._frame_cache) > 24:
                 self._frame_cache.clear()
-            self._frame_cache[ck] = ([render.encode(img) for img, _ in frames],
-                                     [ms / 1000 for _, ms in frames])
+            self._frame_cache[ck] = ([render.encode(img) for img, _ in frames], [ms / 1000 for _, ms in frames])
         return self._frame_cache[ck]
 
     def _flush_draws(self) -> None:
@@ -676,14 +742,13 @@ class Engine:
                 jpegs, durations = self._frames_for(key)
                 mark = self._key_errors.get(key)
                 if mark is not None and mark["until"] is None:
-                    mark["until"] = now + ERROR_MARK_S    # o 1 s conta a partir de quando aparece
+                    mark["until"] = now + ERROR_MARK_S  # o 1 s conta a partir de quando aparece
                 if len(jpegs) > 1:
                     old = self._anims.get(key)
                     if old is None or old["jpegs"] is not jpegs:
-                        self._anims[key] = {"jpegs": jpegs, "durations": durations, "i": 0,
-                                            "due": now + durations[0]}
+                        self._anims[key] = {"jpegs": jpegs, "durations": durations, "i": 0, "due": now + durations[0]}
                     else:
-                        continue                      # o mesmo GIF já está tocando
+                        continue  # o mesmo GIF já está tocando
                 else:
                     self._anims.pop(key, None)
                 data = jpegs[0]
@@ -704,9 +769,13 @@ class Engine:
             else:
                 for key in sorted(tiles, key=self.deck.screen_for_key):
                     self.deck.push(key, tiles[key])
-            dlog.debug("Drew keys %s in %d ms (render %d ms, %d bytes)", sorted(tiles),
-                       round((time.monotonic() - t0) * 1000), round((t0 - t_render) * 1000),
-                       sum(len(b) for b in tiles.values()))
+            dlog.debug(
+                "Drew keys %s in %d ms (render %d ms, %d bytes)",
+                sorted(tiles),
+                round((time.monotonic() - t0) * 1000),
+                round((t0 - t_render) * 1000),
+                sum(len(b) for b in tiles.values()),
+            )
 
     # -- API usada pelo editor -------------------------------------------------------
 
@@ -768,18 +837,27 @@ class Engine:
         self._apply_device_options()
         deck.enable_keys(self._brightness)
         with self._lock:
-            self._sent.clear()                     # o D6 pode ter perdido as imagens
+            self._sent.clear()  # o D6 pode ter perdido as imagens
             self._dirty = set(range(1, KEY_COUNT + 1))
             self._pressed.clear()
         self.firmware = deck.firmware_version()
         self._key_errors.clear()
         info = deck.info or {}
-        dlog.info("Deck connected: USB %04x:%04x, firmware %s, %s%s", info.get("vendor_id") or 0,
-                  info.get("product_id") or 0, self.firmware or "?",
-                  (info.get("product_string") or "Fifine D6").strip(),
-                  f" (release {info['release_number']:#06x})" if info.get("release_number") else "",
-                  extra={"ctx": {"interface": info.get("interface_number"), "usage_page": info.get("usage_page"),
-                                 "manufacturer": info.get("manufacturer_string") or None}})
+        dlog.info(
+            "Deck connected: USB %04x:%04x, firmware %s, %s%s",
+            info.get("vendor_id") or 0,
+            info.get("product_id") or 0,
+            self.firmware or "?",
+            (info.get("product_string") or "Fifine D6").strip(),
+            f" (release {info['release_number']:#06x})" if info.get("release_number") else "",
+            extra={
+                "ctx": {
+                    "interface": info.get("interface_number"),
+                    "usage_page": info.get("usage_page"),
+                    "manufacturer": info.get("manufacturer_string") or None,
+                }
+            },
+        )
         if self._lost_at is not None:
             dlog.debug("The Deck was away for %.1f s", time.monotonic() - self._lost_at)
         self._lost_at = None
@@ -790,9 +868,13 @@ class Engine:
     def device_info(self) -> dict:
         """Dados do aparelho para o pacote de diagnóstico."""
         info = (self.deck.info if self.deck is not None else None) or {}
-        return {"connected": self.deck is not None, "firmware": self.firmware,
-                "usb": f"{info.get('vendor_id') or 0:04x}:{info.get('product_id') or 0:04x}" if info else None,
-                "product": info.get("product_string"), "release": info.get("release_number")}
+        return {
+            "connected": self.deck is not None,
+            "firmware": self.firmware,
+            "usb": f"{info.get('vendor_id') or 0:04x}:{info.get('product_id') or 0:04x}" if info else None,
+            "product": info.get("product_string"),
+            "release": info.get("release_number"),
+        }
 
     def _close_deck(self) -> None:
         self._release_mirrored()
@@ -818,7 +900,7 @@ class Engine:
             self.deck.push(key, data)
             self._sent[key] = hashlib.sha1(data).hexdigest()
             a["due"] += a["durations"][a["i"]]
-            if a["due"] < now:                       # atrasou muito (desenho longo): ressincroniza
+            if a["due"] < now:  # atrasou muito (desenho longo): ressincroniza
                 a["due"] = now + a["durations"][a["i"]]
 
     # -- luz (anel de LEDs) --------------------------------------------------------
@@ -849,11 +931,15 @@ class Engine:
         if animating and now - self._led_at < 1 / 30:
             return
         f = self._flash
-        if f is not None:                                  # resposta temporária na luz
+        if f is not None:  # resposta temporária na luz
             on = not f["blink"] or int((f["until"] - now) * 3) % 2 == 0
             frame = [f["rgb"] if on else (0, 0, 0)] * lighting.N
         else:
-            frame = [(0, 0, 0)] * lighting.N if (self._screen_off and s.get("off_with_screen")) else self.light.frame(self._page, now)
+            frame = (
+                [(0, 0, 0)] * lighting.N
+                if (self._screen_off and s.get("off_with_screen"))
+                else self.light.frame(self._page, now)
+            )
         # reenvia o mesmo quadro de vez em quando: depois dos dois cliques no botão de trás,
         # a luz do app volta sozinha
         if frame != self._led_sent or now - self._led_at > 1.5:
@@ -913,6 +999,7 @@ class Engine:
                     self._close_deck()
         finally:
             from app.plugins import MANAGER
+
             MANAGER.stop_all()
             self._pool.shutdown(wait=False, cancel_futures=True)
             self._close_deck()

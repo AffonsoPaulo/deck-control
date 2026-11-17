@@ -7,11 +7,11 @@ Estados publicados (usados para trocar ícones automaticamente):
     obs.connected, obs.recording, obs.record_paused, obs.streaming, obs.replay, obs.virtualcam,
     obs.scene:<cena>, obs.muted:<entrada>, obs.visible:<cena>/<fonte>
 """
+
 from __future__ import annotations
 
 import logging
 import threading
-import time
 from typing import TYPE_CHECKING
 
 from app import logs
@@ -31,11 +31,15 @@ def why_not(e: Exception) -> tuple[str, str]:
     """(texto do problema, motivo curto em inglês para o log) de uma falha ao conectar."""
     text = f"{type(e).__name__}: {e}".lower()
     if isinstance(e, ConnectionRefusedError) or "refused" in text or "10061" in text:
-        return ("OBS can't connect at {host}: OBS is closed or its WebSocket server is off. Retrying every 5 s.",
-                "connection refused (OBS closed or WebSocket off)")
+        return (
+            "OBS can't connect at {host}: OBS is closed or its WebSocket server is off. Retrying every 5 s.",
+            "connection refused (OBS closed or WebSocket off)",
+        )
     if "no password provided" in text:
-        return ("OBS can't connect at {host}: OBS asks for a password and none is set. Retrying every 5 s.",
-                "OBS asks for a password, none is set")
+        return (
+            "OBS can't connect at {host}: OBS asks for a password and none is set. Retrying every 5 s.",
+            "OBS asks for a password, none is set",
+        )
     if "failed to identify" in text or "connectionclosed" in text or "4009" in text or "authentication" in text:
         return ("OBS can't connect at {host}: wrong password. Retrying every 5 s.", "wrong password")
     if isinstance(e, TimeoutError) or "timeout" in text or "timed out" in text:
@@ -82,19 +86,30 @@ class OBS:
     # -- conexão --------------------------------------------------------------
 
     def _conn_kwargs(self) -> dict:
-        return dict(host=self.cfg.get("host", "localhost"), port=int(self.cfg.get("port", 4455)),
-                    password=self.cfg.get("password", ""), timeout=3)
+        return dict(
+            host=self.cfg.get("host", "localhost"),
+            port=int(self.cfg.get("port", 4455)),
+            password=self.cfg.get("password", ""),
+            timeout=3,
+        )
 
     def _connect(self) -> None:
         import obsws_python as obsws
+
         req = obsws.ReqClient(**self._conn_kwargs())
         ev = obsws.EventClient(**self._conn_kwargs())
-        ev.callback.register([
-            self.on_record_state_changed, self.on_stream_state_changed,
-            self.on_replay_buffer_state_changed, self.on_virtualcam_state_changed,
-            self.on_current_program_scene_changed, self.on_input_mute_state_changed,
-            self.on_scene_item_enable_state_changed, self.on_exit_started,
-        ])
+        ev.callback.register(
+            [
+                self.on_record_state_changed,
+                self.on_stream_state_changed,
+                self.on_replay_buffer_state_changed,
+                self.on_virtualcam_state_changed,
+                self.on_current_program_scene_changed,
+                self.on_input_mute_state_changed,
+                self.on_scene_item_enable_state_changed,
+                self.on_exit_started,
+            ]
+        )
         with self._lock:
             self.req, self.ev = req, ev
             self._item_ids.clear()
@@ -104,8 +119,12 @@ class OBS:
         except Exception:
             log.debug("GetVersion failed right after connecting", exc_info=True)
             version = "version unknown"
-        log.info("OBS connected at %s (%s)%s", self._host(), version,
-                 f" after {self._attempts} failed attempts" if self._attempts else "")
+        log.info(
+            "OBS connected at %s (%s)%s",
+            self._host(),
+            version,
+            f" after {self._attempts} failed attempts" if self._attempts else "",
+        )
         self._attempts = 0
         logs.resolve(PROBLEM)
         self.engine.set_state("obs.connected", True)
@@ -144,9 +163,14 @@ class OBS:
                     text, reason = why_not(e)
                     msg = f"{type(e).__name__}: {e}".strip()
                     if msg != self._last_error:  # só repete o aviso quando o erro muda
-                        log.warning("OBS didn't connect at %s: %s (attempt %d); retrying every %d s",
-                                    self._host(), reason, self._attempts, RETRY,
-                                    extra={"ctx": {"host": self._host(), "error": msg}})
+                        log.warning(
+                            "OBS didn't connect at %s: %s (attempt %d); retrying every %d s",
+                            self._host(),
+                            reason,
+                            self._attempts,
+                            RETRY,
+                            extra={"ctx": {"host": self._host(), "error": msg}},
+                        )
                         self._last_error = msg
                     else:
                         log.debug("OBS didn't connect at %s: %s (attempt %d)", self._host(), reason, self._attempts)
@@ -172,13 +196,21 @@ class OBS:
     def refresh(self) -> None:
         """Lê o estado completo (ao conectar)."""
         set_ = self.engine.set_state
-        for state, request in (("obs.recording", "GetRecordStatus"), ("obs.streaming", "GetStreamStatus"),
-                               ("obs.replay", "GetReplayBufferStatus"), ("obs.virtualcam", "GetVirtualCamStatus")):
+        for state, request in (
+            ("obs.recording", "GetRecordStatus"),
+            ("obs.streaming", "GetStreamStatus"),
+            ("obs.replay", "GetReplayBufferStatus"),
+            ("obs.virtualcam", "GetVirtualCamStatus"),
+        ):
             try:
                 r = self.call(request)
                 set_(state, bool(r.get("outputActive")))
                 if request in ("GetRecordStatus", "GetStreamStatus"):
-                    self._since("record" if request == "GetRecordStatus" else "stream", bool(r.get("outputActive")), r.get("outputDuration"))
+                    self._since(
+                        "record" if request == "GetRecordStatus" else "stream",
+                        bool(r.get("outputActive")),
+                        r.get("outputDuration"),
+                    )
                 if request == "GetRecordStatus":
                     set_("obs.record_paused", bool(r.get("outputPaused")))
             except Exception as e:
@@ -192,7 +224,7 @@ class OBS:
         for name in self.engine.states_with_prefix("obs.muted:"):
             try:
                 set_(name, bool(self.call("GetInputMute", {"inputName": name.split(":", 1)[1]}).get("inputMuted")))
-            except Exception as e:      # a entrada pode não existir mais no OBS
+            except Exception as e:  # a entrada pode não existir mais no OBS
                 log.debug("Couldn't read %s: %s", name, e)
         for name in self.engine.states_with_prefix("obs.visible:"):
             scene, _, source = name.split(":", 1)[1].partition("/")
@@ -200,17 +232,19 @@ class OBS:
                 item = self._item_id(scene, source)
                 r = self.call("GetSceneItemEnabled", {"sceneName": scene, "sceneItemId": item})
                 set_(name, bool(r.get("sceneItemEnabled")))
-            except Exception as e:      # a cena ou a fonte pode não existir mais
+            except Exception as e:  # a cena ou a fonte pode não existir mais
                 log.debug("Couldn't read %s: %s", name, e)
 
     # tempo de live / gravação: valores calculados na hora em que a tecla é desenhada
     def _since(self, kind: str, active: bool, duration_ms=None) -> None:
         import time as _t
+
         since = (_t.monotonic() - (duration_ms or 0) / 1000) if active else None
         setattr(self, f"_{kind}_since", since)
 
     def _elapsed(self, kind: str) -> str:
         import time as _t
+
         since = getattr(self, f"_{kind}_since", None)
         if since is None:
             return "00:00"
@@ -219,11 +253,13 @@ class OBS:
 
     def _publish_times(self) -> None:
         from app.values import VALUES
+
         VALUES.set("obs.stream_time", lambda: self._elapsed("stream"))
         VALUES.set("obs.record_time", lambda: self._elapsed("record"))
 
     def _set_scene(self, current: str | None) -> None:
         from app.values import VALUES
+
         VALUES.set("obs.scene", current)
         for name in self.engine.states_with_prefix("obs.scene:"):
             self.engine.set_state(name, name == f"obs.scene:{current}")
@@ -301,7 +337,6 @@ def setup(api):
             raise RuntimeError(tr("OBS isn't connected (Settings › Integrations)"))
         return ctx.engine.obs
 
-
     def _output(ctx: Context, spec: dict, name: str) -> None:
         """start/stop/toggle genérico para Record, Stream, ReplayBuffer, VirtualCam."""
         mode = spec.get("mode", "toggle")
@@ -309,13 +344,11 @@ def setup(api):
             raise ValueError(f"mode deve ser toggle/start/stop, não '{mode}'")
         _obs(ctx).call(f"{mode.capitalize()}{name}")
 
-
     @api.action("obs.scene", required=("scene",), state=lambda s, k: f"obs.scene:{s['scene']}")
     def scene(spec: dict, ctx: Context) -> None:
         """Troca a cena do programa. preview: true para trocar a cena de preview (modo estúdio)."""
         req = "SetCurrentPreviewScene" if spec.get("preview") else "SetCurrentProgramScene"
         _obs(ctx).call(req, {"sceneName": spec["scene"]})
-
 
     @api.action("obs.record", state=lambda s, k: "obs.record_paused" if s.get("mode") == "pause" else "obs.recording")
     def record(spec: dict, ctx: Context) -> None:
@@ -325,12 +358,10 @@ def setup(api):
         else:
             _output(ctx, spec, "Record")
 
-
     @api.action("obs.stream", state=lambda s, k: "obs.streaming")
     def stream(spec: dict, ctx: Context) -> None:
         """Transmissão. mode: toggle | start | stop."""
         _output(ctx, spec, "Stream")
-
 
     @api.action("obs.replay", state=lambda s, k: None if s.get("mode") == "save" else "obs.replay")
     def replay(spec: dict, ctx: Context) -> None:
@@ -340,12 +371,10 @@ def setup(api):
         else:
             _output(ctx, spec, "ReplayBuffer")
 
-
     @api.action("obs.virtualcam", state=lambda s, k: "obs.virtualcam")
     def virtualcam(spec: dict, ctx: Context) -> None:
         """Câmera virtual. mode: toggle | start | stop."""
         _output(ctx, spec, "VirtualCam")
-
 
     @api.action("obs.mute", required=("input",), state=lambda s, k: f"obs.muted:{s['input']}")
     def mute(spec: dict, ctx: Context) -> None:
@@ -356,9 +385,9 @@ def setup(api):
         else:
             _obs(ctx).call("SetInputMute", {"inputName": spec["input"], "inputMuted": mode == "on"})
 
-
-    @api.action("obs.source", required=("scene", "source"),
-            state=lambda s, k: f"obs.visible:{s['scene']}/{s['source']}")
+    @api.action(
+        "obs.source", required=("scene", "source"), state=lambda s, k: f"obs.visible:{s['scene']}/{s['source']}"
+    )
     def source(spec: dict, ctx: Context) -> None:
         """Mostra/esconde uma fonte numa cena. mode: toggle | show | hide."""
         o = _obs(ctx)
@@ -370,7 +399,6 @@ def setup(api):
         else:
             enabled = mode == "show"
         o.call("SetSceneItemEnabled", {"sceneName": spec["scene"], "sceneItemId": item, "sceneItemEnabled": enabled})
-
 
     @api.action("obs.request", required=("request",))
     def request(spec: dict, ctx: Context) -> None:

@@ -10,6 +10,7 @@ O desenho mora aqui, numa grade de 32: a bandeja (PIL) e o favicon (SVG) saem
 da mesma geometria. Depois de mudar algo, rode `python -m app.brand` para
 regravar editor/static/favicon.svg e favicon-off.svg.
 """
+
 from __future__ import annotations
 
 import io
@@ -19,18 +20,21 @@ from PIL import Image, ImageDraw
 
 INK = (22, 24, 29)
 WHITE = (255, 255, 255)
+# fmt: off
 CORNERS = ((62, 99, 221), (47, 158, 106),     # em cima: azul, verde
            (229, 112, 26), (245, 165, 36))    # embaixo: laranja, âmbar
+# fmt: on
 RING_OFF = (74, 80, 92)
 ALERT = (245, 165, 36)  # selo de alerta (âmbar #F5A524)
-RADIUS = 8.5           # canto externo, na grade de 32
-RING = 3               # largura do anel, na grade de 32
-STROKE = 0.35          # engrossa um pouco o traço da Figtree 700
-BLEND = (0.15, 0.85)   # faixa vertical em que as cores de cima viram as de baixo
+RADIUS = 8.5  # canto externo, na grade de 32
+RING = 3  # largura do anel, na grade de 32
+STROKE = 0.35  # engrossa um pouco o traço da Figtree 700
+BLEND = (0.15, 0.85)  # faixa vertical em que as cores de cima viram as de baixo
 TRAY_SIZES = (16, 20, 24, 32, 40, 48, 64)
 
 # DE / CK em Figtree 700, contornos já achatados em polígonos na grade de 32
 # (gerados pela fonte do editor; True = furo, como o miolo do D)
+# fmt: off
 LETTERS = [
     (False, [(9.04, 15.0), (9.04, 7.4), (11.48, 7.4), (11.7, 7.4), (11.93, 7.42), (12.15, 7.44), (12.36, 7.48), (12.57, 7.52), (12.77, 7.58), (12.97, 7.64), (13.16, 7.71), (13.35, 7.8), (13.53, 7.89), (13.71, 7.99), (13.88, 8.1), (14.03, 8.21), (14.19, 8.34), (14.33, 8.47), (14.47, 8.61), (14.6, 8.75), (14.72, 8.9), (14.83, 9.06), (14.93, 9.23), (15.03, 9.4), (15.11, 9.58), (15.19, 9.76), (15.26, 9.95), (15.31, 10.15), (15.36, 10.35), (15.39, 10.55), (15.42, 10.76), (15.43, 10.98), (15.44, 11.2), (15.43, 11.42), (15.42, 11.63), (15.39, 11.84), (15.36, 12.05), (15.31, 12.25), (15.26, 12.44), (15.19, 12.63), (15.11, 12.81), (15.03, 12.99), (14.93, 13.17), (14.83, 13.33), (14.72, 13.49), (14.6, 13.65), (14.47, 13.79), (14.33, 13.93), (14.19, 14.06), (14.03, 14.19), (13.88, 14.3), (13.71, 14.41), (13.53, 14.51), (13.35, 14.6), (13.16, 14.69), (12.97, 14.76), (12.77, 14.82), (12.57, 14.88), (12.36, 14.92), (12.15, 14.96), (11.93, 14.98), (11.7, 15.0), (11.48, 15.0)]),
     (True, [(10.53, 13.61), (11.48, 13.61), (11.58, 13.61), (11.68, 13.6), (11.78, 13.59), (11.88, 13.58), (11.98, 13.56), (12.07, 13.54), (12.17, 13.52), (12.26, 13.49), (12.35, 13.46), (12.44, 13.43), (12.53, 13.39), (12.61, 13.35), (12.7, 13.3), (12.78, 13.26), (12.86, 13.21), (12.93, 13.15), (13.01, 13.1), (13.08, 13.04), (13.15, 12.98), (13.22, 12.92), (13.28, 12.85), (13.34, 12.78), (13.4, 12.71), (13.46, 12.64), (13.51, 12.56), (13.56, 12.48), (13.61, 12.4), (13.65, 12.32), (13.7, 12.24), (13.73, 12.15), (13.77, 12.06), (13.8, 11.97), (13.83, 11.88), (13.85, 11.79), (13.87, 11.69), (13.89, 11.6), (13.9, 11.5), (13.91, 11.4), (13.92, 11.3), (13.92, 11.2), (13.92, 11.1), (13.91, 11.0), (13.9, 10.9), (13.89, 10.8), (13.87, 10.71), (13.85, 10.61), (13.83, 10.52), (13.8, 10.43), (13.77, 10.34), (13.73, 10.25), (13.7, 10.16), (13.65, 10.08), (13.61, 10.0), (13.56, 9.92), (13.51, 9.84), (13.46, 9.76), (13.4, 9.69), (13.34, 9.62), (13.28, 9.55), (13.22, 9.48), (13.15, 9.42), (13.08, 9.36), (13.01, 9.3), (12.93, 9.25), (12.86, 9.19), (12.78, 9.14), (12.7, 9.1), (12.61, 9.05), (12.53, 9.01), (12.44, 8.97), (12.35, 8.94), (12.26, 8.91), (12.17, 8.88), (12.07, 8.86), (11.98, 8.84), (11.88, 8.82), (11.78, 8.81), (11.68, 8.8), (11.58, 8.79), (11.48, 8.79), (10.53, 8.79)]),
@@ -40,6 +44,7 @@ LETTERS = [
     (False, [(17.05, 24.6), (17.05, 17.0), (18.52, 17.0), (18.52, 24.6)]),
     (False, [(21.53, 24.6), (18.51, 20.73), (19.58, 19.84), (23.37, 24.6)]),
 ]
+# fmt: on
 
 
 def _ring_image(n: int, lit: bool) -> Image.Image:
@@ -47,8 +52,8 @@ def _ring_image(n: int, lit: bool) -> Image.Image:
     if not lit:
         return Image.new("RGB", (n, n), RING_OFF)
     tl, tr, bl, br = (Image.new("RGB", (n, n), c) for c in CORNERS)
-    down = Image.linear_gradient("L").resize((n, n), Image.BILINEAR)    # 0 em cima, 255 embaixo
-    across = down.transpose(Image.Transpose.ROTATE_90)                     # 0 à esquerda
+    down = Image.linear_gradient("L").resize((n, n), Image.BILINEAR)  # 0 em cima, 255 embaixo
+    across = down.transpose(Image.Transpose.ROTATE_90)  # 0 à esquerda
     a, b = BLEND[0] * 255, BLEND[1] * 255
     blend = down.point(lambda v: round(min(255, max(0, (v - a) * 255 / (b - a)))))
     top = Image.composite(tr, tl, across)
@@ -58,10 +63,10 @@ def _ring_image(n: int, lit: bool) -> Image.Image:
 
 def mark(size: int = 64, lit: bool = True, alert: bool = False) -> Image.Image:
     """A marca em `size` px. lit=False: anel cinza (D6 desconectado). alert=True: selo de problema."""
-    ss = 8                                             # desenha 8x maior e reduz
+    ss = 8  # desenha 8x maior e reduz
     n = size * ss
-    u = n / 32                                         # 1 unidade da grade, em px
-    ring = max(2, round(size * RING / 32)) * ss        # anel preso à grade de pixels
+    u = n / 32  # 1 unidade da grade, em px
+    ring = max(2, round(size * RING / 32)) * ss  # anel preso à grade de pixels
     r = round(RADIUS * u)
 
     mask = Image.new("L", (n, n), 0)
@@ -86,13 +91,13 @@ def mark(size: int = 64, lit: bool = True, alert: bool = False) -> Image.Image:
 
 def _alert_badge(d: ImageDraw.ImageDraw, n: int, size: int, ss: int) -> None:
     """Quadrado âmbar arredondado com um "!" escuro, no canto de baixo à direita."""
-    side = max(9, round(size * 0.46)) * ss                # em 16 px: 9 px, ainda legível
+    side = max(9, round(size * 0.46)) * ss  # em 16 px: 9 px, ainda legível
     x0 = y0 = n - side
-    edge = max(1, round(size / 16)) * ss                  # contorno escuro para separar do anel
+    edge = max(1, round(size / 16)) * ss  # contorno escuro para separar do anel
     d.rounded_rectangle([x0 - edge, y0 - edge, n - 1, n - 1], radius=round(side * 0.3) + edge, fill=INK)
     d.rounded_rectangle([x0, y0, n - 1, n - 1], radius=round(side * 0.3), fill=ALERT)
     cx = x0 + side / 2
-    bw = max(2 * ss, round(side * 0.2))                   # largura do traço do "!"
+    bw = max(2 * ss, round(side * 0.2))  # largura do traço do "!"
     top, bottom = y0 + side * 0.18, y0 + side * 0.6
     d.rounded_rectangle([cx - bw / 2, top, cx + bw / 2, bottom], radius=bw / 2, fill=INK)
     dot = y0 + side * 0.8
@@ -112,17 +117,21 @@ def svg(lit: bool = True) -> str:
     hexc = lambda c: "#%02x%02x%02x" % c
     if lit:
         (tl, tr, bl, br) = (hexc(c) for c in CORNERS)
-        ring = (f'<defs><linearGradient id="t"><stop offset="0" stop-color="{tl}"/><stop offset="1" stop-color="{tr}"/></linearGradient>'
-                f'<linearGradient id="b"><stop offset="0" stop-color="{bl}"/><stop offset="1" stop-color="{br}"/></linearGradient>'
-                f'<linearGradient id="v" x2="0" y2="1"><stop offset="{BLEND[0]}" stop-color="#fff" stop-opacity="0"/>'
-                f'<stop offset="{BLEND[1]}" stop-color="#fff"/></linearGradient>'
-                f'<mask id="m"><rect width="32" height="32" fill="url(#v)"/></mask></defs>'
-                f'<rect width="32" height="32" rx="{RADIUS}" fill="url(#t)"/>'
-                f'<rect width="32" height="32" rx="{RADIUS}" fill="url(#b)" mask="url(#m)"/>')
+        ring = (
+            f'<defs><linearGradient id="t"><stop offset="0" stop-color="{tl}"/><stop offset="1" stop-color="{tr}"/></linearGradient>'
+            f'<linearGradient id="b"><stop offset="0" stop-color="{bl}"/><stop offset="1" stop-color="{br}"/></linearGradient>'
+            f'<linearGradient id="v" x2="0" y2="1"><stop offset="{BLEND[0]}" stop-color="#fff" stop-opacity="0"/>'
+            f'<stop offset="{BLEND[1]}" stop-color="#fff"/></linearGradient>'
+            f'<mask id="m"><rect width="32" height="32" fill="url(#v)"/></mask></defs>'
+            f'<rect width="32" height="32" rx="{RADIUS}" fill="url(#t)"/>'
+            f'<rect width="32" height="32" rx="{RADIUS}" fill="url(#b)" mask="url(#m)"/>'
+        )
     else:
         ring = f'<rect width="32" height="32" rx="{RADIUS}" fill="{hexc(RING_OFF)}"/>'
-    inner = (f'<rect x="{RING}" y="{RING}" width="{32 - 2 * RING}" height="{32 - 2 * RING}" '
-             f'rx="{RADIUS - RING + .5:g}" fill="{hexc(INK)}"/>')
+    inner = (
+        f'<rect x="{RING}" y="{RING}" width="{32 - 2 * RING}" height="{32 - 2 * RING}" '
+        f'rx="{RADIUS - RING + 0.5:g}" fill="{hexc(INK)}"/>'
+    )
     d = "".join("M" + "L".join(f"{x:g} {y:g}" for x, y in pts) + "Z" for _, pts in LETTERS)
     letters = f'<path fill="#fff" stroke="#fff" stroke-width="{STROKE}" stroke-linejoin="round" d="{d}"/>'
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">{ring}{inner}{letters}</svg>\n'

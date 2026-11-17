@@ -18,6 +18,7 @@ Gatilhos ('when.type'):
   page       page: main             ao entrar numa página
 Rodam só enquanto o app está aberto.
 """
+
 from __future__ import annotations
 
 import time
@@ -75,7 +76,9 @@ class Automations:
         for i, a in enumerate(self.items):
             st = old.get(self._key(a))
             # automação nova (ou mudada): contagem e "a cada" começam agora; condição começa como está
-            self._state[i] = st if st is not None else {"since": now, "last": None, "prev": None, "fired_day": None, "done": False}
+            self._state[i] = (
+                st if st is not None else {"since": now, "last": None, "prev": None, "fired_day": None, "done": False}
+            )
 
     @staticmethod
     def _key(a: dict) -> str:
@@ -137,11 +140,20 @@ class Automations:
             elif t == "value":
                 cur = values.test(w, self.engine.values.get)
                 if cur != st["prev"]:
-                    log.debug("Automation '%s': condition %s %s %r is now %s%s", self._name(a, i), w.get("value"),
-                              w.get("op") or "eq", w.get("to"), cur,
-                              " (first reading: only noted)" if st["prev"] is None else
-                              "" if cur else " (doesn't run: it runs when it turns true)")
-                if cur and st["prev"] is False:       # passou a valer (na primeira leitura só anota)
+                    log.debug(
+                        "Automation '%s': condition %s %s %r is now %s%s",
+                        self._name(a, i),
+                        w.get("value"),
+                        w.get("op") or "eq",
+                        w.get("to"),
+                        cur,
+                        " (first reading: only noted)"
+                        if st["prev"] is None
+                        else ""
+                        if cur
+                        else " (doesn't run: it runs when it turns true)",
+                    )
+                if cur and st["prev"] is False:  # passou a valer (na primeira leitura só anota)
                     self._fire(i, now)
                 st["prev"] = cur
 

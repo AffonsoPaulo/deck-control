@@ -12,6 +12,7 @@ Pipe no Windows: leitura e escrita no mesmo handle síncrono travam uma à outra
 thread só cuida do pipe: escreve o que estiver na fila e lê quando o PeekNamedPipe diz que
 chegou algo.
 """
+
 from __future__ import annotations
 
 import ctypes
@@ -38,8 +39,14 @@ TOKEN_URL = "https://discord.com/api/oauth2/token"
 RETRY = 5.0
 
 _peek = ctypes.windll.kernel32.PeekNamedPipe
-_peek.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p,
-                  ctypes.POINTER(wintypes.DWORD), ctypes.c_void_p]
+_peek.argtypes = [
+    wintypes.HANDLE,
+    ctypes.c_void_p,
+    wintypes.DWORD,
+    ctypes.c_void_p,
+    ctypes.POINTER(wintypes.DWORD),
+    ctypes.c_void_p,
+]
 _peek.restype = wintypes.BOOL
 
 
@@ -49,8 +56,8 @@ class AuthError(Exception):
 
 class DiscordRPC:
     def __init__(self, on_voice, on_status):
-        self.on_voice = on_voice          # on_voice({"mute": bool, "deaf": bool})
-        self.on_status = on_status        # on_status(state, label_key, error=None, **kw)
+        self.on_voice = on_voice  # on_voice({"mute": bool, "deaf": bool})
+        self.on_status = on_status  # on_status(state, label_key, error=None, **kw)
         self.client_id = ""
         self.secret = ""
         self.voice: dict = {}
@@ -74,7 +81,7 @@ class DiscordRPC:
         cid, sec = str(client_id or "").strip(), str(secret or "").strip()
         if (cid, sec) != (self.client_id, self.secret):
             self.client_id, self.secret = cid, sec
-            self._close()                 # reconecta com os dados novos
+            self._close()  # reconecta com os dados novos
             self._wake.set()
 
     def stop(self) -> None:
@@ -116,12 +123,12 @@ class DiscordRPC:
             except AuthError as e:
                 self.on_status("error", e.args[0], error=e.args[1] if len(e.args) > 1 else None)
                 self._close()
-                self._wait(3600)          # só tenta de novo se mudarem os dados (update acorda)
+                self._wait(3600)  # só tenta de novo se mudarem os dados (update acorda)
                 continue
-            except OSError as e:          # Discord fechado ou a conexão caiu: normal, tenta de novo
+            except OSError as e:  # Discord fechado ou a conexão caiu: normal, tenta de novo
                 log.debug("RPC: %s; retrying in %.0f s", e, RETRY)
                 self.on_status("wait", "Waiting for Discord")
-            except Exception as e:        # noqa: BLE001 - qualquer outra falha: tenta de novo
+            except Exception as e:  # noqa: BLE001 - qualquer outra falha: tenta de novo
                 log.warning("RPC failed: %s; retrying in %.0f s", e, RETRY, exc_info=True)
                 self.on_status("wait", "Waiting for Discord", error=str(e))
             self._close()
@@ -258,8 +265,11 @@ class DiscordRPC:
 
     def _exchange(self, form: dict) -> dict:
         body = urllib.parse.urlencode({"client_id": self.client_id, "client_secret": self.secret, **form}).encode()
-        req = urllib.request.Request(TOKEN_URL, data=body, headers={
-            "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "D6Deck/1.0"})
+        req = urllib.request.Request(
+            TOKEN_URL,
+            data=body,
+            headers={"Content-Type": "application/x-www-form-urlencoded", "User-Agent": "D6Deck/1.0"},
+        )
         try:
             with urllib.request.urlopen(req, timeout=15) as r:
                 tok = json.loads(r.read())

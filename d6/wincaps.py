@@ -1,4 +1,5 @@
 """Lê os tamanhos de report HID (input/output/feature) direto da API do Windows."""
+
 from __future__ import annotations
 
 import ctypes
@@ -30,8 +31,15 @@ class _HIDP_CAPS(ctypes.Structure):
 
 
 _k32.CreateFileW.restype = wintypes.HANDLE
-_k32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
-                             wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+_k32.CreateFileW.argtypes = [
+    wintypes.LPCWSTR,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.LPVOID,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.HANDLE,
+]
 _k32.CloseHandle.argtypes = [wintypes.HANDLE]
 _hid.HidD_GetPreparsedData.argtypes = [wintypes.HANDLE, ctypes.POINTER(ctypes.c_void_p)]
 _hid.HidD_FreePreparsedData.argtypes = [ctypes.c_void_p]

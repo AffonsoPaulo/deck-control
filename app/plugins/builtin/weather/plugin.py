@@ -6,6 +6,7 @@ weather.* (ver "values" no plugin.json), que as teclas e o painel "Clima agora" 
   2. busca o tempo atual + 4 dias (hoje e os 3 seguintes).
 Sem internet, tenta de novo em 1 minuto e mantém os últimos valores.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -21,13 +22,13 @@ from app import i18n, logs
 
 log = logs.get("plugins.weather")
 PROBLEM = "plugin.weather.fetch"
-FAILS_FOR_PROBLEM = 3           # falhas seguidas até virar um problema em aberto
-SLOW_MS = 5000                  # pedido mais lento que isso: aviso
+FAILS_FOR_PROBLEM = 3  # falhas seguidas até virar um problema em aberto
+SLOW_MS = 5000  # pedido mais lento que isso: aviso
 GEO_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 USER_AGENT = "D6Deck/1.0"
 TIMEOUT = 15
-RETRY = 60                      # segundos, depois de um erro de rede
+RETRY = 60  # segundos, depois de um erro de rede
 MIN_REFRESH, MAX_REFRESH = 5, 24 * 60
 DEFAULTS = {"city": "", "refresh": 15}
 
@@ -85,10 +86,10 @@ class _Plugin:
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._wake = threading.Event()
-        self._place: dict | None = None       # {"key": (cidade, idioma), "lat", "lon", "name"}
-        self._data: dict | None = None        # última resposta da previsão
+        self._place: dict | None = None  # {"key": (cidade, idioma), "lat", "lon", "name"}
+        self._data: dict | None = None  # última resposta da previsão
         self._status = ("wait", "status.wait", {}, None)
-        self._fails = 0                       # buscas que falharam seguidas
+        self._fails = 0  # buscas que falharam seguidas
 
     # -- textos do próprio plugin (locales/<idioma>.json)
     @staticmethod
@@ -132,7 +133,7 @@ class _Plugin:
         self._fails = 0
         logs.resolve(PROBLEM)
         if self._thread is not None:
-            self._thread.join(timeout=1.0)      # se estiver no meio de um pedido, termina sozinha (daemon)
+            self._thread.join(timeout=1.0)  # se estiver no meio de um pedido, termina sozinha (daemon)
         self._thread = None
 
     def set_locale(self, lang: str) -> None:
@@ -158,7 +159,7 @@ class _Plugin:
                 minutes = min(MAX_REFRESH, max(MIN_REFRESH, float(refresh)))
             except (TypeError, ValueError):
                 minutes = DEFAULTS["refresh"]
-            wait = None                                  # sem cidade: só acorda quando o config mudar
+            wait = None  # sem cidade: só acorda quando o config mudar
             if not city:
                 self._status = ("wait", "status.wait", {}, None)
                 self._place = self._data = None
@@ -179,7 +180,9 @@ class _Plugin:
                 if self._data is None:
                     self._status = ("wait", "status.loading", {}, None)
                 self._place = self._geocode(city, lang)
-                log.debug("City '%s' -> %s (%.2f, %.2f)", city, self._place["name"], self._place["lat"], self._place["lon"])
+                log.debug(
+                    "City '%s' -> %s (%.2f, %.2f)", city, self._place["name"], self._place["lat"], self._place["lon"]
+                )
             data = self._forecast(self._place["lat"], self._place["lon"])
         except NotFound:
             self._place = self._data = None
@@ -190,9 +193,11 @@ class _Plugin:
             return None
         except (urllib.error.HTTPError, ValueError, KeyError, TypeError, IndexError) as e:
             self._status = ("error", "status.service", {}, f"{type(e).__name__}: {e}")
-            self._failed("The weather service isn't answering correctly", e, exc_info=not isinstance(e, urllib.error.HTTPError))
+            self._failed(
+                "The weather service isn't answering correctly", e, exc_info=not isinstance(e, urllib.error.HTTPError)
+            )
             return RETRY
-        except (urllib.error.URLError, OSError) as e:      # sem rede, DNS, tempo esgotado
+        except (urllib.error.URLError, OSError) as e:  # sem rede, DNS, tempo esgotado
             self._status = ("error", "status.offline", {}, f"{type(e).__name__}: {getattr(e, 'reason', e)}")
             self._failed("The weather can't be updated: no connection to the weather service", e)
             return RETRY
@@ -215,8 +220,9 @@ class _Plugin:
         """Uma busca falhou: aviso no log e, depois de algumas seguidas, um problema em aberto."""
         self._fails += 1
         reason = f"{type(e).__name__}: {getattr(e, 'reason', e)}"
-        log.warning("Weather fetch failed (%d in a row): %s; retrying in %d s", self._fails, reason, RETRY,
-                    exc_info=exc_info)
+        log.warning(
+            "Weather fetch failed (%d in a row): %s; retrying in %d s", self._fails, reason, RETRY, exc_info=exc_info
+        )
         if self._fails >= FAILS_FOR_PROBLEM:
             logs.problem(PROBLEM, text, "integrations:weather")
 
@@ -238,16 +244,25 @@ class _Plugin:
         if not results:
             raise NotFound(city)
         r = results[0]
-        return {"key": (city, lang), "lat": float(r["latitude"]), "lon": float(r["longitude"]),
-                "name": r.get("name") or city}
+        return {
+            "key": (city, lang),
+            "lat": float(r["latitude"]),
+            "lon": float(r["longitude"]),
+            "name": r.get("name") or city,
+        }
 
     def _forecast(self, lat: float, lon: float) -> dict:
-        data = self._get(FORECAST_URL, {
-            "latitude": f"{lat:.4f}", "longitude": f"{lon:.4f}",
-            "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,precipitation,is_day",
-            "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
-            "timezone": "auto", "forecast_days": 4,
-        })
+        data = self._get(
+            FORECAST_URL,
+            {
+                "latitude": f"{lat:.4f}",
+                "longitude": f"{lon:.4f}",
+                "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,precipitation,is_day",
+                "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+                "timezone": "auto",
+                "forecast_days": 4,
+            },
+        )
         if "current" not in data or "daily" not in data:
             raise ValueError(data.get("reason") or "response without 'current'/'daily'")
         return data

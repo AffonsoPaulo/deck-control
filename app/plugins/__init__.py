@@ -10,6 +10,7 @@ Este módulo descobre os plugins, registra as ações deles no registro de açõ
 (app.actions.REGISTRY), liga/desliga cada um conforme o config e informa o estado
 (conectado, esperando...) para o editor.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -20,7 +21,7 @@ import shutil
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from app import actions
 from app import i18n
@@ -38,6 +39,7 @@ SETTING_KINDS = ("text", "password", "number", "bool", "enum", "shortcut")
 
 def user_dir() -> Path:
     from app import winutil
+
     d = winutil.data_dir() / "plugins"
     d.mkdir(parents=True, exist_ok=True)
     return d
@@ -49,13 +51,14 @@ class PluginError(ValueError):
 
 # ---------------------------------------------------------------------------- manifesto
 
+
 @dataclass
 class Plugin:
     id: str
     path: Path
     manifest: dict
     builtin: bool
-    instance: Any = None          # objeto vivo (embutido: o que setup() devolve; externo: ExternalPlugin)
+    instance: Any = None  # objeto vivo (embutido: o que setup() devolve; externo: ExternalPlugin)
     running: bool = False
     error: str | None = None
     locales: dict = field(default_factory=dict)
@@ -103,8 +106,24 @@ class Plugin:
 # Texto comum (sem %) continua valendo, para plugins que só falam uma língua.
 
 _KEY = re.compile(r"^%([A-Za-z0-9_.\-]+)%$")
-_FIXED = {"id", "name", "kind", "entry", "run", "config_key", "default", "state", "icon", "color", "version",
-          "homepage", "default_locale", "placeholder", "when", "style"}
+_FIXED = {
+    "id",
+    "name",
+    "kind",
+    "entry",
+    "run",
+    "config_key",
+    "default",
+    "state",
+    "icon",
+    "color",
+    "version",
+    "homepage",
+    "default_locale",
+    "placeholder",
+    "when",
+    "style",
+}
 
 
 def read_locales(folder: Path) -> dict[str, dict]:
@@ -140,6 +159,7 @@ def localize(m: dict, locales: dict[str, dict], lang: str | None = None):
         if isinstance(v, dict):
             return {k: (x if k in _FIXED else text(x)) for k, x in v.items()}
         return v
+
     return text(m)
 
 
@@ -156,6 +176,7 @@ def missing_keys(m: dict, locales: dict[str, dict]) -> list[str]:
         elif isinstance(v, dict):
             for x in v.values():
                 walk(x)
+
     walk(m)
     return [f"{lang}: {k}" for lang, t in sorted(locales.items()) for k in sorted(used - set(t))]
 
@@ -185,7 +206,7 @@ def check_manifest(m: dict, builtin: bool) -> None:
     else:
         run = m.get("run")
         if not (isinstance(run, list) and run and all(isinstance(x, str) for x in run)):
-            raise PluginError(tr("'run' must be the plugin's command line, as a list (e.g.: [\"python\", \"main.py\"])"))
+            raise PluginError(tr('\'run\' must be the plugin\'s command line, as a list (e.g.: ["python", "main.py"])'))
         if m.get("config_key"):
             raise PluginError(tr("'config_key' is only for built-in plugins"))
     acts = m.get("actions", {})
@@ -198,7 +219,9 @@ def check_manifest(m: dict, builtin: bool) -> None:
             raise PluginError(tr("the action '{name}' needs a 'label'", name=name))
     for s in m.get("settings", []):
         if not isinstance(s, dict) or not s.get("name") or s.get("kind", "text") not in SETTING_KINDS:
-            raise PluginError(tr("invalid setting: {setting} (kind: {kinds})", setting=repr(s), kinds=', '.join(SETTING_KINDS)))
+            raise PluginError(
+                tr("invalid setting: {setting} (kind: {kinds})", setting=repr(s), kinds=", ".join(SETTING_KINDS))
+            )
         if s["name"] == "enabled":
             raise PluginError(tr("'enabled' is reserved (the plugin on/off switch)"))
     for st in m.get("states", []):
@@ -213,6 +236,7 @@ def check_manifest(m: dict, builtin: bool) -> None:
     if not isinstance(wids, dict):
         raise PluginError(tr("'widgets' must be an object (widget id: description)"))
     from app import widgets
+
     for name, wd in wids.items():
         if not str(name).startswith(pid + "."):
             raise PluginError(tr("the widget '{name}' must start with '{prefix}.'", name=name, prefix=pid))
@@ -220,19 +244,30 @@ def check_manifest(m: dict, builtin: bool) -> None:
         if problem:
             raise PluginError(problem)
         if isinstance(wd, dict) and wd.get("category") not in (None, *widgets.CATEGORY_IDS):
-            raise PluginError(tr("the widget '{name}': 'category' must be one of {cats}", name=name, cats=", ".join(widgets.CATEGORY_IDS)))
+            raise PluginError(
+                tr(
+                    "the widget '{name}': 'category' must be one of {cats}",
+                    name=name,
+                    cats=", ".join(widgets.CATEGORY_IDS),
+                )
+            )
     from app.binds import check_rules
+
     rule_sets = [m["shortcut_rules"]] if "shortcut_rules" in m else []
-    rule_sets += [d["shortcut_rules"] for d in m.get("actions", {}).values() if isinstance(d, dict) and "shortcut_rules" in d]
+    rule_sets += [
+        d["shortcut_rules"] for d in m.get("actions", {}).values() if isinstance(d, dict) and "shortcut_rules" in d
+    ]
     for rules in rule_sets:
         try:
             check_rules(rules)
         except ValueError:
-            raise PluginError(tr("invalid 'shortcut_rules': use {example}",
-                                 example='{"keys": "f13-f24", "modifiers": ["", "shift"]}')) from None
+            raise PluginError(
+                tr("invalid 'shortcut_rules': use {example}", example='{"keys": "f13-f24", "modifiers": ["", "shift"]}')
+            ) from None
 
 
 # ---------------------------------------------------------------------------- API dos plugins embutidos
+
 
 class PluginAPI:
     """O que um plugin embutido recebe em setup(api)."""
@@ -248,10 +283,13 @@ class PluginAPI:
         """Decorador igual ao app.actions.action, marcando a ação como deste plugin.
         mirror=True: como ação principal da tecla, o app segura spec['keys'] enquanto a tecla do D6
         estiver apertada (apertar para falar); em sequências e no 'hold' é um toque simples."""
+
         def deco(fn):
-            actions.REGISTRY[name] = actions.ActionDef(name, fn, tuple(required), state, children, check,
-                                                       plugin=self._p.id, mirror=mirror)
+            actions.REGISTRY[name] = actions.ActionDef(
+                name, fn, tuple(required), state, children, check, plugin=self._p.id, mirror=mirror
+            )
             return fn
+
         return deco
 
     def set_status(self, state: str, label: str) -> None:
@@ -265,15 +303,17 @@ class PluginAPI:
             logs.get(f"plugins.{self._p.id}").warning("Value '%s' ignored: it must start with '%s.'", name, self._p.id)
             return
         from app.values import VALUES
+
         VALUES.set(str(name), value)
 
 
 # ---------------------------------------------------------------------------- gerenciador
 
+
 class PluginManager:
     def __init__(self):
         self.plugins: dict[str, Plugin] = {}
-        self.errors: list[dict] = []       # pastas que não carregaram: {folder, error}
+        self.errors: list[dict] = []  # pastas que não carregaram: {folder, error}
         self.engine: "Engine | None" = None
         self._cfg: dict = {}
         self._lock = threading.RLock()
@@ -292,39 +332,51 @@ class PluginManager:
                 try:
                     m = read_manifest(folder, builtin)
                     if m["id"] in self.plugins:
-                        raise PluginError(tr("there's already a plugin with the id '{id}'", id=m['id']))
+                        raise PluginError(tr("there's already a plugin with the id '{id}'", id=m["id"]))
                     p = Plugin(m["id"], folder, m, builtin, locales=read_locales(folder))
                     for miss in missing_keys(m, p.locales)[:5]:
                         log.warning("Plugin %s: missing translation %s", m["id"], miss)
                     self._register(p)
                     self.plugins[p.id] = p
-                except Exception as e:     # um plugin com defeito não impede os outros
+                except Exception as e:  # um plugin com defeito não impede os outros
                     self.errors.append({"folder": folder.name, "error": str(e)})
-                    log.error("Plugin in folder %s didn't load: %s", folder.name, e,
-                              exc_info=not isinstance(e, PluginError),
-                              extra={"ctx": {"folder": str(folder), "builtin": builtin}})
-            log.info("Plugins found: %s", ", ".join(
-                f"{p.id} {p.manifest.get('version') or '?'}{' (built-in)' if p.builtin else ''}"
-                for p in self.plugins.values()) or "none")
+                    log.error(
+                        "Plugin in folder %s didn't load: %s",
+                        folder.name,
+                        e,
+                        exc_info=not isinstance(e, PluginError),
+                        extra={"ctx": {"folder": str(folder), "builtin": builtin}},
+                    )
+            log.info(
+                "Plugins found: %s",
+                ", ".join(
+                    f"{p.id} {p.manifest.get('version') or '?'}{' (built-in)' if p.builtin else ''}"
+                    for p in self.plugins.values()
+                )
+                or "none",
+            )
 
     def _register(self, p: Plugin) -> None:
         if p.builtin:
             # como pacote: o plugin pode ter outros arquivos e importar com "from .rpc import ..."
-            spec = importlib.util.spec_from_file_location(f"d6plugin_{p.id}", p.path / p.manifest["entry"],
-                                                          submodule_search_locations=[str(p.path)])
+            spec = importlib.util.spec_from_file_location(
+                f"d6plugin_{p.id}", p.path / p.manifest["entry"], submodule_search_locations=[str(p.path)]
+            )
             mod = importlib.util.module_from_spec(spec)
             sys.modules[spec.name] = mod
             spec.loader.exec_module(mod)
             p.instance = mod.setup(PluginAPI(self, p))
         else:
             from app.plugins.external import ExternalPlugin
+
             p.instance = ExternalPlugin(self, p)
             for name, d in p.manifest.get("actions", {}).items():
                 fields = d.get("fields") or []
                 required = tuple(f["name"] for f in fields if isinstance(f, dict) and f.get("required"))
-                state = (lambda s, k, st=d.get("state"): st) if isinstance(d.get("state"), str) else None
-                actions.REGISTRY[name] = actions.ActionDef(name, p.instance.make_action(name), required, state, None,
-                                                           plugin=p.id, mirror=bool(d.get("mirror")))
+                state = (lambda s, k, st=d.get("state"): st) if isinstance(d.get("state"), str) else None  # noqa: B008 (guarda o valor desta volta)
+                actions.REGISTRY[name] = actions.ActionDef(
+                    name, p.instance.make_action(name), required, state, None, plugin=p.id, mirror=bool(d.get("mirror"))
+                )
 
     def _unregister_all(self) -> None:
         for name in [n for n, d in actions.REGISTRY.items() if d.plugin]:
@@ -357,20 +409,29 @@ class PluginManager:
                         p.running = True
                         if p.status.get("state") == "off":
                             p.status = {"state": "ok", "label": tr("On")}
-                        log.info("Plugin started: %s %s%s", p.id, p.manifest.get("version") or "?",
-                                 " (built-in)" if p.builtin else "")
+                        log.info(
+                            "Plugin started: %s %s%s",
+                            p.id,
+                            p.manifest.get("version") or "?",
+                            " (built-in)" if p.builtin else "",
+                        )
                     elif on and p.running:
                         if hasattr(p.instance, "update"):
                             p.instance.update(settings)
-                        if hasattr(p.instance, "set_locale"):      # o idioma mudou no editor
+                        if hasattr(p.instance, "set_locale"):  # o idioma mudou no editor
                             p.instance.set_locale(i18n.language())
                     elif not on and p.running:
                         self._stop(p)
                 except Exception as e:
                     p.error = str(e)
                     p.status = {"state": "error", "label": tr("Didn't start")}
-                    log.error("Plugin %s didn't start: %s", p.id, e, exc_info=True,
-                              extra={"ctx": {"plugin": p.id, "version": p.manifest.get("version")}})
+                    log.error(
+                        "Plugin %s didn't start: %s",
+                        p.id,
+                        e,
+                        exc_info=True,
+                        extra={"ctx": {"plugin": p.id, "version": p.manifest.get("version")}},
+                    )
 
     def _stop(self, p: Plugin) -> None:
         was = p.running
@@ -378,15 +439,17 @@ class PluginManager:
             try:
                 p.instance.stop()
             except Exception as e:
-                log.warning("Plugin %s failed while stopping: %s", p.id, e, exc_info=True,
-                            extra={"ctx": {"plugin": p.id}})
+                log.warning(
+                    "Plugin %s failed while stopping: %s", p.id, e, exc_info=True, extra={"ctx": {"plugin": p.id}}
+                )
         if was:
             log.info("Plugin stopped: %s", p.id)
-        logs.resolve_prefix(f"plugin.{p.id}.")      # desligado: os problemas dele deixam de valer
+        logs.resolve_prefix(f"plugin.{p.id}.")  # desligado: os problemas dele deixam de valer
         p.running = False
         p.status = {"state": "off", "label": tr("Off")}
         from app.values import VALUES
-        VALUES.forget_prefix(p.id + ".")             # desligado: as teclas mostram "–"
+
+        VALUES.forget_prefix(p.id + ".")  # desligado: as teclas mostram "–"
 
     def stop_all(self) -> None:
         with self._lock:
@@ -408,7 +471,7 @@ class PluginManager:
                 try:
                     p.status = p.instance.current_status()
                 except Exception as e:
-                    if p.error != str(e):       # o editor pergunta toda hora: avisa só quando o erro muda
+                    if p.error != str(e):  # o editor pergunta toda hora: avisa só quando o erro muda
                         log.warning("Plugin %s: couldn't read its status: %s", p.id, e, exc_info=True)
                     p.status = {"state": "error", "label": tr("Error")}
                     p.error = str(e)
@@ -416,14 +479,37 @@ class PluginManager:
 
     def describe(self) -> list[dict]:
         out = []
-        ordered = sorted(self.plugins.values(), key=lambda p: (not p.builtin, p.manifest.get("order", 99), p.name.lower()))
+        ordered = sorted(
+            self.plugins.values(), key=lambda p: (not p.builtin, p.manifest.get("order", 99), p.name.lower())
+        )
         for p in ordered:
             m = p.text()
-            out.append({k: m.get(k) for k in ("id", "name", "version", "author", "description", "icon", "color",
-                                              "category", "settings", "steps", "states", "permissions", "homepage",
-                                              "shortcut_rules")}
-                       | {"builtin": p.builtin, "config_path": p.config_path,
-                          "default_enabled": bool(m.get("default_enabled", False))})
+            out.append(
+                {
+                    k: m.get(k)
+                    for k in (
+                        "id",
+                        "name",
+                        "version",
+                        "author",
+                        "description",
+                        "icon",
+                        "color",
+                        "category",
+                        "settings",
+                        "steps",
+                        "states",
+                        "permissions",
+                        "homepage",
+                        "shortcut_rules",
+                    )
+                }
+                | {
+                    "builtin": p.builtin,
+                    "config_path": p.config_path,
+                    "default_enabled": bool(m.get("default_enabled", False)),
+                }
+            )
         return out
 
     def value_schemas(self) -> list[dict]:
@@ -433,21 +519,34 @@ class PluginManager:
             m = p.text()
             group = m.get("category") or p.name
             for v in m.get("values", []) or []:
-                out.append({"id": v["id"], "label": v.get("label") or v["id"], "group": group, "kind": v.get("kind", "text"),
-                            "sample": v.get("sample"), "plugin": p.id})
+                out.append(
+                    {
+                        "id": v["id"],
+                        "label": v.get("label") or v["id"],
+                        "group": group,
+                        "kind": v.get("kind", "text"),
+                        "sample": v.get("sample"),
+                        "plugin": p.id,
+                    }
+                )
             for st in m.get("states", []) or []:
                 if not any(o["id"] == st[0] for o in out):
-                    out.append({"id": st[0], "label": st[1], "group": group, "kind": "bool", "sample": False, "plugin": p.id})
+                    out.append(
+                        {"id": st[0], "label": st[1], "group": group, "kind": "bool", "sample": False, "plugin": p.id}
+                    )
         return out
 
     def widget_schemas(self) -> dict:
         """Widgets dos plugins ligados, já no formato do editor (ver app/widgets.py)."""
         from app import widgets
+
         out = {}
         for p in self.plugins.values():
             m = p.text()
             for name, wd in (m.get("widgets") or {}).items():
-                out[name] = widgets.normalize({**wd, "icon": wd.get("icon") or m.get("icon")}, plugin=p.id, color=m.get("color"))
+                out[name] = widgets.normalize(
+                    {**wd, "icon": wd.get("icon") or m.get("icon")}, plugin=p.id, color=m.get("color")
+                )
         return out
 
     def action_schemas(self) -> dict:
@@ -455,10 +554,17 @@ class PluginManager:
         for p in self.plugins.values():
             m = p.text()
             for name, d in m.get("actions", {}).items():
-                out[name] = {"label": d["label"], "group": m.get("category") or m["name"], "help": d.get("help", ""),
-                             "state": bool(d.get("state")), "fields": d.get("fields") or [], "icon": d.get("icon"),
-                             "short": d.get("short"), "plugin": p.id,
-                             "shortcut_rules": d.get("shortcut_rules") or m.get("shortcut_rules")}
+                out[name] = {
+                    "label": d["label"],
+                    "group": m.get("category") or m["name"],
+                    "help": d.get("help", ""),
+                    "state": bool(d.get("state")),
+                    "fields": d.get("fields") or [],
+                    "icon": d.get("icon"),
+                    "short": d.get("short"),
+                    "plugin": p.id,
+                    "shortcut_rules": d.get("shortcut_rules") or m.get("shortcut_rules"),
+                }
         return out
 
     def shortcuts_in(self, cfg: dict) -> list[tuple[str, str, str]]:
@@ -476,8 +582,12 @@ class PluginManager:
 
     def secret_paths(self) -> list[tuple]:
         """Onde ficam as senhas no config (configurações 'password' de todos os plugins)."""
-        return [(*p.config_path, s["name"]) for p in self.plugins.values()
-                for s in p.manifest.get("settings", []) if s.get("kind") == "password"]
+        return [
+            (*p.config_path, s["name"])
+            for p in self.plugins.values()
+            for s in p.manifest.get("settings", [])
+            if s.get("kind") == "password"
+        ]
 
     def secret_values(self, cfg: dict) -> list[str]:
         """Os valores atuais dessas senhas (para o log escondê-las)."""
@@ -491,19 +601,23 @@ class PluginManager:
         return out
 
     def groups(self) -> dict:
-        return {(p.text().get("category") or p.name): {"color": p.manifest.get("color", "#868d99"),
-                                                       "icon": p.manifest.get("icon")}
-                for p in self.plugins.values()}
+        return {
+            (p.text().get("category") or p.name): {
+                "color": p.manifest.get("color", "#868d99"),
+                "icon": p.manifest.get("icon"),
+            }
+            for p in self.plugins.values()
+        }
 
     # -- instalar e remover (só os de terceiros)
     def install(self, folder: Path, replace: bool = False) -> Plugin:
         m = read_manifest(folder, builtin=False)
         if m["id"] in self.plugins and self.plugins[m["id"]].builtin:
-            raise PluginError(tr("'{id}' is a built-in plugin of the app", id=m['id']))
+            raise PluginError(tr("'{id}' is a built-in plugin of the app", id=m["id"]))
         dest = user_dir() / m["id"]
         if dest.exists():
             if not replace:
-                raise PluginError(tr("the plugin '{id}' is already installed", id=m['id']))
+                raise PluginError(tr("the plugin '{id}' is already installed", id=m["id"]))
             with self._lock:
                 if m["id"] in self.plugins:
                     self._stop(self.plugins[m["id"]])
@@ -531,4 +645,6 @@ def run_guard(d: "actions.ActionDef") -> None:
     """Chamado antes de rodar uma ação: plugin desligado não roda."""
     if d.plugin and not MANAGER.is_running(d.plugin):
         p = MANAGER.plugins.get(d.plugin)
-        raise RuntimeError(tr("the '{name}' integration is turned off (Settings › Integrations)", name=p.name if p else d.plugin))
+        raise RuntimeError(
+            tr("the '{name}' integration is turned off (Settings › Integrations)", name=p.name if p else d.plugin)
+        )

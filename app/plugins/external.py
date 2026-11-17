@@ -21,6 +21,7 @@ Isolamento: o plugin roda em outro processo, então se ele travar ou cair o app 
 (e reinicia o plugin, até 3 vezes por minuto). Ele só mexe no app por estas mensagens.
 Mas é um programa como outro qualquer no seu PC: instale só plugins de quem você confia.
 """
+
 from __future__ import annotations
 
 import json
@@ -38,8 +39,8 @@ if TYPE_CHECKING:
 
 PROTOCOL = 1
 ACTION_TIMEOUT = 10.0
-MAX_RESTARTS = 3          # por minuto
-HEALTHY_AFTER = 15.0      # s vivo depois de reiniciar: o problema "parou" se resolve
+MAX_RESTARTS = 3  # por minuto
+HEALTHY_AFTER = 15.0  # s vivo depois de reiniciar: o problema "parou" se resolve
 LOG_LEVELS = {"debug": 10, "info": 20, "warn": 30, "warning": 30, "error": 40}
 
 
@@ -56,7 +57,7 @@ class ExternalPlugin:
         self._status = {"state": "wait", "label": tr("Starting")}
         self.locale = i18n.language()
         self.log = logs.get(f"plugins.{plugin.id}")
-        self._crashed = False       # o problema "plugin.<id>.crash" está aberto
+        self._crashed = False  # o problema "plugin.<id>.crash" está aberto
 
     @property
     def _problem_id(self) -> str:
@@ -107,20 +108,31 @@ class ExternalPlugin:
     def _command(self) -> list[str]:
         cmd = list(self.p.manifest["run"])
         if cmd and cmd[0] in ("python", "python3", "pythonw"):
-            cmd[0] = sys.executable.replace("pythonw.exe", "python.exe")   # o mesmo Python do app
+            cmd[0] = sys.executable.replace("pythonw.exe", "python.exe")  # o mesmo Python do app
         return cmd
 
     def _spawn(self) -> None:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1", "D6_PLUGIN_ID": self.p.id}
         try:
-            self.proc = subprocess.Popen(self._command(), cwd=str(self.p.path), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE, creationflags=flags, env=env, bufsize=1,
-                                         text=True, encoding="utf-8", errors="replace")
+            self.proc = subprocess.Popen(
+                self._command(),
+                cwd=str(self.p.path),
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                creationflags=flags,
+                env=env,
+                bufsize=1,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
         except OSError as e:
             self._status = {"state": "error", "label": tr("Didn't open")}
-            self.log.error("Couldn't open the plugin program %s: %s", self._command(), e,
-                           extra={"ctx": {"cwd": str(self.p.path)}})
+            self.log.error(
+                "Couldn't open the plugin program %s: %s", self._command(), e, extra={"ctx": {"cwd": str(self.p.path)}}
+            )
             raise RuntimeError(tr("couldn't open the plugin ({error})", error=e)) from None
         self._status = {"state": "wait", "label": tr("Starting")}
         self.log.debug("Process started (pid %s): %s", self.proc.pid, self._command())
@@ -128,8 +140,15 @@ class ExternalPlugin:
         threading.Thread(target=self._read_out, args=(proc,), daemon=True, name=f"plugin-{self.p.id}").start()
         threading.Thread(target=self._read_err, args=(proc,), daemon=True, name=f"plugin-{self.p.id}-err").start()
         self.locale = i18n.language()
-        self._send({"type": "hello", "protocol": PROTOCOL, "plugin": self.p.id, "locale": self.locale,
-                    "settings": self.settings})
+        self._send(
+            {
+                "type": "hello",
+                "protocol": PROTOCOL,
+                "plugin": self.p.id,
+                "locale": self.locale,
+                "settings": self.settings,
+            }
+        )
 
     def _send(self, msg: dict) -> bool:
         proc = self.proc
@@ -139,7 +158,7 @@ class ExternalPlugin:
             with self._lock:
                 proc.stdin.write(json.dumps(msg, ensure_ascii=False) + "\n")
                 proc.stdin.flush()
-            if msg.get("type") != "hello":   # o hello leva as configurações (com senhas)
+            if msg.get("type") != "hello":  # o hello leva as configurações (com senhas)
                 self.log.debug("-> %s", msg.get("type"), extra={"ctx": msg})
             return True
         except (OSError, ValueError):
@@ -160,7 +179,7 @@ class ExternalPlugin:
             try:
                 msg = json.loads(line)
             except ValueError:
-                self.log.info("%s", line)     # texto solto: vai para o log
+                self.log.info("%s", line)  # texto solto: vai para o log
                 continue
             if isinstance(msg, dict):
                 if self._crashed and proc is self.proc:
@@ -172,11 +191,20 @@ class ExternalPlugin:
                 code = proc.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 code = None
-            self.log.error("Plugin %s stopped unexpectedly (exit code %s)", self.p.id, code,
-                           extra={"ctx": {"plugin": self.p.id, "version": self.p.manifest.get("version"), "code": code}})
+            self.log.error(
+                "Plugin %s stopped unexpectedly (exit code %s)",
+                self.p.id,
+                code,
+                extra={"ctx": {"plugin": self.p.id, "version": self.p.manifest.get("version"), "code": code}},
+            )
             self._crashed = True
-            logs.problem(self._problem_id, "The plugin {name} stopped unexpectedly (exit code {code})",
-                         f"integrations:{self.p.id}", name=self.p.name, code=code)
+            logs.problem(
+                self._problem_id,
+                "The plugin {name} stopped unexpectedly (exit code {code})",
+                f"integrations:{self.p.id}",
+                name=self.p.name,
+                code=code,
+            )
             self._fail_pending(tr("the plugin stopped"))
             now = time.monotonic()
             self._restarts = [t for t in self._restarts if now - t < 60] + [now]
@@ -184,8 +212,9 @@ class ExternalPlugin:
                 time.sleep(1)
                 if not self._stopping:
                     try:
-                        self.log.info("Restarting plugin %s (%d of %d this minute)", self.p.id, len(self._restarts),
-                                      MAX_RESTARTS)
+                        self.log.info(
+                            "Restarting plugin %s (%d of %d this minute)", self.p.id, len(self._restarts), MAX_RESTARTS
+                        )
                         self._spawn()
                         timer = threading.Timer(HEALTHY_AFTER, self._healthy)
                         timer.daemon = True
@@ -197,8 +226,12 @@ class ExternalPlugin:
             self._status = {"state": "error", "label": tr("Stopped")}
             self.p.error = tr("the plugin stopped several times in a row; see the log")
             self.log.error("Plugin %s stopped %d times in a minute; not restarting it", self.p.id, len(self._restarts))
-            logs.problem(self._problem_id, "The plugin {name} stopped several times in a row and won't be restarted",
-                         f"integrations:{self.p.id}", name=self.p.name)
+            logs.problem(
+                self._problem_id,
+                "The plugin {name} stopped several times in a row and won't be restarted",
+                f"integrations:{self.p.id}",
+                name=self.p.name,
+            )
 
     def _handle(self, msg: dict) -> None:
         kind = msg.get("type")
@@ -224,6 +257,7 @@ class ExternalPlugin:
                 self.log.warning("Value '%s' ignored: it must start with '%s.'", name, self.p.id)
                 return
             from app.values import VALUES
+
             VALUES.set(name, msg.get("value"))
         elif kind == "log":
             level = LOG_LEVELS.get(str(msg.get("level", "info")).lower(), 20)
@@ -244,11 +278,14 @@ class ExternalPlugin:
             self._pending[rid] = waiter
             params = {k: v for k, v in spec.items() if k != "type"}
             try:
-                if not self._send({"type": "action", "id": rid, "action": name, "params": params,
-                                   "page": ctx.page, "key": ctx.key}):
+                if not self._send(
+                    {"type": "action", "id": rid, "action": name, "params": params, "page": ctx.page, "key": ctx.key}
+                ):
                     raise RuntimeError(tr("the plugin isn't running"))
                 if not waiter["event"].wait(ACTION_TIMEOUT):
-                    raise RuntimeError(tr("the plugin didn't answer within {seconds} s", seconds=f"{ACTION_TIMEOUT:.0f}"))
+                    raise RuntimeError(
+                        tr("the plugin didn't answer within {seconds} s", seconds=f"{ACTION_TIMEOUT:.0f}")
+                    )
                 res = waiter["msg"] or {}
                 if not res.get("ok", False):
                     self.log.debug("<- result %d: error %s", rid, res.get("error"))
@@ -256,4 +293,5 @@ class ExternalPlugin:
                 self.log.debug("<- result %d: ok", rid)
             finally:
                 self._pending.pop(rid, None)
+
         return run

@@ -1,4 +1,5 @@
 """Ícone na bandeja do Windows (pystray)."""
+
 from __future__ import annotations
 
 import ctypes
@@ -21,13 +22,13 @@ if TYPE_CHECKING:
     from app.engine import Engine
 
 log = logs.get("app")
-TIP_MAX = 127           # o Windows corta a dica da bandeja em 127 caracteres
+TIP_MAX = 127  # o Windows corta a dica da bandeja em 127 caracteres
 
 
 def _dpi_aware() -> None:
     """Pede ao Windows o tamanho real do ícone (20/24 px em telas com zoom), sem esticar o de 16."""
     try:
-        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))   # por monitor, v2
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))  # por monitor, v2
     except (AttributeError, OSError):
         try:
             ctypes.windll.shcore.SetProcessDpiAwareness(2)
@@ -40,13 +41,14 @@ class _TrayIcon(pystray.Icon):
 
     O pystray reduziria uma imagem só, e o ícone ficaria borrado em 16 px.
     """
+
     lit = False
-    alert = False           # problema em aberto: selo âmbar no canto
+    alert = False  # problema em aberto: selo âmbar no canto
 
     def _assert_icon_handle(self):
         if self._icon_handle:
             return
-        size = ctypes.windll.user32.GetSystemMetrics(49) or 16          # SM_CXSMICON
+        size = ctypes.windll.user32.GetSystemMetrics(49) or 16  # SM_CXSMICON
         fd, path = tempfile.mkstemp(suffix=".ico")
         try:
             with os.fdopen(fd, "wb") as f:
@@ -70,7 +72,7 @@ def tooltip(connected: bool, page: str, problems: list[dict]) -> str:
     text = " ".join(str(problems[0]["text"]).split())
     room = TIP_MAX - len("Deck: ") - len(more)
     if len(text) > room:
-        text = text[:room - 1].rstrip() + "…"
+        text = text[: room - 1].rstrip() + "…"
     return f"Deck: {text}{more}"
 
 
@@ -104,22 +106,23 @@ def run_tray(engine: "Engine", editor: "EditorServer", config: Path) -> None:
         pystray.MenuItem(_text("Open the app folder"), open_folder),
         pystray.MenuItem(_text("View the log"), open_log),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem(_text("Start with Windows"), toggle_autostart,
-                         checked=lambda item: winutil.autostart_enabled()),
+        pystray.MenuItem(
+            _text("Start with Windows"), toggle_autostart, checked=lambda item: winutil.autostart_enabled()
+        ),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem(_text("Quit"), quit_app),
     )
     _dpi_aware()
     icon = _TrayIcon("D6Deck", brand.mark(64, False), tr("Deck disconnected"), menu)
 
-    notified: set[str] = set()      # problemas em aberto que já viraram notificação do Windows
+    notified: set[str] = set()  # problemas em aberto que já viraram notificação do Windows
 
     def notify_new(problems: list[dict]) -> None:
         """logging.notify: uma notificação por problema quando ele abre (nunca de novo enquanto aberto)."""
         open_ids = {p["id"] for p in problems}
-        notified.intersection_update(open_ids)         # resolvido: se voltar, avisa de novo
+        notified.intersection_update(open_ids)  # resolvido: se voltar, avisa de novo
         if not logs.setting(engine.config.get("logging"), "notify", False):
-            notified.update(open_ids)                  # desligado: não acumula avisos para depois
+            notified.update(open_ids)  # desligado: não acumula avisos para depois
             return
         for p in problems:
             if p["id"] not in notified:
@@ -136,14 +139,18 @@ def run_tray(engine: "Engine", editor: "EditorServer", config: Path) -> None:
         while worker.is_alive() or last is None:
             try:
                 problems = logs.problems()
-                cur = (engine.device_connected, engine.page, i18n.language(),
-                       tuple((p["id"], p["text"]) for p in problems))
+                cur = (
+                    engine.device_connected,
+                    engine.page,
+                    i18n.language(),
+                    tuple((p["id"], p["text"]) for p in problems),
+                )
                 if cur != last:
                     alert = bool(problems)
                     before = (last[0], bool(last[3])) if last else None
                     if (cur[0], alert) != before:
                         icon.lit, icon.alert = cur[0], alert
-                        icon.icon = brand.mark(64, cur[0], alert)   # troca o ícone (o .ico sai de lit/alert)
+                        icon.icon = brand.mark(64, cur[0], alert)  # troca o ícone (o .ico sai de lit/alert)
                     icon.title = tooltip(cur[0], cur[1], problems)
                     last = cur
                 notify_new(problems)

@@ -12,6 +12,7 @@ Regras do hardware (ver d6/device.py):
   * Cor em resolução inteira (4:4:4) funciona e deixa texto e bordas bem mais
     nítidos que o 4:2:0 padrão (tools/quality_test.py, 2026-11-15).
 """
+
 from __future__ import annotations
 
 import io
@@ -33,8 +34,13 @@ def _font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default(size=size)
 
 
-def text_tile(text: str, bg: tuple[int, int, int], fg: tuple[int, int, int] = (255, 255, 255),
-              size: int = TILE, font_size: int | None = None) -> Image.Image:
+def text_tile(
+    text: str,
+    bg: tuple[int, int, int],
+    fg: tuple[int, int, int] = (255, 255, 255),
+    size: int = TILE,
+    font_size: int | None = None,
+) -> Image.Image:
     """Quadrado colorido com um texto centralizado."""
     img = Image.new("RGB", (size, size), bg)
     draw = ImageDraw.Draw(img)
@@ -71,8 +77,7 @@ def encode(img: Image.Image, size: int = TILE, rotate: int = 180, max_bytes: int
     for subsampling in (0, 2):
         for quality in (95, 90, 85, 80, 70, 60, 50, 40, 30, 20):
             buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=quality, subsampling=subsampling,
-                     optimize=False, progressive=False)
+            img.save(buf, format="JPEG", quality=quality, subsampling=subsampling, optimize=False, progressive=False)
             data = buf.getvalue()
             if len(data) <= max_bytes:
                 return data

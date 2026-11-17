@@ -32,6 +32,7 @@ Em cada tecla, `light:` muda a reação dela em cada momento (tem prioridade sob
       hold:    {kind: hold}    # acesa enquanto segura (só no hold)
       release: {kind: default}
 """
+
 from __future__ import annotations
 
 import colorsys
@@ -42,23 +43,46 @@ from d6.device import COLS, LED_COUNT, ROWS
 from app.i18n import tr
 
 N = LED_COUNT
-EFFECTS = ("off", "solid", "breath", "beat", "aurora", "candle", "rainbow", "wave", "grad",
-           "comet", "chase", "theater", "fill", "stars", "sparks")
-REACTIONS = ("none", "ripple", "point", "pulse")          # padrão e por tecla
-KEY_REACTIONS = REACTIONS + ("default", "hold")           # só por tecla ('hold' só no momento hold)
+EFFECTS = (
+    "off",
+    "solid",
+    "breath",
+    "beat",
+    "aurora",
+    "candle",
+    "rainbow",
+    "wave",
+    "grad",
+    "comet",
+    "chase",
+    "theater",
+    "fill",
+    "stars",
+    "sparks",
+)
+REACTIONS = ("none", "ripple", "point", "pulse")  # padrão e por tecla
+KEY_REACTIONS = REACTIONS + ("default", "hold")  # só por tecla ('hold' só no momento hold)
 COLOR_MODES = ("key", "fixed", "effect")
 MOMENTS = ("press", "hold", "release")
 AMBER = "#F5A524"
 
 DEFAULTS = {
-    "effect": "solid", "color": AMBER, "color2": "#E5701A", "speed": 50, "size": 50, "direction": "cw",
-    "brightness": 80, "per_page": False, "off_with_screen": True,
+    "effect": "solid",
+    "color": AMBER,
+    "color2": "#E5701A",
+    "speed": 50,
+    "size": 50,
+    "direction": "cw",
+    "brightness": 80,
+    "per_page": False,
+    "off_with_screen": True,
     "reaction": {"kind": "ripple", "color": "key", "fixed": AMBER, "speed": 50, "reach": 100},
 }
-EFFECT_KEYS = ("effect", "color", "color2", "speed", "size", "direction")   # o que uma página pode trocar
+EFFECT_KEYS = ("effect", "color", "color2", "speed", "size", "direction")  # o que uma página pode trocar
 
 
 # ------------------------------------------------------------------ validação (usada por app.config)
+
 
 def _is_hex(v) -> bool:
     return isinstance(v, str) and len(v) == 7 and v[0] == "#" and all(c in "0123456789abcdefABCDEF" for c in v[1:])
@@ -71,7 +95,7 @@ def _check_reaction(r, where: str, kinds) -> list[str]:
         return [tr("{where}: expected an object with kind/color", where=where)]
     errs = []
     if r.get("kind", "default" if kinds is KEY_REACTIONS else "ripple") not in kinds:
-        errs.append(tr("{where}.kind: use one of: {options}", where=where, options=', '.join(kinds)))
+        errs.append(tr("{where}.kind: use one of: {options}", where=where, options=", ".join(kinds)))
     if "color" in r and r["color"] not in COLOR_MODES:
         errs.append(tr("{where}.color: use key, fixed or effect", where=where))
     if "fixed" in r and not _is_hex(r["fixed"]):
@@ -82,7 +106,7 @@ def _check_reaction(r, where: str, kinds) -> list[str]:
 def _check_effect(d: dict, where: str) -> list[str]:
     errs = []
     if "effect" in d and d["effect"] not in EFFECTS:
-        errs.append(tr("{where}.effect: unknown effect '{effect}'", where=where, effect=d['effect']))
+        errs.append(tr("{where}.effect: unknown effect '{effect}'", where=where, effect=d["effect"]))
     for c in ("color", "color2"):
         if c in d and not _is_hex(d[c]):
             errs.append(tr("{where}.{field}: color in the #RRGGBB format", where=where, field=c))
@@ -128,6 +152,7 @@ def validate_key(light, where: str) -> list[str]:
 
 # ------------------------------------------------------------------ geometria: em que LED cada tecla fica
 
+
 def _ring_points(w=520.0, h=330.0, r=40.0, inset=15.0):
     """N pontos na borda de um retângulo arredondado: começa embaixo no meio, sentido horário."""
     x0, y0, x1, y1 = inset, inset, w - inset, h - inset
@@ -138,7 +163,12 @@ def _ring_points(w=520.0, h=330.0, r=40.0, inset=15.0):
         segs.append((math.hypot(bx - ax, by - ay), lambda t: (ax + (bx - ax) * t, ay + (by - ay) * t)))
 
     def arc(cx, cy, a0, a1):
-        segs.append((abs(a1 - a0) * rr, lambda t: (cx + rr * math.cos(a0 + (a1 - a0) * t), cy + rr * math.sin(a0 + (a1 - a0) * t))))
+        segs.append(
+            (
+                abs(a1 - a0) * rr,
+                lambda t: (cx + rr * math.cos(a0 + (a1 - a0) * t), cy + rr * math.sin(a0 + (a1 - a0) * t)),
+            )
+        )
 
     cx = (x0 + x1) / 2
     line(cx, y1, x0 + rr, y1)
@@ -179,9 +209,10 @@ KEY_LED = _key_leds()
 
 # ------------------------------------------------------------------ cores
 
+
 def rgb(hexstr: str) -> tuple[float, float, float]:
     try:
-        return tuple(int(hexstr[i:i + 2], 16) for i in (1, 3, 5))
+        return tuple(int(hexstr[i : i + 2], 16) for i in (1, 3, 5))
     except (TypeError, ValueError, IndexError):
         return (245, 165, 36)
 
@@ -219,12 +250,13 @@ def ring_dist(a: int, b: int) -> int:
 
 # ------------------------------------------------------------------ o motor
 
+
 class Lighting:
     def __init__(self):
         self.section: dict | None = None
         self.reacts: list[dict] = []
-        self._held: dict[int, dict] = {}        # tecla -> {t0, spec, color, fired}
-        self._sparks: list[list[float]] = []    # [led, início]
+        self._held: dict[int, dict] = {}  # tecla -> {t0, spec, color, fired}
+        self._sparks: list[list[float]] = []  # [led, início]
         self._last_t: float | None = None
         rnd = random.Random(6)
         self._star = [(rnd.uniform(1.8, 3.6), rnd.uniform(0, 6.28)) for _ in range(N)]
@@ -270,18 +302,28 @@ class Lighting:
         spec = (light or {}).get(moment) or {}
         kind = spec.get("kind", "default")
         if kind == "default":
-            if moment != "press":                 # a reação padrão vale só ao apertar
+            if moment != "press":  # a reação padrão vale só ao apertar
                 return
             spec = self.settings(page)["reaction"]
             kind = spec.get("kind", "ripple")
         if kind == "none":
             return
         base = self.settings(page)["reaction"]
-        color = self._reaction_color(spec.get("color", base.get("color", "key")), spec.get("fixed", base.get("fixed", AMBER)),
-                                     key_color, page)
-        self.reacts.append({"key": key, "led": KEY_LED.get(key, 0), "kind": kind, "t0": now, "color": color,
-                            "speed": float(spec.get("speed", base.get("speed", 50))),
-                            "reach": float(spec.get("reach", base.get("reach", 100))), "end": None})
+        color = self._reaction_color(
+            spec.get("color", base.get("color", "key")), spec.get("fixed", base.get("fixed", AMBER)), key_color, page
+        )
+        self.reacts.append(
+            {
+                "key": key,
+                "led": KEY_LED.get(key, 0),
+                "kind": kind,
+                "t0": now,
+                "color": color,
+                "speed": float(spec.get("speed", base.get("speed", 50))),
+                "reach": float(spec.get("reach", base.get("reach", 100))),
+                "end": None,
+            }
+        )
         self.reacts = self.reacts[-24:]
 
     def _reaction_color(self, mode, fixed, key_color, page):
@@ -325,7 +367,7 @@ class Lighting:
             return [scale(c1, k)] * N
         if eff == "beat":
             ph = (t * sp / 1.6) % 1.0
-            k = 0.12 + 0.88 * max(math.exp(-((ph - 0.08) / 0.05) ** 2), 0.85 * math.exp(-((ph - 0.28) / 0.06) ** 2))
+            k = 0.12 + 0.88 * max(math.exp(-(((ph - 0.08) / 0.05) ** 2)), 0.85 * math.exp(-(((ph - 0.28) / 0.06) ** 2)))
             return [scale(c1, k)] * N
         if eff == "aurora":
             return [_palette(AURORA, t * sp / 9 + d * i / N) for i in range(N)]
@@ -343,7 +385,9 @@ class Lighting:
         if eff == "grad":
             return [mix(c1, c2, 0.5 - 0.5 * math.cos(2 * math.pi * (i / N - d * t * sp / 6))) for i in range(N)]
         if eff in ("comet", "chase"):
-            heads = [(t * sp / 1.8 * N) % N] if eff == "comet" else [(t * sp / 2.4 * N) % N, (t * sp / 2.4 * N + N / 2) % N]
+            heads = (
+                [(t * sp / 1.8 * N) % N] if eff == "comet" else [(t * sp / 2.4 * N) % N, (t * sp / 2.4 * N + N / 2) % N]
+            )
             trail = 2 + size * 10 if eff == "comet" else 3.0
             color = c1
             out = []
@@ -396,7 +440,7 @@ class Lighting:
         keep = []
         for r in self.reacts:
             e = now - r["t0"]
-            v = 8 + r["speed"] / 100 * 28          # LEDs por segundo
+            v = 8 + r["speed"] / 100 * 28  # LEDs por segundo
             dur = 0.35 + (1 - r["speed"] / 100) * 0.6
             reach = max(1, round(r["reach"] / 100 * (N // 2)))
             done = False

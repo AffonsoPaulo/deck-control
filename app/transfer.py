@@ -8,6 +8,7 @@ Importar aceita esse .zip ou um .yaml solto, em dois modos:
     replace  substitui tudo (mantém a senha do OBS atual se o arquivo não tiver uma)
     merge    só acrescenta as páginas do arquivo (renomeia as que já existem)
 """
+
 from __future__ import annotations
 
 import copy
@@ -34,6 +35,7 @@ e escolha este arquivo .zip.
 
 # -- imagens referenciadas -------------------------------------------------------------
 
+
 def _icon_specs(plain: dict):
     for keys in (plain.get("pages") or {}).values():
         for spec in (keys or {}).values():
@@ -54,11 +56,13 @@ def referenced_images(plain: dict) -> set[str]:
 
 # -- exportar ---------------------------------------------------------------------------
 
+
 def export_zip(config_path: Path, include_secrets: bool = False) -> tuple[str, bytes]:
     config_path = Path(config_path)
     text = config_path.read_text(encoding="utf-8")
     if not include_secrets:
         from app.plugins import MANAGER
+
         text = configio.without_secrets(text, MANAGER.secret_paths())
     plain = yaml.safe_load(text) or {}
     base = config_path.parent.resolve()
@@ -75,14 +79,18 @@ def export_zip(config_path: Path, include_secrets: bool = False) -> tuple[str, b
 
 # -- importar ---------------------------------------------------------------------------
 
+
 def read_import(name: str, data: bytes) -> tuple[dict, dict[str, bytes]]:
     """Lê o arquivo enviado. Devolve (config, {caminho relativo da imagem: bytes})."""
     images: dict[str, bytes] = {}
     if data[:2] == b"PK":
         with zipfile.ZipFile(io.BytesIO(data)) as z:
             names = z.namelist()
-            cfg_name = "config.yaml" if "config.yaml" in names else next(
-                (n for n in names if n.lower().endswith((".yaml", ".yml")) and "/" not in n.strip("/")), None)
+            cfg_name = (
+                "config.yaml"
+                if "config.yaml" in names
+                else next((n for n in names if n.lower().endswith((".yaml", ".yml")) and "/" not in n.strip("/")), None)
+            )
             if not cfg_name:
                 raise ValueError(tr("the .zip has no config.yaml"))
             text = z.read(cfg_name).decode("utf-8-sig")
@@ -152,6 +160,7 @@ def _rename_page_refs(spec, old: str, new: str):
 def _keep_secrets(current: dict, new: dict) -> None:
     """Backup exportado vem com as senhas em branco: mantém as que já estão no config atual."""
     from app.plugins import MANAGER
+
     for path in MANAGER.secret_paths():
         cur, dst = current, new
         for k in path[:-1]:
@@ -188,7 +197,7 @@ def build_import(config_path: Path, plain: dict, images: dict[str, bytes], mode:
             new["pages"][renames[str(page)]] = keys
     else:
         raise ValueError(tr("unknown import mode"))
-    build_config(new, config_path)   # valida antes de gravar
+    build_config(new, config_path)  # valida antes de gravar
     return new
 
 
