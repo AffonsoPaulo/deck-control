@@ -222,3 +222,14 @@ def test_autostart_command_in_development():
     pythonw = Path(sys.executable).with_name("pythonw.exe")
     exe = pythonw if pythonw.exists() else Path(sys.executable)
     assert winutil.autostart_command(cfg) == f'"{exe}" "{paths.MAIN_SCRIPT}" --tray --config "{cfg.resolve()}"'
+
+
+def test_autostart_command_in_the_executable(tmp_path, monkeypatch):
+    from app import paths, winutil
+
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    exe = r"C:\Program Files\Deck\Deck.exe"
+    default = paths.default_config(frozen=True)
+    assert winutil.autostart_command(default, frozen=True, executable=exe) == f'"{exe}" --tray'
+    other = tmp_path / "teste" / "config.yaml"
+    assert winutil.autostart_command(other, frozen=True, executable=exe) == f'"{exe}" --tray --config "{other}"'

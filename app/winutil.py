@@ -42,11 +42,19 @@ def _pythonw() -> str:
     return str(w if w.exists() else exe)
 
 
-def autostart_command(config: Path) -> str:
+def autostart_command(config: Path, *, frozen: bool | None = None, executable: str | None = None) -> str:
+    """O que o Windows roda ao entrar. Em desenvolvimento, o pythonw com o __main__.py e o config; no executável,
+    o Deck.exe na bandeja (o --config só quando não é o padrão, em %APPDATA%\\Deck). O instalador liga pelo
+    `Deck.exe --autostart on`, para o texto ser sempre este."""
     from app import paths
 
+    frozen = paths.FROZEN if frozen is None else frozen
+    config = Path(config).resolve()
+    if frozen:
+        cmd = f'"{sys.executable if executable is None else executable}" --tray'
+        return cmd if config == paths.default_config(frozen=True).resolve() else f'{cmd} --config "{config}"'
     main = paths.MAIN_SCRIPT
-    return f'"{_pythonw()}" "{main}" --tray --config "{Path(config).resolve()}"'
+    return f'"{_pythonw()}" "{main}" --tray --config "{config}"'
 
 
 def autostart_enabled() -> bool:
