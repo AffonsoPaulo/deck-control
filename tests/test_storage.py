@@ -73,3 +73,17 @@ def test_history_record_and_restore(store):
     assert store.read_text() == TEXT
     assert store.path.with_suffix(".yaml.bak").read_text(encoding="utf-8") != TEXT  # o de antes de voltar
     assert len(store.versions()) == 3  # voltar também vira uma versão
+
+
+def test_history_lives_in_localappdata_keyed_by_the_config_path(store, tmp_path, monkeypatch):
+    # caracterização (antes da Fase 7): em desenvolvimento o histórico fica em %LOCALAPPDATA%\D6Deck\history\<id>,
+    # com o id tirado do caminho do config; o .bak fica ao lado do config
+    import hashlib
+
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    store.record()
+    key = hashlib.sha1(str(store.path.resolve()).lower().encode()).hexdigest()[:12]
+    files = list((tmp_path / "local" / "D6Deck" / "history" / key).glob("*.json"))
+    assert len(files) == 1
+    store.save({**store.read_plain(), "brightness": 10})
+    assert store.path.with_suffix(".yaml.bak").is_file()

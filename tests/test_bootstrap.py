@@ -161,3 +161,13 @@ def test_autostart_runs_the_main_script():
 
     cmd = winutil.autostart_command(ROOT / "config.yaml")
     assert f'"{paths.MAIN_SCRIPT}" --tray --config' in cmd
+
+
+def test_autostart_command_in_development():
+    # caracterização (antes da Fase 7): o pythonw (ou o Python que roda os testes), o __main__.py e o config
+    from app import paths, winutil
+
+    cfg = ROOT / "config.yaml"
+    pythonw = Path(sys.executable).with_name("pythonw.exe")
+    exe = pythonw if pythonw.exists() else Path(sys.executable)
+    assert winutil.autostart_command(cfg) == f'"{exe}" "{paths.MAIN_SCRIPT}" --tray --config "{cfg.resolve()}"'
