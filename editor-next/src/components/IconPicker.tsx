@@ -96,7 +96,7 @@ export function IconPicker({ open, onOpenChange, onPick }: IconPickerProps) {
           className="flex-1"
         />
       </SheetHead>
-      <div ref={setScroller} className="min-h-0 flex-1 overflow-auto" data-testid="icon-grid">
+      <div ref={setScroller} className="min-h-0 flex-1 overflow-auto scrollbar-stable" data-testid="icon-grid">
         {scroller && idx && rows.length > 0 && (
           <Virtuoso
             customScrollParent={scroller}

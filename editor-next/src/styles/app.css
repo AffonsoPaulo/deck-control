@@ -201,5 +201,45 @@
   max-height: 84vh;
 }
 
+/* barra de rolagem discreta (a do Windows é larga, clara e tem setas): no Chrome/Edge, 6 px arredondada dentro de
+   10 px, sem setas, um pouco mais clara com o mouse em cima; nos outros, a fina padrão. Cor: --scrollbar (3:1) */
+@supports selector(::-webkit-scrollbar) {
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: var(--radius-full);
+    background: var(--scrollbar) padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--fg-subtle);
+  }
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-button {
+    display: none;
+  }
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar) transparent;
+  }
+}
+
+/* painel que rola: o espaço da barra fica reservado, para a largura não mudar quando ela aparece (sem isso,
+   um texto que quebra de linha com a barra faz a lista crescer e a barra ir e voltar sem parar) */
+@utility scrollbar-stable {
+  scrollbar-gutter: stable;
+}
+/* o mesmo, mas reservando dos dois lados (conteúdo centralizado continua no centro) */
+@utility scrollbar-stable-both {
+  scrollbar-gutter: stable both-edges;
+}
+
 /* o desenho do aparelho (exceção do design system: --device-* e medidas próprias) */
 @import "../features/keys/deck.css";

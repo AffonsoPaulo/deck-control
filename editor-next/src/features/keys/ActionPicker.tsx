@@ -41,7 +41,7 @@ export function ActionPicker({ open, onOpenChange, onPick, current }: ActionPick
       <SheetHead>
         <TextInput ref={search} type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={placeholder} aria-label={placeholder} className="flex-1" />
       </SheetHead>
-      <div className="grid min-h-0 gap-4 overflow-auto">
+      <div className="grid min-h-0 gap-4 overflow-auto scrollbar-stable">
         {list.map(([g, items]) => (
           <section key={g.name} style={catStyle(g.color)}>
             <h3 className="m-0 mb-1.5 text-xs font-semibold text-fg-subtle">{t(g.name)}</h3>

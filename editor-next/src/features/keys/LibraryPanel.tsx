@@ -60,7 +60,7 @@ export function LibraryPanel({ page }: { page: string }) {
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto px-2.5 pt-1 pb-3">{tab === "widgets" ? <WidgetsTab query={query} page={page} /> : <ActionsTab query={query} page={page} />}</div>
+      <div className="min-h-0 flex-1 overflow-auto px-2.5 pt-1 pb-3 scrollbar-stable">{tab === "widgets" ? <WidgetsTab query={query} page={page} /> : <ActionsTab query={query} page={page} />}</div>
       <p className="m-0 border-t border-border px-4.5 pt-3 pb-4 text-xs text-fg-subtle">
         {tab === "widgets" ? t("Drag a widget onto the Deck. Click it to see the sizes.") : t("Drag an action onto a Deck key, or into the list of steps.")}
       </p>

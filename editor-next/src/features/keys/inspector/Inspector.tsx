@@ -32,7 +32,7 @@ export function Inspector({ page, previews, place }: { page: string; previews: K
   const k = useUi((s) => s.key);
   const spec = useConfig((s) => (k ? pageKeysOf(s.cfg, page)[k] : undefined));
   return (
-    <aside className="min-h-0 w-107.5 flex-none overflow-y-auto border-l border-border bg-surface">
+    <aside className="min-h-0 w-107.5 flex-none overflow-y-auto border-l border-border bg-surface scrollbar-stable">
       {k === null ? <Guide /> : !spec ? <EmptyKey page={page} k={k} /> : <KeyInspector page={page} k={k} spec={spec} preview={previews?.[Number(k) - 1] ?? null} place={place} />}
     </aside>
   );

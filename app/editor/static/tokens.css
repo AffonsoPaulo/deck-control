@@ -129,6 +129,7 @@
   --scrim: rgba(5, 6, 8, .6);              /* fundo atrás de diálogo */
   --tint-hover: rgba(255, 255, 255, .08);  /* hover sobre fundo colorido */
   --tint-line: rgba(255, 255, 255, .14);   /* contorno sobre fundo colorido */
+  --scrollbar: color-mix(in srgb, var(--fg-subtle) 60%, var(--surface)); /* barra de rolagem fina: 3,0:1 no painel */
 
   /* categorias: cada uma guarda só a base; o resto sai das fórmulas abaixo
      chip = base 22% sobre --cat-mix-bg; ícone/texto = base 55% com --cat-mix-fg; bloco = base 17% */
