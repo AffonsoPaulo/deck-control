@@ -128,3 +128,22 @@ def test_multi_without_actions():
     assert "pages.main.1.action: action 'multi' needs the field 'actions'" in problems(
         {"pages": {"main": {1: {"action": {"type": "multi"}}}}}
     )
+
+
+# Achados na revisão de casos de borda (e antes, pelo agente da Fase 4): valor de tipo errado escrito à mão no
+# config.yaml derruba a leitura com um erro cru (AttributeError, TypeError, ValueError) em vez de virar problema
+# na lista. O editor nunca grava assim; um config editado à mão pode.
+@pytest.mark.xfail(strict=True, reason="bug: tipo errado num campo da tecla estoura em vez de virar problema")
+@pytest.mark.parametrize(
+    "key",
+    [
+        {"action": 5},
+        {"span": [2, 1], "cells": 5},
+        {"action": "hotkey:a", "hold": "hotkey:b", "hold_ms": None},
+        {"action": "media:vol_up", "repeat": "press", "repeat_ms": "x"},
+    ],
+    ids=["action-numero", "cells-numero", "hold_ms-nulo", "repeat_ms-texto"],
+)
+def test_wrong_type_in_a_key_becomes_a_problem(key):
+    with pytest.raises(ConfigError):
+        build_config({"pages": {"main": {"1": key}}}, Path("config.yaml"))
