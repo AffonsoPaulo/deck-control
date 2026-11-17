@@ -237,6 +237,46 @@ def test_run_plugin_with_a_module_and_a_package_in_lib(tmp_path):
     assert (r.returncode, r.stdout.strip()) == (0, "__main__ ['--a'] True"), r.stderr
 
 
+ISOLATED = """
+import sys, json
+info = {"enc": sys.stdout.encoding, "write_through": sys.stdout.write_through, "exit": callable(exit)}
+sys.stdout.write(json.dumps(info) + "\\n")  # sem flush: o app tem de receber assim mesmo
+line = sys.stdin.readline()
+sys.stdout.write("recebido: " + json.loads(line)["texto"] + "\\n")
+exit(7)
+"""
+
+
+def test_run_plugin_in_an_isolated_python_like_the_executable(tmp_path):
+    # o Python do PyInstaller roda como "python -I -S": não lê PYTHONIOENCODING/PYTHONUNBUFFERED e não tem o
+    # exit() do site. O --run-plugin devolve isso ao plugin (no Python de sempre, nada muda)
+    import threading
+
+    folder = make_plugin(tmp_path, ["python", "main.py"], {"main.py": ISOLATED})
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
+    proc = subprocess.Popen(
+        [PYTHON, "-I", "-S", str(paths.MAIN_SCRIPT), "--run-plugin", str(folder)],
+        cwd=folder,
+        env=env,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+    )
+    try:
+        first: list[str] = []
+        reader = threading.Thread(target=lambda: first.append(proc.stdout.readline()), daemon=True)
+        reader.start()
+        reader.join(20)
+        assert first and first[0], "a primeira linha ficou presa no buffer do plugin"
+        assert json.loads(first[0]) == {"enc": "utf-8", "write_through": True, "exit": True}
+        out, err = proc.communicate(json.dumps({"texto": "ação ✓"}, ensure_ascii=False) + "\n", timeout=20)
+    finally:
+        proc.kill()
+    assert (proc.returncode, out) == (7, "recebido: ação ✓\n"), err
+
+
 def test_run_plugin_errors(tmp_path):
     folder = make_plugin(tmp_path, ["python", "main.py"], {"main.py": "raise ValueError('broken plugin')\n"})
     r = run_plugin(folder)

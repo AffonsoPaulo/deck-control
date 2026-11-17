@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import builtins
 import importlib.machinery
+import io
 import json
 import os
 import sys
@@ -99,6 +100,7 @@ def main(argv: list[str], drop_from_path: list[str]) -> int:
         sys.stderr.write(f"--run-plugin {folder.name}: {e}\n")
         return 2
     os.chdir(folder)  # quem abre é o app, já nesta pasta; à mão, de outra pasta, fica igual
+    _like_plain_python()
     if target.no_bytecode:
         sys.dont_write_bytecode = True
     if target.module is not None:
@@ -132,6 +134,37 @@ def _target(folder: Path) -> PythonTarget:
     if runtime_of(m) != "deck-python":
         raise PluginError(tr("this plugin's runtime isn't \"deck-python\""))
     return parse_run(python_run(m))
+
+
+def _like_plain_python() -> None:
+    """O que o Python do executável não faz sozinho e o `python main.py` faz.
+
+    O PyInstaller roda o Python isolado (sys.flags.ignore_environment e no_site): ele não lê as variáveis
+    PYTHON* que o app põe ao abrir o plugin (app/plugins/external.py) e não cria o exit()/quit() do site. Sem
+    isso o plugin sairia em cp1252 e com a saída presa no buffer (a resposta só chegaria ao app quando o buffer
+    enchesse). Fora do executável o Python já fez tudo isso e aqui nada muda.
+    """
+    if sys.flags.ignore_environment:
+        encoding, _, errors = (os.environ.get("PYTHONIOENCODING") or "").partition(":")
+        unbuffered = bool(os.environ.get("PYTHONUNBUFFERED"))
+        if isinstance(sys.stdin, io.TextIOWrapper):
+            sys.stdin.reconfigure(encoding=encoding or None, errors=errors or None)
+        for name, fd, err in (("stdout", 1, errors or None), ("stderr", 2, "backslashreplace")):
+            old = getattr(sys, name)
+            if not isinstance(old, io.TextIOWrapper):
+                continue  # sem a saída (None): nada a ajustar
+            if unbuffered:  # como o python -u: sem buffer embaixo, cada write vai direto para o pipe
+                raw = io.FileIO(fd, "w", closefd=False)
+                setattr(
+                    sys, name, io.TextIOWrapper(raw, encoding or old.encoding, err or old.errors, write_through=True)
+                )
+            else:
+                old.reconfigure(encoding=encoding or None, errors=err)
+    if not hasattr(builtins, "exit"):
+        import _sitebuiltins
+
+        builtins.exit = _sitebuiltins.Quitter("exit", "Ctrl-Z plus Return")
+        builtins.quit = _sitebuiltins.Quitter("quit", "Ctrl-Z plus Return")
 
 
 def _isolate(first: str, folder: Path, drop_from_path: list[str]) -> None:
