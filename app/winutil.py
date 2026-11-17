@@ -84,8 +84,11 @@ def reset_dll_directory() -> None:
     abrir programa e de comando, plugins "exe", o navegador) herda isso: poderia carregar o python312.dll, o
     libssl ou o VCRUNTIME do Deck no lugar dos dele. As DLLs do próprio app não dependem disso (o Python carrega
     os .pyd e as DLLs ao lado deles sem o SetDllDirectory). Conferido no build: tudo importa e desenha depois.
+
+    Texto vazio, não None: o None volta a busca padrão, que inclui a pasta atual (uma DLL plantada na pasta de
+    onde o programa foi aberto seria carregada); o "" tira a _internal e mantém a pasta atual de fora.
     """
-    ctypes.windll.kernel32.SetDllDirectoryW(None)
+    ctypes.windll.kernel32.SetDllDirectoryW("")
 
 
 def message_box(text: str, title: str = "Deck") -> None:

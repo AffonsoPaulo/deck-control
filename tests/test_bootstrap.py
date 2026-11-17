@@ -233,3 +233,16 @@ def test_autostart_command_in_the_executable(tmp_path, monkeypatch):
     assert winutil.autostart_command(default, frozen=True, executable=exe) == f'"{exe}" --tray'
     other = tmp_path / "teste" / "config.yaml"
     assert winutil.autostart_command(other, frozen=True, executable=exe) == f'"{exe}" --tray --config "{other}"'
+
+
+def test_dll_reset_keeps_the_current_folder_out(monkeypatch):
+    """O executável tira a _internal da busca de DLLs com "" (não None, que poria a pasta atual de volta)."""
+    import ctypes
+
+    from app import winutil
+
+    calls = []
+    fake = type("K", (), {"SetDllDirectoryW": staticmethod(lambda v: calls.append(v) or 1)})()
+    monkeypatch.setattr(ctypes, "windll", type("W", (), {"kernel32": fake})(), raising=False)
+    winutil.reset_dll_directory()
+    assert calls == [""]

@@ -149,7 +149,7 @@ def _like_plain_python() -> None:
     if getattr(sys, "frozen", False):
         import ctypes
 
-        ctypes.windll.kernel32.SetDllDirectoryW(None)
+        ctypes.windll.kernel32.SetDllDirectoryW("")  # "" e não None: a pasta atual fica fora da busca de DLLs
     if sys.flags.ignore_environment:
         encoding, _, errors = (os.environ.get("PYTHONIOENCODING") or "").partition(":")
         unbuffered = bool(os.environ.get("PYTHONUNBUFFERED"))
