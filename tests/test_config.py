@@ -131,19 +131,23 @@ def test_multi_without_actions():
 
 
 # Achados na revisão de casos de borda (e antes, pelo agente da Fase 4): valor de tipo errado escrito à mão no
-# config.yaml derruba a leitura com um erro cru (AttributeError, TypeError, ValueError) em vez de virar problema
+# config.yaml derrubava a leitura com um erro cru (AttributeError, TypeError, ValueError) em vez de virar problema
 # na lista. O editor nunca grava assim; um config editado à mão pode.
-@pytest.mark.xfail(strict=True, reason="bug: tipo errado num campo da tecla estoura em vez de virar problema")
 @pytest.mark.parametrize(
     "key",
     [
         {"action": 5},
         {"span": [2, 1], "cells": 5},
-        {"action": "hotkey:a", "hold": "hotkey:b", "hold_ms": None},
         {"action": "media:vol_up", "repeat": "press", "repeat_ms": "x"},
     ],
-    ids=["action-numero", "cells-numero", "hold_ms-nulo", "repeat_ms-texto"],
+    ids=["action-numero", "cells-numero", "repeat_ms-texto"],
 )
 def test_wrong_type_in_a_key_becomes_a_problem(key):
     with pytest.raises(ConfigError):
         build_config({"pages": {"main": {"1": key}}}, Path("config.yaml"))
+
+
+def test_empty_number_in_a_key_is_the_default():
+    """hold_ms: (vazio, null no YAML) é como não ter escrito: vale o padrão."""
+    cfg = build_config({"pages": {"main": {"1": {"action": "hotkey:a", "hold": "hotkey:b", "hold_ms": None}}}}, P)
+    assert cfg.pages["main"][1].hold_ms == 500

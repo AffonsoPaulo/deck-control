@@ -126,7 +126,7 @@ def _from_missing_plugin(type_name) -> bool:
 
 def state_of(spec, key_id: str) -> str | None:
     spec = normalize(spec)
-    if not spec:
+    if not isinstance(spec, dict):  # vazio, ou um valor errado (já entrou na lista de problemas)
         return None
     d = REGISTRY.get(spec.get("type"))
     return d.state(spec, key_id) if d and d.state else None

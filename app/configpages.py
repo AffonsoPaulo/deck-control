@@ -128,6 +128,10 @@ def build_key(
         if v is not None and not (isinstance(v, (int, float)) and lo <= v <= hi):
             problems.append(tr("{where}.{field}: a number from {lo} to {hi}", where=where, field=f, lo=lo, hi=hi))
     problems += lighting.validate_key(k.get("light"), f"{where}.light")
+    cells = k.get("cells")
+    if cells is not None and not isinstance(cells, list):
+        problems.append(tr("{where}.cells: expected a list", where=where))
+        cells = None
     try:
         icon = _icon(k.get("icon"), f"{where}.icon")
         active_override = _icon(k.get("active_icon"), f"{where}.active_icon") or DEFAULT_ACTIVE_OVERRIDE
@@ -141,20 +145,27 @@ def build_key(
         state=state,
         action=actions.normalize(k.get("action")),
         hold=actions.normalize(k.get("hold")),
-        hold_ms=int(k.get("hold_ms", 500)),
+        hold_ms=_num(k, "hold_ms", 500),
         release=actions.normalize(k.get("release")),
         light=k.get("light") if isinstance(k.get("light"), dict) else None,
         double=actions.normalize(k.get("double")),
         repeat=k.get("repeat") if k.get("repeat") in ("press", "hold") else None,
-        repeat_ms=int(k.get("repeat_ms", 80)),
-        repeat_delay=int(k.get("repeat_delay", 400)),
+        repeat_ms=_num(k, "repeat_ms", 80),
+        repeat_delay=_num(k, "repeat_delay", 400),
         rules=[r for r in rules if isinstance(r, dict)],
         span=span,
-        cells=[c if isinstance(c, dict) else {"text": str(c)} for c in (k.get("cells") or [])],
+        cells=[c if isinstance(c, dict) else {"text": str(c)} for c in (cells or [])],
         mode=k.get("mode") or "split",
         dynamic=_is_dynamic(k),
     )
     return Checked((n, spec), problems)
+
+
+def _num(k: dict[str, Any], field: str, default: int) -> int:
+    """Um número da tecla; vazio (null) é o padrão. Texto ou outro tipo já entrou na lista de problemas
+    (NUMBER_RANGES): aqui só não pode estourar enquanto a tecla é montada."""
+    v = k.get(field)
+    return int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else default
 
 
 def _span(value: Any, n: int, where: str, problems: list[str]) -> tuple[int, int]:
@@ -190,7 +201,8 @@ def _is_dynamic(k: dict[str, Any]) -> bool:
     """Mostra valores ({id}), tem regras, barra ou cor por faixa: precisa ser redesenhada sozinha."""
     if k.get("rules"):
         return True
-    for icon in [k.get("icon"), k.get("active_icon"), *(k.get("cells") or [])]:
+    cells = k.get("cells")
+    for icon in [k.get("icon"), k.get("active_icon"), *(cells if isinstance(cells, list) else [])]:
         if isinstance(icon, dict):
             if isinstance(icon.get("bar"), dict) or isinstance(icon.get("bg"), dict):
                 return True
