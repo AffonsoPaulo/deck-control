@@ -156,6 +156,49 @@ def test_data_dir_follows_localappdata(tmp_path, monkeypatch):
     assert winutil.data_dir() == paths.data_dir()
 
 
+def test_user_files_stay_where_they_were_in_development(tmp_path, monkeypatch):
+    from app import paths
+
+    monkeypatch.setenv("APPDATA", str(tmp_path / "roaming"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    assert paths.config_dir() == ROOT
+    assert paths.default_config() == ROOT / "config.yaml"
+    assert paths.history_dir() == tmp_path / "local" / "D6Deck" / "history"
+    assert paths.old_config() is None
+    assert not (tmp_path / "roaming").exists()  # nada é criado em %APPDATA% fora do executável
+
+
+def test_user_files_go_to_appdata_in_the_executable(tmp_path, monkeypatch):
+    from app import paths
+
+    monkeypatch.setenv("APPDATA", str(tmp_path / "roaming"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    deck = tmp_path / "roaming" / "Deck"
+    assert paths.default_config(frozen=True) == deck / "config.yaml"
+    assert deck.is_dir()  # criada na hora: o exemplo é copiado para lá na primeira abertura
+    assert paths.history_dir(frozen=True) == deck / "history"
+    assert paths.data_dir() == tmp_path / "local" / "D6Deck"  # logs e plugins não mudam de lugar
+
+
+def test_old_config_is_the_one_next_to_the_executable(tmp_path):
+    from app import paths
+
+    exe = tmp_path / "Deck" / "Deck.exe"
+    exe.parent.mkdir()
+    assert paths.old_config(frozen=True, executable=str(exe)) is None
+    (exe.parent / "config.yaml").write_text("pages: {}\n", encoding="utf-8")
+    assert paths.old_config(frozen=True, executable=str(exe)) == exe.parent / "config.yaml"
+    assert paths.old_config(frozen=False, executable=str(exe)) is None
+
+
+def test_resources_the_package_needs_exist_in_the_project():
+    from app import paths
+
+    # o editor só existe depois do npm run build; o resto vem no repositório
+    assert [m for m in paths.missing_resources() if not m.startswith("editor:")] == []
+    assert all(p.is_relative_to(paths.ROOT) for p in paths.RESOURCES.values())
+
+
 def test_autostart_runs_the_main_script():
     from app import paths, winutil
 

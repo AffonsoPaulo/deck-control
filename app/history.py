@@ -5,8 +5,10 @@ resumo do que mudou. Mudanças seguidas em pouco tempo (salvamento automático
 enquanto a pessoa edita) entram na mesma versão, para o histórico não virar
 uma versão por letra digitada.
 
-Fica em %LOCALAPPDATA%\\D6Deck\\history\\<id do config>\\, separado por arquivo
-de config, para configs de teste não se misturarem com o de verdade.
+Fica em <pasta do histórico>\\<id do config>\\, separado por arquivo de config,
+para configs de teste não se misturarem com o de verdade. A pasta vem do
+app/paths.py (history_dir): em desenvolvimento %LOCALAPPDATA%\\D6Deck\\history,
+no executável %APPDATA%\\Deck\\history.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from pathlib import Path
 
 import yaml
 
-from app import configio, winutil
+from app import configio, paths
 from app.i18n import tr
 
 MAX_ENTRIES = 300
@@ -29,9 +31,13 @@ MAX_SUMMARY = 8
 _lock = threading.Lock()
 
 
+def key(config_path: Path) -> str:
+    """O id do config no histórico: tirado do caminho completo do arquivo."""
+    return hashlib.sha1(str(Path(config_path).resolve()).lower().encode()).hexdigest()[:12]
+
+
 def _dir(config_path: Path) -> Path:
-    key = hashlib.sha1(str(Path(config_path).resolve()).lower().encode()).hexdigest()[:12]
-    d = winutil.data_dir() / "history" / key
+    d = paths.history_dir() / key(config_path)
     d.mkdir(parents=True, exist_ok=True)
     return d
 
