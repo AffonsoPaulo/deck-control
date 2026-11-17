@@ -46,6 +46,9 @@ export function saveSpec(spec: KeySpec, t: T, schema: EditorSchema | undefined, 
   useLib.getState().openGroup("Saved keys");
 }
 
+/** O aviso de "peça colocada" já com o idioma e o schema (para quem troca o tamanho de um widget). */
+export const placedToastFor = (t: T, schema: EditorSchema | undefined) => (msg: string, removed: Removed[]) => placedToast(msg, removed, t, schema);
+
 /** O aviso depois de colocar uma peça; se tirou teclas, oferece guardá-las. */
 function placedToast(msg: string, removed: Removed[], t: T, schema: EditorSchema | undefined): void {
   if (!removed.length) {

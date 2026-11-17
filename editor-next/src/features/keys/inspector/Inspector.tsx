@@ -18,6 +18,7 @@ import { useUi } from "@/core/store/ui";
 import { actionDefs, groupOf, groupsOf, iconOf, widgetDefs } from "@/features/keys/actions";
 import { ActionPicker } from "@/features/keys/ActionPicker";
 import { LookTab } from "@/features/keys/inspector/LookTab";
+import { WidgetTab } from "@/features/keys/inspector/WidgetTab";
 import { isInfoKey } from "@/features/keys/look";
 import { useKeyOps } from "@/features/keys/keyOps";
 import { draftKeys } from "@/features/keys/keys";
@@ -140,11 +141,13 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
         ["look", t("Appearance")],
         ["light", t("Light")],
       ];
-  const ready = tab === "look" && !widget && !block && !info;
+  // widget tem a aba própria (mesmo ocupando várias teclas); bloco e informação ainda abrem no editor atual
+  const ready = tab === "look" && (widget || (!block && !info));
 
   return (
     <>
-      <div className="sticky top-0 z-(--z-raised) flex items-center gap-3 bg-surface px-4.5 pt-4 pb-3">
+      {/* pr-2: a margem direita de 18 px conta com os 10 px reservados para a barra de rolagem */}
+      <div className="sticky top-0 z-(--z-raised) flex items-center gap-3 bg-surface pt-4 pr-2 pb-3 pl-4.5">
         {thumb ? <img className="deck-insp-thumb" src={thumb} alt="" /> : <span className="deck-insp-thumb" />}
         <div className="min-w-0 flex-1">
           {staticTitle ? (
@@ -192,7 +195,7 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
           </button>
         ))}
       </div>
-      {ready ? <LookTab page={page} k={k} spec={spec} preview={preview} /> : <SectionPlaceholder place={place} compact />}
+      {!ready ? <SectionPlaceholder place={place} compact /> : widget ? <WidgetTab page={page} k={k} spec={spec} /> : <LookTab page={page} k={k} spec={spec} preview={preview} />}
     </>
   );
 }

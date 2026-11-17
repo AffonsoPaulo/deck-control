@@ -321,7 +321,7 @@ const str = (v: unknown): string | null => (typeof v === "string" && v ? v : nul
 
 // ---------------------------------------------------------------------------- ícone e imagem
 
-function GlyphCard({ icon, onChoose, onRemove }: { icon: Obj; onChoose: () => void; onRemove?: () => void }) {
+export function GlyphCard({ icon, onChoose, onRemove }: { icon: Obj; onChoose: () => void; onRemove?: () => void }) {
   const t = useT();
   const idx = useLucideIndex();
   const popular = usePopularIcons();
@@ -350,7 +350,7 @@ function GlyphCard({ icon, onChoose, onRemove }: { icon: Obj; onChoose: () => vo
   );
 }
 
-function ImageCard({ path, onChange, onRemove }: { path: string; onChange: () => void; onRemove: () => void }) {
+export function ImageCard({ path, onChange, onRemove }: { path: string; onChange: () => void; onRemove: () => void }) {
   const t = useT();
   const info = useQuery({ queryKey: ["image_info", path], queryFn: () => api("POST /api/image_info", { path }), staleTime: Infinity, retry: false }).data;
   const missing = !!info && "missing" in info;

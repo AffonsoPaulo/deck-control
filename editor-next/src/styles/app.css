@@ -69,6 +69,8 @@
   --leading-tight: 1.2;
   /* colunas do seletor de ações (o minmax(220px, 1fr) do .picker-grid do editor atual) */
   --grid-template-columns-picker: repeat(auto-fill, minmax(220px, 1fr));
+  /* opção do widget: rótulo e controle (o 110px 1fr do .opt-row do editor atual) */
+  --grid-template-columns-opt: 110px 1fr;
 
   --text-2xs: var(--text-2xs);
   --text-2xs--line-height: var(--text-2xs--line-height);

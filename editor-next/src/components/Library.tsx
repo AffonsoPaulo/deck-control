@@ -89,10 +89,11 @@ interface SizeTileProps {
   onClick?: () => void;
   children: ReactNode; // a miniatura (a de verdade, renderizada pelo app)
   ref?: Ref<HTMLButtonElement>; // para arrastar a peça
+  className?: string;
 }
 
 /** Peça de tamanho do widget: a miniatura em cima e o tamanho embaixo (biblioteca, inspetor, página do plugin). */
-export function SizeTile({ label, rows, unit = 20, pressed, disabled, note, title, compact, onClick, children, ref }: SizeTileProps) {
+export function SizeTile({ label, rows, unit = 20, pressed, disabled, note, title, compact, onClick, children, ref, className }: SizeTileProps) {
   const r = Math.max(2, rows);
   return (
     <button
@@ -108,6 +109,7 @@ export function SizeTile({ label, rows, unit = 20, pressed, disabled, note, titl
         "aria-pressed:border-accent aria-pressed:text-fg aria-pressed:inset-ring aria-pressed:inset-ring-accent",
         "focus-visible:outline-2 focus-visible:outline-accent",
         compact ? "flex-auto px-1.25 pt-1.5 pb-1" : "px-1.75 pt-1.75 pb-1.25",
+        className,
       )}
     >
       <span className="flex items-center justify-center" style={{ height: r * unit + (r - 1) * 2 }}>

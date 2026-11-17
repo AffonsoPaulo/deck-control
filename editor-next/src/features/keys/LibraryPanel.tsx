@@ -1,7 +1,7 @@
 // A biblioteca (coluna da esquerda da seção Teclas): busca, as abas Ações e Widgets, os grupos em sanfona e as
 // peças que se arrastam para o Deck (ou que vão para a tecla escolhida com um clique). Mesmo desenho e regras do
 // editor atual (renderLibrary, infoLibraryGroups, widgetLibrary, widgetItem).
-import { LayoutGrid, Plug, Search, X, Zap } from "lucide-react";
+import { LayoutGrid, Plug, Search, Trash2, X, Zap } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { IconButton } from "@/components/IconButton";
 import { Icon } from "@/components/Icon";
@@ -22,6 +22,8 @@ import { useLib } from "@/features/keys/libStore";
 import { spanOf, type DragPayload } from "@/features/keys/model";
 import { usePlacer } from "@/features/keys/place";
 import { useThumbs, type ThumbItem } from "@/features/keys/thumbs";
+import { WidgetThumb } from "@/features/keys/WidgetThumb";
+import { useWidgetOps } from "@/features/keys/widgetOps";
 import { isObj, type Obj } from "@/core/obj";
 
 const ITEM =
@@ -300,6 +302,7 @@ function WidgetItem({ id, def, query, page, color, withTag }: { id: string; def:
   const t = useT();
   const idx = useLucideIndex();
   const placer = usePlacer(page);
+  const widgetOps = useWidgetOps(page);
   const setOrigin = useLib((s) => s.setOrigin);
   const widgetOpen = useLib((s) => s.widgetOpen);
   const toggleWidget = useLib((s) => s.toggleWidget);
@@ -330,7 +333,7 @@ function WidgetItem({ id, def, query, page, color, withTag }: { id: string; def:
         aria-expanded={many ? open : undefined}
         title={many ? t("Drag onto the Deck, or open to see the sizes") : t("Drag onto the Deck")}
         style={catStyle(color)}
-        className={ITEM}
+        className={cn(ITEM, "group")}
         onClick={activate}
         onKeyDown={(e) => {
           // Enter abre ou coloca; o Espaço é do arrastar pelo teclado (pega a peça)
@@ -347,6 +350,18 @@ function WidgetItem({ id, def, query, page, color, withTag }: { id: string; def:
             <Icon icon={Plug} size="xs" />
             {originName(def.plugin)}
           </Tag>
+        )}
+        {!!def.mine && (
+          <IconButton
+            icon={Trash2}
+            size="sm"
+            label={t("Delete from my widgets")}
+            onClick={(e) => {
+              e.stopPropagation();
+              void widgetOps.removeMine(id);
+            }}
+            className="ml-auto opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+          />
         )}
       </div>
       {open && many && (
@@ -383,18 +398,5 @@ function SizePiece({ id, size, label, page, srcs }: { id: string; size: string; 
     >
       <WidgetThumb srcs={srcs} cols={cols} rows={rows} unit={18} />
     </SizeTile>
-  );
-}
-
-/** A miniatura de um widget num tamanho: uma grade de teclas com o desenho de verdade de cada uma. */
-export function WidgetThumb({ srcs, cols, rows, unit, dim }: { srcs: string[]; cols: number; rows: number; unit: number; dim?: boolean }) {
-  return (
-    <span aria-hidden className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${cols}, ${unit}px)`, gridAutoRows: `${unit}px` }}>
-      {Array.from({ length: cols * rows }, (_, i) => (
-        <span key={i} className="block overflow-hidden rounded-xs bg-key-graphite inset-ring inset-ring-tint-hover">
-          {srcs[i] && <img src={srcs[i]} alt="" className={cn("block size-full", dim && "brightness-60 grayscale")} />}
-        </span>
-      ))}
-    </span>
   );
 }
