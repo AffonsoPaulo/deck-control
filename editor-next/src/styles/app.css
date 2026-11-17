@@ -169,3 +169,20 @@
     line-height: var(--text-base--line-height);
   }
 }
+
+/* barrinha do aviso longo (o .toast-time do editor atual): encolhe até sumir; parada com o mouse em cima */
+@keyframes toast-time {
+  to {
+    transform: scaleX(0);
+  }
+}
+@utility animate-toast-time {
+  animation: toast-time linear forwards;
+}
+@utility paused {
+  animation-play-state: paused;
+}
+/* altura máxima da folha (o .sheet-card do editor atual) */
+@utility max-h-sheet {
+  max-height: 84vh;
+}

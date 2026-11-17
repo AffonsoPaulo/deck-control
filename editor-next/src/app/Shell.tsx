@@ -13,6 +13,7 @@ import { useUi } from "@/core/store/ui";
 import { Rail } from "@/app/Rail";
 import { SectionPlaceholder } from "@/app/SectionPlaceholder";
 import { TopBar } from "@/app/TopBar";
+import { Toaster } from "@/components/Toaster";
 
 const TITLES: Record<Section, string> = {
   keys: "Keys",
@@ -81,6 +82,7 @@ export function Shell() {
         />
         <SectionPlaceholder place={{ ...place, section }} />
       </div>
+      <Toaster />
     </div>
   );
 }

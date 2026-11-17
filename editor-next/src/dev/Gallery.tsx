@@ -1,14 +1,17 @@
 // Galeria dos componentes (só em desenvolvimento: npm run dev, #...&dev=components). Serve para comparar com o
 // editor atual, peça por peça. Não entra no build que o app serve.
-import { Copy, Ellipsis, Grid2x2, House, List, MonitorUp, Moon, Pencil, Save, Sun, SunMoon, Trash2 } from "lucide-react";
+import { Copy, Ellipsis, Undo2, Grid2x2, House, List, MonitorUp, Moon, Pencil, Save, Sun, SunMoon, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { Field, TextInput } from "@/components/Field";
 import { Segmented } from "@/components/Segmented";
 import { Select } from "@/components/Select";
 import { Stepper } from "@/components/Stepper";
+import { Sheet, SheetHead } from "@/components/Sheet";
 import { Swatches, useKeySwatches } from "@/components/Swatches";
 import { Switch } from "@/components/Switch";
+import { Toaster } from "@/components/Toaster";
+import { toast } from "@/core/toast";
 import { IconButton } from "@/components/IconButton";
 import { ContextMenuArea, MenuButton, type MenuEntry } from "@/components/Menu";
 import { useT } from "@/core/i18n";
@@ -62,6 +65,30 @@ function Controls() {
   );
 }
 
+function Overlays() {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const undo = { label: t("Undo"), icon: Undo2, run: () => {} };
+  return (
+    <section className="flex flex-col gap-3" data-gallery="overlays">
+      <h2 className="m-0 text-lg font-bold">Folha e avisos</h2>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => setOpen(true)}>Folha</Button>
+        <Button onClick={() => toast(t("Saved"))}>Aviso</Button>
+        <Button onClick={() => toast(t("Key {0} deleted.", [3]), { undo })}>Aviso com desfazer</Button>
+        <Button onClick={() => toast(t("Page {0} deleted.", ["main"]), { undo, long: true })}>Aviso longo</Button>
+        <Button onClick={() => toast(t("Error saving: ") + "timeout", { bad: true })}>Aviso de erro</Button>
+      </div>
+      <Sheet open={open} onOpenChange={setOpen} label={t("Choose icon")}>
+        <SheetHead>
+          <TextInput type="search" aria-label={t("Search")} placeholder={t("Search icons (e.g.: mic, play, folder, light)")} />
+        </SheetHead>
+        <div className="grid h-80 place-items-center rounded-lg bg-sunken text-fg-subtle">grade de ícones (parte 3)</div>
+      </Sheet>
+    </section>
+  );
+}
+
 export function Gallery() {
   const t = useT();
   const pageMenu: MenuEntry[] = [
@@ -106,6 +133,7 @@ export function Gallery() {
         </div>
       </section>
       <Controls />
+      <Overlays />
       <section className="flex flex-col gap-3" data-gallery="menus">
         <h2 className="m-0 text-lg font-bold">Menus</h2>
         <div className="flex items-center gap-6">
@@ -115,6 +143,7 @@ export function Gallery() {
           </ContextMenuArea>
         </div>
       </section>
+      <Toaster />
     </main>
   );
 }
