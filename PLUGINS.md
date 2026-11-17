@@ -45,9 +45,15 @@ O campo `runtime` diz quem abre o programa do plugin:
   - Só bibliotecas em Python puro. Biblioteca compilada (`.pyd`) ou outra versão do Python: use `"exe"`.
   - O plugin roda como `python main.py` na pasta dele: o `sys.argv`, o `__name__ == "__main__"` e o
     `__file__` são os de sempre, e ele não enxerga os módulos do app.
+  - No executável, o Python é o 3.12 que vem dentro do `Deck.exe`, com a biblioteca padrão inteira menos o
+    `tkinter`. O `sys.executable` é o próprio `Deck.exe`: para abrir outro programa em Python, traga o
+    programa (`"exe"`). Alguns módulos da biblioteca padrão já chegam carregados (os que o empacotador usa ao
+    abrir, como `inspect`, `pkgutil`, `subprocess` e `multiprocessing`): um módulo do plugin com um desses nomes
+    perde para o da biblioteca. Um módulo com o nome de um módulo do app (`app.py`) é o do plugin.
 - **Sem `runtime`** (plugins de antes): um `run` que começa com `python` (ou `python3`, `pythonw`)
   vale como `"deck-python"`; qualquer outro, como `"exe"`. Um desses com outra opção do Python
-  (`["python", "-X", "utf8", "main.py"]`) continua abrindo como antes, com o Python do app direto.
+  (`["python", "-X", "utf8", "main.py"]`) continua abrindo como antes, com o Python do app direto; no
+  executável não há esse Python e o plugin não abre (o log explica a opção que falta).
 
 O campo `protocol` diz a versão do [protocolo](#protocolo-versão-1) que o plugin precisa (padrão: 1).
 Se o app tiver uma versão menor, o plugin não carrega e o editor explica que é preciso atualizar o

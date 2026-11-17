@@ -68,6 +68,27 @@ npm run gen:api       # tipos da API, depois de mudar app/editor/contract.py
 npm run ref:capture   # prints de referência do editor atual (editor-next/reference/)
 ```
 
+## Executável e instalador
+
+O `Deck.exe` (PyInstaller, modo pasta, sem console) e o `Deck-Setup.exe` (Inno Setup) saem de `packaging/`:
+
+```
+cd editor-next && npm ci && npm run build && cd ..          # o editor vai pronto dentro do pacote
+python -m pip install -r packaging/requirements-build.txt     # num ambiente só para o build (versões exatas)
+python -m PyInstaller packaging/deck.spec --noconfirm         # dist/Deck/Deck.exe
+python packaging/check_exe.py dist/Deck/Deck.exe              # --check, recursos e um plugin, sem tocar no D6
+iscc /DAppVersion=0.9.0 packaging/installer.iss               # packaging/Output/Deck-Setup.exe
+```
+
+A versão fica só em `app/__init__.py`. Ao criar uma tag `v<versão>`, a CI (`.github/workflows/release.yml`)
+faz tudo isso e anexa o `Deck-Setup.exe` no Release.
+
+No executável, o config, o histórico de versões e o `.bak` ficam em `%APPDATA%\Deck` (Arquivos de Programas não
+aceita gravação); logs e plugins instalados continuam em `%LOCALAPPDATA%\D6Deck`. Na primeira abertura, um
+`config.yaml` que esteja na pasta do `Deck.exe` é copiado para lá (o original fica onde estava). Em
+desenvolvimento nada disso muda: o `config.yaml` é o da pasta do projeto. Para levar o config de desenvolvimento
+para o executável: Configurações › Backup › Exportar no editor de um e Importar no do outro.
+
 ## Ferramentas de teste do aparelho
 
 Falam com o D6 de verdade (por isso ficam fora do pytest):
