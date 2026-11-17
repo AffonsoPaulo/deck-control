@@ -9,6 +9,7 @@ export interface DeckEditorApi {
   AutostartRequest?: AutostartRequest;
   AutostartResponse?: AutostartResponse;
   ConfigResponse?: ConfigResponse;
+  Conflict?: Conflict;
   EditorSchema?: EditorSchema;
   Empty?: Empty;
   ErrorResponse?: ErrorResponse;
@@ -62,6 +63,7 @@ export interface DeckEditorApi {
   RecordSent?: RecordSent;
   RecordState?: RecordState;
   SaveConfigRequest?: SaveConfigRequest;
+  Saved?: Saved;
   SendComboRequest?: SendComboRequest;
   ShortcutConflict?: ShortcutConflict;
   ShowRequest?: ShowRequest;
@@ -111,6 +113,18 @@ export interface ConfigResponse {
     [k: string]: unknown;
   };
   file: string;
+  rev: string;
+}
+/**
+ * O arquivo mudou desde a versão que o editor tem (outra aba, o histórico, edição à mão): nada foi gravado.
+ *
+ * This interface was referenced by `DeckEditorApi`'s JSON-Schema
+ * via the `definition` "Conflict".
+ */
+export interface Conflict {
+  ok: false;
+  conflict: true;
+  rev: string;
 }
 /**
  * Tudo que o editor precisa para montar os formulários. As descrições de ações, campos, widgets e plugins ficam abertas: vêm também dos plugins.
@@ -276,6 +290,7 @@ export interface HistoryRestoreResponse {
     [k: string]: unknown;
   };
   when: string;
+  rev: string;
 }
 /**
  * This interface was referenced by `DeckEditorApi`'s JSON-Schema
@@ -312,6 +327,7 @@ export interface ImportDone {
   config: {
     [k: string]: unknown;
   };
+  rev: string;
 }
 /**
  * This interface was referenced by `DeckEditorApi`'s JSON-Schema
@@ -647,6 +663,15 @@ export interface SaveConfigRequest {
   config: {
     [k: string]: unknown;
   };
+  rev?: string;
+}
+/**
+ * This interface was referenced by `DeckEditorApi`'s JSON-Schema
+ * via the `definition` "Saved".
+ */
+export interface Saved {
+  ok: true;
+  rev: string;
 }
 /**
  * This interface was referenced by `DeckEditorApi`'s JSON-Schema
@@ -786,7 +811,7 @@ export interface ApiRoutes {
   "GET /api/about": { request: undefined; response: About };
   "POST /api/autostart": { request: AutostartRequest; response: AutostartResponse };
   "GET /api/config": { request: undefined; response: ConfigResponse };
-  "POST /api/config": { request: SaveConfigRequest; response: Ok | Errors };
+  "POST /api/config": { request: SaveConfigRequest; response: Saved | Errors | Conflict };
   "POST /api/export": { request: ExportRequest; response: FileDownload };
   "POST /api/free_bind": { request: FreeBindRequest; response: FreeBindResponse };
   "GET /api/history": { request: undefined; response: HistoryResponse };

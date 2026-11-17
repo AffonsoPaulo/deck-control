@@ -95,7 +95,7 @@ function Item({ e, current, now, onDone }: { e: HistoryEntry; current: boolean; 
     try {
       const r = await api("POST /api/history/restore", { id: e.id });
       // o servidor já gravou: o editor recomeça desse config
-      useConfig.getState().load(r.config);
+      useConfig.getState().load(r.config, r.rev);
       useUi.getState().go({ key: null, expanded: false });
       qc.removeQueries({ queryKey: ["preview"] });
       onDone();

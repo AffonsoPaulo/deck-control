@@ -10,12 +10,14 @@ from app import i18n, logs, transfer
 from app.config import ConfigError
 from app.editor.api.context import MAX_BODY, Context
 from app.i18n import tr
+from app.storage import WRITE_LOCK
 
 log = logs.get("editor")
 
 
 def get_config(ctx: Context, _body: dict):
-    return {"config": ctx.store.read_plain(), "file": ctx.config_path.name}
+    with WRITE_LOCK:  # o texto e a versão do mesmo momento
+        return {"config": ctx.store.read_plain(), "file": ctx.config_path.name, "rev": ctx.store.revision()}
 
 
 def save_config(ctx: Context, body: dict):
@@ -30,14 +32,22 @@ def save_config(ctx: Context, body: dict):
         errors = str(e).split("\n  - ")[1:] or [str(e)]
         log.warning("Config not saved: %d problem(s): %s", len(errors), "; ".join(errors))
         return {"ok": False, "errors": errors}
-    try:
-        ctx.store.save(cfg)
-    except Exception as e:
-        log.error("Saving the config failed: %s", e, exc_info=True, extra={"ctx": {"file": str(ctx.config_path)}})
-        raise
+    with WRITE_LOCK:
+        base, now = body.get("rev"), ctx.store.revision()
+        # o arquivo mudou desde que este editor leu (outra aba, o histórico, edição à mão): gravar por cima
+        # apagaria aquela mudança sem ninguém ver
+        if isinstance(base, str) and base != now:
+            log.warning("Config not saved: the file changed since the editor read it (another tab?)")
+            return {"ok": False, "conflict": True, "rev": now}
+        try:
+            ctx.store.save(cfg)
+        except Exception as e:
+            log.error("Saving the config failed: %s", e, exc_info=True, extra={"ctx": {"file": str(ctx.config_path)}})
+            raise
+        rev = ctx.store.revision()
     log.info("Config saved from the editor")
     ctx.store.record()
-    return {"ok": True}
+    return {"ok": True, "rev": rev}
 
 
 def validate(ctx: Context, body: dict):
@@ -62,8 +72,9 @@ def history_list(ctx: Context, _body: dict):
 
 def history_restore(ctx: Context, body: dict):
     store = ctx.store
-    when = store.restore(str(body["id"]))
-    return {"config": store.read_plain(), "when": when}
+    with WRITE_LOCK:
+        when = store.restore(str(body["id"]))
+        return {"config": store.read_plain(), "when": when, "rev": store.revision()}
 
 
 def export(ctx: Context, body: dict):
@@ -90,7 +101,9 @@ def import_config(ctx: Context, body: dict):
         log.warning("Import of %s refused: the config has problems", name)
         return {"ok": False, "errors": str(e).split("\n  - ")[1:] or [str(e)]}
     store = ctx.store
-    store.save(new)
+    with WRITE_LOCK:
+        store.save(new)
+        rev = store.revision()
     log.info("Config imported from %s (%s)", name, body.get("mode", "replace"))
     store.record(reason=f"Importado de {name}")
-    return {"ok": True, "config": store.read_plain()}
+    return {"ok": True, "config": store.read_plain(), "rev": rev}

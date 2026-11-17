@@ -34,7 +34,7 @@ function Boot() {
   useEffect(() => {
     if (loaded.current || !config.data || !schema.data) return;
     loaded.current = true; // só uma vez: ler de novo apagaria a edição
-    useConfig.getState().load(config.data.config);
+    useConfig.getState().load(config.data.config, config.data.rev);
     const lang = normalizeLang(config.data.config.language) ?? normalizeLang(schema.data.default_language);
     void (lang ? setLang(lang) : Promise.resolve()).then(() => setReady(true));
   }, [config.data, schema.data]);

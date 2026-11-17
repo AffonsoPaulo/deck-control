@@ -367,8 +367,8 @@ function Logging() {
 /** Depois de restaurar ou importar: o servidor já gravou; o editor recomeça desse config. */
 export function useReplaceConfig() {
   const qc = useQueryClient();
-  return (cfg: Record<string, unknown>) => {
-    useConfig.getState().load(cfg);
+  return (cfg: Record<string, unknown>, rev: string) => {
+    useConfig.getState().load(cfg, rev);
     useUi.getState().go({ key: null, expanded: false });
     qc.removeQueries({ queryKey: ["preview"] });
   };
@@ -418,7 +418,7 @@ function Backup() {
         setErrors("errors" in r ? r.errors : []);
         return;
       }
-      replace(r.config);
+      replace(r.config, r.rev);
       setPending(null);
       toast(mode === "replace" ? t("Setup imported. If you don't like it, go back through the history.") : t("Pages added. If you don't like it, go back through the history."));
     } catch (e) {

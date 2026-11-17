@@ -29,8 +29,12 @@ export interface ConfigStore {
   tokenExpired: boolean;
   /** A mensagem do último erro de gravação que não foi config inválido (rede, app fechado). */
   saveError: string | null;
+  /** A versão do arquivo em que esta edição se baseia (vai junto ao salvar; null = grava sem conferir). */
+  rev: string | null;
+  /** O arquivo mudou em outro lugar (outra aba, histórico, edição à mão): nada mais grava até recarregar. */
+  conflict: boolean;
 
-  load: (cfg: Config) => void;
+  load: (cfg: Config, rev?: string | null) => void;
   edit: (recipe: (draft: Draft<Config>) => void, tag?: string) => void;
   undo: () => void;
   redo: () => void;
@@ -50,9 +54,11 @@ export const useConfig = create<ConfigStore>()((set, get) => ({
   errors: [],
   tokenExpired: false,
   saveError: null,
+  rev: null,
+  conflict: false,
 
-  load: (cfg) =>
-    set({ cfg, saved: JSON.stringify(cfg), past: [], future: [], lastTag: null, lastAt: 0, saveState: "saved", errors: [] }),
+  load: (cfg, rev = null) =>
+    set({ cfg, saved: JSON.stringify(cfg), past: [], future: [], lastTag: null, lastAt: 0, saveState: "saved", errors: [], rev, conflict: false }),
 
   edit: (recipe, tag) => {
     const { cfg, past, lastTag, lastAt } = get();

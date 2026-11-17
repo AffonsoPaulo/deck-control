@@ -71,3 +71,36 @@ describe("rede de segurança", () => {
     expect(useConfig.getState().cfg).toEqual({ pages: { main: {} }, obs: { host: "x", password: "nova" }, home: "main" });
   });
 });
+
+describe("duas abas", () => {
+  it("a gravação manda a versão; o servidor recusou (mudou em outro lugar): para de gravar e pede recarregar", async () => {
+    const { flushSave } = await import("@/core/store/autosave");
+    useConfig.getState().load({ pages: { main: {} } }, "rev-1");
+    const post = vi.fn().mockResolvedValueOnce({ ok: true, rev: "rev-2" }).mockResolvedValueOnce({ ok: false, conflict: true, rev: "rev-9" });
+    useConfig.getState().edit((d) => void (d.home = "main"));
+    expect(await flushSave(post)).toBe(true);
+    expect(post).toHaveBeenLastCalledWith({ pages: { main: {} }, home: "main" }, "rev-1");
+    expect(useConfig.getState().rev).toBe("rev-2");
+    useConfig.getState().edit((d) => void (d.brightness = 50));
+    expect(await flushSave(post)).toBe(false);
+    expect(post).toHaveBeenLastCalledWith(expect.anything(), "rev-2");
+    expect(useConfig.getState().conflict).toBe(true);
+    expect(useToast.getState().current?.msg).toMatch(/changed somewhere else/);
+    // a edição daqui fica guardada para recuperar depois de recarregar
+    expect(JSON.parse(localStorage.getItem(PENDING_KEY) ?? "{}").cfg.brightness).toBe(50);
+    // e não tenta gravar de novo por cima
+    useConfig.getState().edit((d) => void (d.brightness = 60));
+    expect(await flushSave(post)).toBe(false);
+    expect(post).toHaveBeenCalledTimes(2);
+  });
+
+  it("fechando a aba, o salvar de última hora também leva a versão", () => {
+    const f = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}"));
+    useConfig.getState().load({ pages: { main: {} } }, "rev-7");
+    useConfig.getState().edit((d) => void (d.home = "x"));
+    window.dispatchEvent(new Event("pagehide"));
+    const body = JSON.parse((f.mock.calls[0]?.[1] as RequestInit).body as string) as { rev?: string };
+    expect(body.rev).toBe("rev-7");
+    f.mockRestore();
+  });
+});

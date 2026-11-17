@@ -218,7 +218,8 @@ def test_get_config(api):
 def test_save_config_ok_and_invalid(api, cfg_path):
     cfg = api.get("/api/config")["config"]
     cfg["brightness"] = 40
-    assert api.post("/api/config", {"config": cfg}) == {"ok": True}
+    r = api.post("/api/config", {"config": cfg})
+    assert r["ok"] is True and len(r["rev"]) == 16
     assert "brightness: 40" in cfg_path.read_text(encoding="utf-8")
 
     cfg["pages"]["main"]["1"]["action"] = {"type": "nope"}
@@ -463,7 +464,7 @@ def test_history_and_restore(api, cfg_path):
     assert len(entries) >= 2
     oldest = entries[-1]
     r = api.post("/api/history/restore", {"id": oldest["id"]})
-    assert set(r) == {"config", "when"}
+    assert set(r) == {"config", "when", "rev"}
     assert r["config"]["brightness"] == 70
 
 
@@ -600,8 +601,9 @@ def test_contract_catches_a_missing_or_extra_key(api):
 
 
 def test_contract_unions_pick_one_shape():
-    ok = {"ok": True}
+    ok = {"ok": True, "rev": "0123456789abcdef"}
     check_contract("response", "POST /api/config", ok)
+    check_contract("response", "POST /api/config", {"ok": False, "conflict": True, "rev": "x"})
     check_contract("response", "POST /api/config", {"ok": False, "errors": ["x"]})
     with pytest.raises(AssertionError):
         check_contract("response", "POST /api/config", {"ok": True, "errors": ["x"]})
@@ -787,3 +789,49 @@ def test_no_cross_site_access(api):
     # pedido "simples" (sem cabeçalho próprio), como um formulário de outro site faria
     status, _ = api.request("POST", "/api/config", raw=b"{}", token="")
     assert status == 403
+
+
+# ---------------------------------------------------------------------------- duas abas
+
+
+def test_save_refuses_when_the_file_changed_since_the_editor_read_it(api):
+    """Duas abas (ou o histórico, ou edição à mão): a gravação que parte de uma versão velha é recusada, sem
+    apagar a outra mudança. Sem rev (cliente antigo), grava como antes."""
+    first = api.get("/api/config")
+    cfg = first["config"]
+    a = api.post("/api/config", {"config": {**cfg, "brightness": 40}, "rev": first["rev"]})
+    assert a["ok"] is True and a["rev"] != first["rev"]
+    # a outra aba ainda tem a versão de antes
+    b = api.post("/api/config", {"config": {**cfg, "brightness": 90}, "rev": first["rev"]})
+    assert b == {"ok": False, "conflict": True, "rev": a["rev"]}
+    assert api.get("/api/config")["config"]["brightness"] == 40
+    # com a versão de agora, grava
+    c = api.post("/api/config", {"config": {**cfg, "brightness": 90}, "rev": a["rev"]})
+    assert c["ok"] is True
+    assert api.post("/api/config", {"config": cfg})["ok"] is True  # sem rev: grava sem conferir
+
+
+def test_editing_the_file_by_hand_also_counts(api, cfg_path):
+    first = api.get("/api/config")
+    cfg_path.write_text(cfg_path.read_text(encoding="utf-8") + "\n# mudei à mão\n", encoding="utf-8")
+    r = api.post("/api/config", {"config": first["config"], "rev": first["rev"]})
+    assert r["ok"] is False and r["conflict"] is True
+
+
+def test_two_saves_at_the_same_time_never_both_win(api):
+    """As duas partem da mesma versão e chegam juntas: só uma grava (a conferência e a gravação vão juntas)."""
+    import threading
+
+    first = api.get("/api/config")
+    results = []
+
+    def save(v):
+        results.append(api.post("/api/config", {"config": {**first["config"], "brightness": v}, "rev": first["rev"]}))
+
+    threads = [threading.Thread(target=save, args=(v,)) for v in (10, 20, 30, 50)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join()
+    assert sum(1 for r in results if r["ok"]) == 1
+    assert sum(1 for r in results if r.get("conflict")) == 3

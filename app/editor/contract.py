@@ -71,10 +71,25 @@ class FileDownload(TypedDict):
 class ConfigResponse(TypedDict):
     config: JSONObject
     file: str  # nome do arquivo (config.yaml)
+    rev: str  # a versão do arquivo agora (mandar de volta ao salvar)
 
 
 class SaveConfigRequest(TypedDict):
     config: JSONObject
+    rev: NotRequired[str]  # a versão em que esta edição se baseia; sem ela, grava sem conferir
+
+
+class Saved(TypedDict):
+    ok: Literal[True]
+    rev: str  # a versão nova do arquivo
+
+
+class Conflict(TypedDict):
+    """O arquivo mudou desde a versão que o editor tem (outra aba, o histórico, edição à mão): nada foi gravado."""
+
+    ok: Literal[False]
+    conflict: Literal[True]
+    rev: str  # a versão de agora
 
 
 class ValidateRequest(TypedDict):
@@ -126,6 +141,7 @@ class HistoryRestoreRequest(TypedDict):
 class HistoryRestoreResponse(TypedDict):
     config: JSONObject
     when: str
+    rev: str  # a versão do arquivo depois de voltar
 
 
 class ExportRequest(TypedDict):
@@ -153,6 +169,7 @@ class ImportPreview(TypedDict):
 class ImportDone(TypedDict):
     ok: Literal[True]
     config: JSONObject
+    rev: str  # a versão do arquivo depois de importar
 
 
 # ---------------------------------------------------------------------------- prévias

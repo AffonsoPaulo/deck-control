@@ -16,6 +16,9 @@
     "ConfigResponse": {
       "$ref": "#/$defs/ConfigResponse"
     },
+    "Conflict": {
+      "$ref": "#/$defs/Conflict"
+    },
     "EditorSchema": {
       "$ref": "#/$defs/EditorSchema"
     },
@@ -175,6 +178,9 @@
     "SaveConfigRequest": {
       "$ref": "#/$defs/SaveConfigRequest"
     },
+    "Saved": {
+      "$ref": "#/$defs/Saved"
+    },
     "SendComboRequest": {
       "$ref": "#/$defs/SendComboRequest"
     },
@@ -294,13 +300,38 @@
         },
         "file": {
           "type": "string"
+        },
+        "rev": {
+          "type": "string"
         }
       },
       "required": [
         "config",
-        "file"
+        "file",
+        "rev"
       ],
       "additionalProperties": false
+    },
+    "Conflict": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "conflict": {
+          "const": true
+        },
+        "rev": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ok",
+        "conflict",
+        "rev"
+      ],
+      "additionalProperties": false,
+      "description": "O arquivo mudou desde a versão que o editor tem (outra aba, o histórico, edição à mão): nada foi gravado."
     },
     "EditorSchema": {
       "type": "object",
@@ -583,11 +614,15 @@
         },
         "when": {
           "type": "string"
+        },
+        "rev": {
+          "type": "string"
         }
       },
       "required": [
         "config",
-        "when"
+        "when",
+        "rev"
       ],
       "additionalProperties": false
     },
@@ -656,11 +691,15 @@
         "config": {
           "type": "object",
           "additionalProperties": {}
+        },
+        "rev": {
+          "type": "string"
         }
       },
       "required": [
         "ok",
-        "config"
+        "config",
+        "rev"
       ],
       "additionalProperties": false
     },
@@ -1509,10 +1548,29 @@
         "config": {
           "type": "object",
           "additionalProperties": {}
+        },
+        "rev": {
+          "type": "string"
         }
       },
       "required": [
         "config"
+      ],
+      "additionalProperties": false
+    },
+    "Saved": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "rev": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ok",
+        "rev"
       ],
       "additionalProperties": false
     },
@@ -1873,10 +1931,13 @@
       "response": {
         "anyOf": [
           {
-            "$ref": "#/$defs/Ok"
+            "$ref": "#/$defs/Saved"
           },
           {
             "$ref": "#/$defs/Errors"
+          },
+          {
+            "$ref": "#/$defs/Conflict"
           }
         ]
       }

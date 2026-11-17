@@ -6,9 +6,9 @@ import { isDirty, useConfig, type Config } from "@/core/store/config";
 
 export const SAVE_DELAY_MS = 900;
 
-type Post = (config: Config) => Promise<{ ok: true } | { ok: false; errors: string[] }>;
+type Post = (config: Config, rev: string | null) => Promise<{ ok: true; rev?: string } | { ok: false; errors: string[] } | { ok: false; conflict: true; rev: string }>;
 
-const defaultPost: Post = (config) => api("POST /api/config", { config });
+const defaultPost: Post = (config, rev) => api("POST /api/config", rev ? { config, rev } : { config });
 
 let timer: ReturnType<typeof setTimeout> | undefined;
 let inFlight: Promise<boolean> | null = null;
@@ -18,6 +18,8 @@ export async function flushSave(post: Post = defaultPost): Promise<boolean> {
   clearTimeout(timer);
   if (inFlight) await inFlight;
   const state = useConfig.getState();
+  // o arquivo mudou em outro lugar: gravar por cima apagaria aquela mudança; só recarregando
+  if (state.conflict) return false;
   if (!isDirty(state) || state.cfg === null) {
     useConfig.setState({ saveState: "saved" });
     return true;
@@ -26,12 +28,16 @@ export async function flushSave(post: Post = defaultPost): Promise<boolean> {
   useConfig.setState({ saveState: "saving" });
   inFlight = (async () => {
     try {
-      const r = await post(JSON.parse(sent) as Config);
+      const r = await post(JSON.parse(sent) as Config, useConfig.getState().rev);
+      if (!r.ok && "conflict" in r) {
+        useConfig.setState({ saveState: "error", errors: [], conflict: true });
+        return false;
+      }
       if (!r.ok) {
         useConfig.setState({ saveState: "error", errors: r.errors });
         return false;
       }
-      useConfig.setState({ saved: sent, errors: [] });
+      useConfig.setState({ saved: sent, errors: [], ...(r.rev ? { rev: r.rev } : {}) });
       const dirty = isDirty(useConfig.getState());
       useConfig.setState({ saveState: dirty ? "pending" : "saved" });
       if (dirty) schedule(post);

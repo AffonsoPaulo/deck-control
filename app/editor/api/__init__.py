@@ -29,7 +29,7 @@ class Route:
 ROUTES: dict[tuple[str, str], Route] = {
     # config
     ("GET", "/api/config"): Route(config.get_config, c.ConfigResponse),
-    ("POST", "/api/config"): Route(config.save_config, c.Ok | c.Errors, c.SaveConfigRequest),
+    ("POST", "/api/config"): Route(config.save_config, c.Saved | c.Errors | c.Conflict, c.SaveConfigRequest),
     ("POST", "/api/validate"): Route(config.validate, c.ValidateOk | c.ValidateErrors, c.ValidateRequest),
     ("GET", "/api/history"): Route(config.history_list, c.HistoryResponse),
     ("POST", "/api/history/restore"): Route(config.history_restore, c.HistoryRestoreResponse, c.HistoryRestoreRequest),

@@ -13,7 +13,9 @@ As funções antigas desses módulos continuam funcionando; o repositório só j
 
 from __future__ import annotations
 
+import hashlib
 import shutil
+import threading
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Any
@@ -22,6 +24,10 @@ import yaml
 
 from app import configio, history
 from app.config import Config, build_config, load_config
+
+
+# conferir a versão e gravar acontecem juntos: o servidor do editor atende pedidos em paralelo (duas abas)
+WRITE_LOCK = threading.Lock()
 
 
 class ConfigRepository:
@@ -40,6 +46,14 @@ class ConfigRepository:
             return False
         shutil.copy(example, self.path)
         return True
+
+    def revision(self) -> str:
+        """Uma marca do arquivo como está agora (muda a cada gravação, de onde vier): o editor manda de volta ao
+        salvar, e se o arquivo mudou no meio (outra aba, o histórico, edição à mão) a gravação é recusada."""
+        try:
+            return hashlib.sha256(self.path.read_bytes()).hexdigest()[:16]
+        except OSError:
+            return ""
 
     def read_text(self) -> str:
         """O texto exato do arquivo (com comentários)."""

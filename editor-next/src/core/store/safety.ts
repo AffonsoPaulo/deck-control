@@ -118,8 +118,17 @@ export function startSafety(): () => void {
       else drop();
     }
     if (s.saved !== prev.saved && !isDirty(s)) drop();
+    // o arquivo mudou em outro lugar: a edição daqui fica guardada (a cópia acima) e recarregar oferece recuperar
+    if (s.conflict && !prev.conflict) {
+      toast(t("The settings changed somewhere else (another tab, the history or the file). Reload to continue: what you changed here is kept so you can recover it."), {
+        bad: true,
+        sticky: true,
+        action: { label: t("Reload"), icon: RefreshCw, run: () => location.reload() },
+      });
+      return;
+    }
     // salvar falhou por exceção (não por config inválido: esse vai para o painel de problemas)
-    if (s.saveState === "error" && prev.saveState !== "error" && !s.errors.length) {
+    if (s.saveState === "error" && prev.saveState !== "error" && !s.errors.length && !s.conflict) {
       if (s.tokenExpired) {
         if (warned) return;
         warned = true;
@@ -133,12 +142,13 @@ export function startSafety(): () => void {
   });
   const onHide = () => {
     const s = useConfig.getState();
-    if (!s.cfg || !isDirty(s)) return;
+    if (!s.cfg || !isDirty(s) || s.conflict) return;
     void fetch("/api/config", {
       method: "POST",
       keepalive: true,
       headers: { "X-Token": readToken() ?? "", "Content-Type": "application/json" },
-      body: JSON.stringify({ config: s.cfg }),
+      // com a versão: se outra aba gravou depois, o servidor recusa em vez de apagar a mudança dela
+      body: JSON.stringify(s.rev ? { config: s.cfg, rev: s.rev } : { config: s.cfg }),
     }).catch(() => {});
   };
   window.addEventListener("pagehide", onHide);

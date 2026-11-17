@@ -1055,5 +1055,6 @@
  "A program that comes with the plugin.": "Um programa que vem com o plugin.",
  "{0} is over page {1}.": "{0} está sobre a página {1}.",
  "{0} was dropped on page {1}.": "{0} foi solta na página {1}.",
- "“{0}” can't be a page name.": "“{0}” não pode ser nome de página."
+ "“{0}” can't be a page name.": "“{0}” não pode ser nome de página.",
+ "The settings changed somewhere else (another tab, the history or the file). Reload to continue: what you changed here is kept so you can recover it.": "As configurações mudaram em outro lugar (outra aba, o histórico ou o arquivo). Recarregue para continuar: o que você mudou aqui fica guardado para recuperar."
 }
