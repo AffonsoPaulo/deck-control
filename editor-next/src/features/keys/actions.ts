@@ -11,6 +11,7 @@ type T = (s: string, args?: unknown[]) => string;
 
 export interface ActionField {
   name: string;
+  label?: string;
   kind?: string;
   required?: boolean;
   options?: [unknown, string][];

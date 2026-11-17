@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { Bookmark, ChevronRight, LayoutGrid, Plug } from "lucide-react";
 import type { CSSProperties, ReactNode, Ref } from "react";
 import { Icon } from "@/components/Icon";
+import { NamedIcon } from "@/components/NamedIcon";
 import { cn } from "@/core/cn";
 
 /** style com a cor da categoria (ex.: catStyle("var(--cat-blue)")). */
@@ -61,8 +62,9 @@ export function LibSub({ origin, label }: { origin: Origin; label: string }) {
   );
 }
 
-/** Quadradinho colorido com o ícone (o .chip): o ícone é o caractere da fonte Lucide ou um ícone do lucide-react. */
-export function Chip({ glyph, icon, size = "md", className }: { glyph?: string; icon?: LucideIcon; size?: "md" | "lg"; className?: string }) {
+/** Quadradinho colorido com o ícone (o .chip): ícone da interface (icon, ou name = ícone por nome, como as ações)
+ * ou o caractere da fonte Lucide (glyph, como os widgets no editor atual). */
+export function Chip({ glyph, icon, name, size = "md", className }: { glyph?: string; icon?: LucideIcon; name?: string; size?: "md" | "lg"; className?: string }) {
   return (
     <span
       aria-hidden
@@ -72,7 +74,13 @@ export function Chip({ glyph, icon, size = "md", className }: { glyph?: string; 
         className,
       )}
     >
-      {icon ? <Icon icon={icon} size={size === "lg" ? "lg" : "md"} /> : <span className="font-lucide text-(length:--icon-md) leading-none">{glyph}</span>}
+      {icon ? (
+        <Icon icon={icon} size={size === "lg" ? "lg" : "md"} />
+      ) : name ? (
+        <NamedIcon name={name} size={size === "lg" ? "lg" : "md"} />
+      ) : (
+        <span className="font-lucide text-(length:--icon-md) leading-none">{glyph}</span>
+      )}
     </span>
   );
 }

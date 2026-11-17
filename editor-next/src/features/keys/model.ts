@@ -101,7 +101,9 @@ export type DragPayload =
   | { kind: "key"; key: string }
   | { kind: "new"; type: string; label: string }
   | { kind: "widget"; widget: string; size: string; label: string; cols: number; rows: number }
-  | { kind: "saved"; index: number; label: string; cols: number; rows: number };
+  | { kind: "saved"; index: number; label: string; cols: number; rows: number }
+  // um passo de "O que faz" (lista no caminho `path` do modelo da tecla, posição `index`)
+  | { kind: "step"; path: (string | number)[]; index: number; label: string };
 
 export const pieceSize = (p: DragPayload): [number, number] => (p.kind === "widget" || p.kind === "saved" ? [p.cols, p.rows] : [1, 1]);
 
@@ -135,6 +137,8 @@ export function resolveDrop(payload: DragPayload, target: string, cell: string, 
       return { op: "widget", anchor, widget: payload.widget, size: payload.size };
     case "saved":
       return { op: "saved", anchor, index: payload.index };
+    case "step":
+      return { op: "none" }; // passo só cai na lista de passos
   }
 }
 

@@ -30,6 +30,7 @@ function KeysWorkspace({ page, place }: { page: string; place: Place }) {
   // estas funções leem o estado na hora (o dnd-kit guarda a primeira versão delas)
   const keysNow = () => pageKeysOf(useConfig.getState().cfg, page);
   const ghostSize = (p: DragPayload) => {
+    if (p.kind === "step") return { width: 260, height: 40 }; // passo: a frase, não uma tecla
     const [cols, rows] = p.kind === "key" ? spanOf(keysNow()[p.key]) : pieceSize(p);
     const s = useDeckState.getState();
     return { width: cols * s.size + (cols - 1) * s.gapX, height: rows * s.size + (rows - 1) * s.gapY };

@@ -123,7 +123,6 @@ function ActionsTab({ query, page }: { query: string; page: string }) {
 
 function ActionItem({ type, def, color, page }: { type: string; def: ActionDef; color: string; page: string }) {
   const t = useT();
-  const idx = useLucideIndex();
   const schema = useSchema().data;
   const placer = usePlacer(page);
   const label = t(def.label);
@@ -142,7 +141,7 @@ function ActionItem({ type, def, color, page }: { type: string; def: ActionDef; 
         void placer.assign(k, type);
       }}
     >
-      <Chip glyph={idx ? luChar(idx, iconOf(actionDefs(schema), type)) : ""} />
+      <Chip name={iconOf(actionDefs(schema), type)} />
       <span className="font-medium">{label}</span>
     </button>
   );

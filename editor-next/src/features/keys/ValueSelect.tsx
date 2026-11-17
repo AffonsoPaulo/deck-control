@@ -1,7 +1,7 @@
 // Escolher um valor (hora, cena do OBS, temperatura...) numa lista agrupada: os valores do app e dos plugins.
 // O mesmo do valueSelect do editor atual: filtra por tipo, e o valor que já está no config aparece mesmo que
 // tenha sumido (plugin desligado).
-import { INLINE_FIELD } from "@/components/Inline";
+import { INLINE_FIELD, INLINE_SELECT, InlineSelectFrame } from "@/components/Inline";
 import { Select } from "@/components/Select";
 import { useT } from "@/core/i18n";
 import type { Obj } from "@/core/obj";
@@ -28,24 +28,26 @@ export function ValueSelect({ value, onPick, kinds, label, empty, size, classNam
   ];
   if (size === "inline") {
     return (
-      <select
-        aria-label={label ?? t("Value")}
-        value={value ?? ""}
-        onChange={(e) => onPick(e.target.value || null)}
-        className={cn(INLINE_FIELD, "cursor-pointer truncate", className)}
-      >
-        {empty && <option value="">{empty}</option>}
-        {groups(defs).map(([g, items]) => (
-          <optgroup key={g} label={g}>
-            {items.map((v) => (
-              <option key={String(v.id)} value={String(v.id)}>
-                {String(v.label)}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-        {value && !defs.some((v) => v.id === value) && <option value={value}>{value}</option>}
-      </select>
+      <InlineSelectFrame className={className}>
+        <select
+          aria-label={label ?? t("Value")}
+          value={value ?? ""}
+          onChange={(e) => onPick(e.target.value || null)}
+          className={cn(INLINE_FIELD, INLINE_SELECT, "w-full")}
+        >
+          {empty && <option value="">{empty}</option>}
+          {groups(defs).map(([g, items]) => (
+            <optgroup key={g} label={g}>
+              {items.map((v) => (
+                <option key={String(v.id)} value={String(v.id)}>
+                  {String(v.label)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+          {value && !defs.some((v) => v.id === value) && <option value={value}>{value}</option>}
+        </select>
+      </InlineSelectFrame>
     );
   }
   return (

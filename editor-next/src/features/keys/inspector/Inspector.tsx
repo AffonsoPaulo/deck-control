@@ -6,10 +6,8 @@ import { useState } from "react";
 import { SectionPlaceholder } from "@/app/SectionPlaceholder";
 import { Button } from "@/components/Button";
 import { IconButton } from "@/components/IconButton";
-import { useLucideIndex } from "@/components/IconPicker";
 import { Chip, catStyle } from "@/components/Library";
 import { useT } from "@/core/i18n";
-import { luChar } from "@/core/icons/lucide";
 import type { Place } from "@/core/hash";
 import { normalizeIcon } from "@/core/obj";
 import { useSchema } from "@/core/queries";
@@ -19,6 +17,7 @@ import { actionDefs, groupOf, groupsOf, iconOf, widgetDefs } from "@/features/ke
 import { ActionPicker } from "@/features/keys/ActionPicker";
 import { LookTab } from "@/features/keys/inspector/LookTab";
 import { WidgetTab } from "@/features/keys/inspector/WidgetTab";
+import { DoTab } from "@/features/keys/logic/DoTab";
 import { BlockLook } from "@/features/keys/inspector/BlockLook";
 import { InfoLook } from "@/features/keys/inspector/InfoLook";
 import { isInfoKey } from "@/features/keys/look";
@@ -71,7 +70,6 @@ function Guide() {
 
 function EmptyKey({ page, k }: { page: string; k: string }) {
   const t = useT();
-  const idx = useLucideIndex();
   const schema = useSchema().data;
   const placer = usePlacer(page);
   const ops = useKeyOps(page);
@@ -87,7 +85,7 @@ function EmptyKey({ page, k }: { page: string; k: string }) {
       <div className="grid grid-cols-2 gap-2">
         {QUICK.filter((type) => defs[type]).map((type) => (
           <button key={type} type="button" className={quick} style={catStyle(groupOf(groups, defs, type).color)} onClick={() => void placer.assign(k, type)}>
-            <Chip glyph={idx ? luChar(idx, iconOf(defs, type)) : ""} />
+            <Chip name={iconOf(defs, type)} />
             {t(defs[type]?.label ?? type)}
           </button>
         ))}
@@ -143,7 +141,7 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
         ["look", t("Appearance")],
         ["light", t("Light")],
       ];
-  const ready = tab === "look";
+  const ready = tab === "look" || tab === "do";
 
   return (
     <>
@@ -198,6 +196,8 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
       </div>
       {!ready ? (
         <SectionPlaceholder place={place} compact />
+      ) : tab === "do" ? (
+        <DoTab page={page} k={k} spec={spec} />
       ) : widget ? (
         <WidgetTab page={page} k={k} spec={spec} />
       ) : block ? (

@@ -37,6 +37,11 @@ export function Ghost({ payload, page, previews }: { payload: DragPayload; page:
   let [cols] = pieceSize(payload);
   let cells: React.ReactNode[] = [];
 
+  if (payload.kind === "step") {
+    return (
+      <div className="flex h-10 w-65 items-center truncate rounded-md bg-raised px-3 text-base font-semibold text-fg shadow-popover inset-ring-2 inset-ring-accent">{payload.label}</div>
+    );
+  }
   if (payload.kind === "key") {
     [cols] = spanOf(pageKeysOf(cfg, page)[payload.key]);
     const p = previews?.[Number(payload.key) - 1] ?? null;

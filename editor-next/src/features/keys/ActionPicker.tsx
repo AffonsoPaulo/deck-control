@@ -2,11 +2,10 @@
 // frase da ajuda embaixo do nome.
 import { useRef, useState } from "react";
 import { TextInput } from "@/components/Field";
-import { useLucideIndex } from "@/components/IconPicker";
 import { Chip, catStyle } from "@/components/Library";
 import { Sheet, SheetHead } from "@/components/Sheet";
 import { useT } from "@/core/i18n";
-import { luChar, norm } from "@/core/icons/lucide";
+import { norm } from "@/core/icons/lucide";
 import { useSchema } from "@/core/queries";
 import { actionDefs, groupOf, groupedActions, groupsOf, iconOf } from "@/features/keys/actions";
 
@@ -19,7 +18,6 @@ interface ActionPickerProps {
 
 export function ActionPicker({ open, onOpenChange, onPick, current }: ActionPickerProps) {
   const t = useT();
-  const idx = useLucideIndex(open);
   const schema = useSchema().data;
   const [query, setQuery] = useState("");
   const [wasOpen, setWasOpen] = useState(open);
@@ -55,7 +53,7 @@ export function ActionPicker({ open, onOpenChange, onPick, current }: ActionPick
                   onClick={() => pick(type)}
                   className="flex cursor-pointer items-center gap-3 rounded-md p-2 text-left hover:bg-sunken focus-visible:bg-sunken focus-visible:outline-2 focus-visible:outline-accent"
                 >
-                  <Chip glyph={idx ? luChar(idx, iconOf(defs, type)) : ""} />
+                  <Chip name={iconOf(defs, type)} />
                   <span className="font-medium">
                     {t(d.label)}
                     {d.help && <small className="block text-xs leading-tight font-normal text-fg-subtle">{t(d.help).split(".")[0]}.</small>}

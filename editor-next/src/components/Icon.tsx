@@ -4,7 +4,7 @@ import { cn } from "@/core/cn";
 
 export type IconSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 
-const SIZE: Record<IconSize, string> = {
+export const ICON_SIZE: Record<IconSize, string> = {
   xs: "size-icon-xs",
   sm: "size-icon-sm",
   md: "size-icon-md",
@@ -20,5 +20,5 @@ interface IconProps {
 }
 
 export function Icon({ icon: Glyph, size = "md", className }: IconProps) {
-  return <Glyph aria-hidden="true" strokeWidth={1.75} className={cn("block flex-none", SIZE[size], className)} />;
+  return <Glyph aria-hidden="true" strokeWidth={1.75} className={cn("block flex-none", ICON_SIZE[size], className)} />;
 }

@@ -67,8 +67,8 @@ export function CondEditor({ cond, onChange }: { cond: Obj; onChange: (c: Obj) =
           <InlineSelect label={t("Comparison")} options={ops} value={typeof c.op === "string" ? c.op : "eq"} onChange={(v) => emit({ op: v })} />
           <InlineInput
             type="text"
-            min={4}
-            max={16}
+            minChars={4}
+            maxChars={16}
             aria-label={t("Compare with")}
             value={c.to === undefined || c.to === null ? "" : String(c.to)}
             placeholder={valueNow(defs, live, value)}

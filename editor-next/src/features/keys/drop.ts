@@ -7,7 +7,7 @@ import { useUi } from "@/core/store/ui";
 import { footprintAt } from "@/features/keys/actions";
 import { NO_FOOT, useDeckState, type Foot } from "@/features/keys/deckState";
 import type { DragPoint } from "@/features/keys/dnd";
-import { cellAt, coverMap, dropAnchor, pageKeysOf, pieceSize, resolveDrop, selectionAfterSwap, swapKeys, type PageKeys } from "@/features/keys/model";
+import { cellAt, coverMap, dropAnchor, pageKeysOf, pieceSize, resolveDrop, selectionAfterSwap, swapKeys, type DragPayload, type PageKeys } from "@/features/keys/model";
 import { usePlacer } from "@/features/keys/place";
 import { draftKeys } from "@/features/keys/keys";
 
@@ -34,13 +34,16 @@ export function footFor(keys: PageKeys, anchor: string, cols: number, rows: numb
   return { cells: [...free], replace: [...busy], bad: null, tip };
 }
 
+/** Quem cuida do que cai numa lista de passos (a aba "O que faz" registra quando está aberta). */
+export const logicDrop: { current: ((payload: DragPayload, target: string) => void | Promise<void>) | null } = { current: null };
+
 export function useDeckDrop(page: string) {
   const t = useT();
   const placer = usePlacer(page);
 
   const onMove = (p: DragPoint) => {
     const set = (foot: Foot) => useDeckState.setState({ foot });
-    if (p.payload.kind === "key" || p.target === null) return set(NO_FOOT);
+    if (p.payload.kind === "key" || p.payload.kind === "step" || p.target === null || p.target.startsWith("slot|")) return set(NO_FOOT);
     const keys = pageKeysOf(useConfig.getState().cfg, page);
     const [cols, rows] = pieceSize(p.payload);
     const anchor = dropAnchor(p.payload, p.target, cellUnder(p.target, keys, p.x, p.y));
@@ -50,6 +53,9 @@ export function useDeckDrop(page: string) {
   const onDrop = (p: DragPoint) => {
     useDeckState.setState({ foot: NO_FOOT });
     if (p.target === null) return;
+    // soltou numa lista de passos de "O que faz"
+    if (p.target.startsWith("slot|")) return void logicDrop.current?.(p.payload, p.target);
+    if (p.payload.kind === "step") return;
     const keys = pageKeysOf(useConfig.getState().cfg, page);
     const r = resolveDrop(p.payload, p.target, cellUnder(p.target, keys, p.x, p.y), keys);
     if (r.op === "swap") {
