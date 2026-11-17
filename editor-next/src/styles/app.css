@@ -74,6 +74,8 @@
   /* linha do log: hora, nível, área, mensagem, seta (sem a área na tela estreita) */
   --grid-template-columns-log: 96px 70px 104px minmax(0, 1fr) 24px;
   --grid-template-columns-log-narrow: 80px 64px minmax(0, 1fr) 20px;
+  /* versão no histórico: hora, o que mudou, botão (o .history-item do editor atual) */
+  --grid-template-columns-history: 92px 1fr auto;
   /* detalhe do log: nome e valor */
   --grid-template-columns-kv: 110px minmax(0, 1fr);
 

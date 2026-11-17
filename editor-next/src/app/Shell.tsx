@@ -12,7 +12,6 @@ import { useConfig } from "@/core/store/config";
 import { useUi } from "@/core/store/ui";
 import { useValidation } from "@/core/validation";
 import { Rail } from "@/app/Rail";
-import { SectionPlaceholder } from "@/app/SectionPlaceholder";
 import { TopBar } from "@/app/TopBar";
 import { Toaster } from "@/components/Toaster";
 
@@ -20,6 +19,7 @@ import { Toaster } from "@/components/Toaster";
 const KeysSection = lazy(() => import("@/features/keys/KeysSection").then((m) => ({ default: m.KeysSection })));
 const AutoSection = lazy(() => import("@/features/auto/AutoSection").then((m) => ({ default: m.AutoSection })));
 const LogsSection = lazy(() => import("@/features/logs/LogsSection").then((m) => ({ default: m.LogsSection })));
+const SettingsSection = lazy(() => import("@/features/settings/SettingsSection").then((m) => ({ default: m.SettingsSection })));
 const LightSection = lazy(() => import("@/features/light/LightSection").then((m) => ({ default: m.LightSection })));
 
 const TITLES: Record<Section, string> = {
@@ -90,7 +90,7 @@ export function Shell() {
           onRedo={redo}
         />
         <Suspense>
-          {section === "keys" ? <KeysSection /> : section === "light" ? <LightSection /> : section === "auto" ? <AutoSection /> : section === "logs" ? <LogsSection /> : <SectionPlaceholder place={{ ...place, section }} />}
+          {section === "keys" ? <KeysSection /> : section === "light" ? <LightSection /> : section === "auto" ? <AutoSection /> : section === "logs" ? <LogsSection /> : <SettingsSection />}
         </Suspense>
       </div>
       <Toaster />

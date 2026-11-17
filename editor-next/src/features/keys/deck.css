@@ -83,3 +83,7 @@
 .deck-lv-key:active { transform: scale(.94); }
 .deck-lv-key:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .deck-lv-key[data-empty] { background: var(--device-key-empty); }
+
+/* Config › Aparência das teclas: as teclas de exemplo sobre o fundo do aparelho */
+.deck-set-sample { display: flex; gap: 12px; padding: 18px; border-radius: var(--radius-xl); background: var(--device-face); box-shadow: 0 0 0 1px var(--device-edge); min-height: 132px; }
+.deck-set-sample img { width: 96px; height: 96px; border-radius: var(--radius-lg); display: block; }
