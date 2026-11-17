@@ -97,9 +97,11 @@ def _plugin_zip(body: dict) -> tuple[Path, dict]:
             if len(names) > 2000:
                 raise PluginError(tr("the .zip has too many files"))
             total = 0
+            root = tmp.resolve()
             for info in z.infolist():
                 target = (tmp / info.filename).resolve()
-                if not str(target).startswith(str(tmp.resolve())):
+                # dentro da pasta (não basta começar com o mesmo texto: d6plugin-abc e d6plugin-abcOUTRA)
+                if target != root and root not in target.parents:
                     raise PluginError(tr("the .zip has invalid paths"))
                 total += info.file_size
                 if total > 200 * 1024 * 1024:

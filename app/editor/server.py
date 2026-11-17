@@ -33,6 +33,14 @@ if TYPE_CHECKING:
     from app.plugins import PluginManager
     from app.values import Values
 
+# o que a página do editor pode carregar: só deste servidor (imagens também data:, as prévias das teclas); nenhum
+# outro site pode abrir o editor dentro de um quadro (frame-ancestors), contra clique enganado
+CSP = (
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+    "font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; "
+    "frame-ancestors 'none'"
+)
+
 # sem o build do editor (desenvolvimento, antes do npm run build): explica em vez de um 404 seco
 NO_BUILD = (
     "<!doctype html><meta charset=utf-8><title>Deck</title><body style='font:16px system-ui;padding:2rem'>"
@@ -179,6 +187,8 @@ def _make_handler(server: EditorServer):
             self.send_header("X-Content-Type-Options", "nosniff")
             # o editor leva o token no caminho: o navegador nunca repassa o endereço a outro site
             self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Content-Security-Policy", CSP)
+            self.send_header("X-Frame-Options", "DENY")
             self.end_headers()
             try:
                 self.wfile.write(body)
@@ -215,7 +225,9 @@ def _make_handler(server: EditorServer):
                 log.warning("Request refused: unexpected Host header %r", self.headers.get("Host"))
                 return self._send(403, b"host", "text/plain")
             if path.startswith("/api/"):
-                if not secrets.compare_digest(self.headers.get("X-Token", ""), server.token):
+                # em bytes: o compare_digest recusa texto com acento (o cabeçalho pode vir com qualquer coisa)
+                sent = self.headers.get("X-Token", "").encode("utf-8", "surrogateescape")
+                if not secrets.compare_digest(sent, server.token.encode("ascii")):
                     if time.monotonic() - _token_warned[0] > 60:
                         _token_warned[0] = time.monotonic()
                         log.warning("Request refused: old token (tab opened before the app restarted?)")
@@ -226,7 +238,12 @@ def _make_handler(server: EditorServer):
                 name = route.fn.__name__
                 body = {}
                 if method == "POST":
-                    n = int(self.headers.get("Content-Length") or 0)
+                    try:
+                        n = int(self.headers.get("Content-Length") or 0)
+                    except ValueError:
+                        n = -1
+                    if n < 0:  # negativo leria até a conexão fechar
+                        return self._json(400, {"error": "Content-Length inválido"})
                     if n > MAX_BODY:
                         return self._json(413, {"error": "corpo grande demais"})
                     try:
@@ -234,6 +251,8 @@ def _make_handler(server: EditorServer):
                     except ValueError as e:
                         log.warning("%s %s: invalid JSON body: %s", method, path, e)
                         return self._json(400, {"error": f"JSON: {e}"})
+                    if not isinstance(body, dict):
+                        return self._json(400, {"error": "o corpo precisa ser um objeto JSON"})
                 else:
                     # GET: os parâmetros da URL (?after=12) chegam como o "body"
                     query = self.path.split("?", 1)[1] if "?" in self.path else ""

@@ -706,3 +706,61 @@ def test_every_response_says_no_referrer(api, tmp_path, monkeypatch):
         r.read()
         assert r.getheader("Referrer-Policy") == "no-referrer", path
     conn.close()
+
+
+# ---------------------------------------------------------------------------- revisão de segurança
+
+
+def _raw_post(api, path, headers, body=b""):
+    conn = http.client.HTTPConnection("127.0.0.1", api.srv.port, timeout=10)
+    conn.putrequest("POST", path, skip_host=True, skip_accept_encoding=True)
+    conn.putheader("Host", f"127.0.0.1:{api.srv.port}")
+    for k, v in headers.items():
+        conn.putheader(k, v)
+    conn.endheaders(body)
+    r = conn.getresponse()
+    out = (r.status, r.read())
+    conn.close()
+    return out
+
+
+def test_token_with_accents_is_refused_not_a_crash(api):
+    status, body = _raw_post(api, "/api/validate", {"X-Token": "ÁÉÍ-ÓÚ", "Content-Length": "2"}, b"{}")
+    assert status == 403 and b"token" in body
+
+
+def test_bad_content_length_is_refused(api):
+    tok = api.srv.token
+    for value in ("-1", "abc"):
+        status, _ = _raw_post(api, "/api/validate", {"X-Token": tok, "Content-Length": value})
+        assert status == 400, value
+
+
+def test_body_must_be_an_object(api):
+    for raw in (b"[]", b'"x"', b"3"):
+        status, r = api.request("POST", "/api/validate", raw=raw)
+        assert status == 400 and "objeto" in r["error"], raw
+
+
+def test_plugin_zip_with_a_sibling_folder_path_is_refused(api):
+    import tempfile
+
+    buf = io.BytesIO()
+    sibling = Path(tempfile.gettempdir()).name  # qualquer nome: o que importa é o ../ para fora da pasta
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("plugin.json", json.dumps({"id": "x", "name": "x", "run": ["python", "m.py"]}))
+        z.writestr(f"../{sibling}-evil/m.py", "print(1)")
+    status, r = api.request("POST", "/api/plugins/inspect", {"data": base64.b64encode(buf.getvalue()).decode()})
+    assert status == 500 and "invalid paths" in r["error"]
+
+
+def test_editor_cannot_be_framed_and_loads_only_from_itself(api, tmp_path, monkeypatch):
+    _dist(tmp_path, monkeypatch)
+    conn = http.client.HTTPConnection("127.0.0.1", api.srv.port, timeout=10)
+    conn.request("GET", f"/{api.srv.token}/teclas", headers={"Host": f"127.0.0.1:{api.srv.port}"})
+    r = conn.getresponse()
+    r.read()
+    csp = r.getheader("Content-Security-Policy") or ""
+    assert "frame-ancestors 'none'" in csp and "script-src 'self'" in csp
+    assert r.getheader("X-Frame-Options") == "DENY"
+    conn.close()
