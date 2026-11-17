@@ -30,6 +30,10 @@ def run_python(code: str, *args: str, cwd: Path = ROOT) -> subprocess.CompletedP
 
 MODULES = [
     "app.plugins",
+    "app.plugins.manifest",
+    "app.plugins.api",
+    "app.plugins.manager",
+    "app.plugins.external",
     "app.actions",
     "app.config",
     "app.engine",
