@@ -21,7 +21,6 @@ const valueNow = (id) => {
   const d = valueDef(id);
   return d && d.sample !== undefined && d.sample !== null ? String(d.sample) : "–";
 };
-const panelDefs = () => (S.schema && S.schema.panels) || {};
 
 // campo de texto com valores: o texto livre continua digitável e cada valor vira uma etiqueta
 function tokenEditor(value, onChange, opts = {}) {
@@ -175,10 +174,9 @@ function inlCond(s, ed) {
 
 const isInfoIcon = (ic) => !!ic && (ic.sub !== undefined || isObj(ic.bar) || isObj(ic.bg) || ic.style === "info" ||
   Object.values(ic).some(hasTokens));
-const isInfoKey = (spec) => !!spec && (!!spec.format || (Array.isArray(spec.rules) && spec.rules.length > 0) || isInfoIcon(normalizeIcon(spec.icon)));
+const isInfoKey = (spec) => !!spec && !spec.widget && ((Array.isArray(spec.rules) && spec.rules.length > 0) || isInfoIcon(normalizeIcon(spec.icon)));
 const keyId = (page, key) => `${page}-${key}`.replace(/[^A-Za-z0-9_-]/g, "_");
 function withId(obj, id) { return JSON.parse(JSON.stringify(obj).replace(/\$id/g, id)); }
-const FORMATS = [["app.clock", "clock"], ["app.date", "calendar"], ["app.countdown", "hourglass"], ["app.gauge", "gauge"], ["app.free", "braces"]];
 
 // a aba Aparência das teclas que mostram informação (e das células de um bloco)
 function infoLook(spec, target) {
@@ -197,12 +195,6 @@ function infoLook(spec, target) {
   if (!target.cell && noAction) body.append(h("div", { class: "info-note" }, ic("info"),
     h("span", {}, t("This key only shows information. Pressing it does nothing, unless you add an action in What it does."))));
 
-  if (!target.cell) {
-    const tiles = FORMATS.filter(([id]) => panelDefs()[id]).map(([id, icn]) => h("button", { class: "ftile", "aria-pressed": spec.format === id ? "true" : "false",
-      onclick: () => applyFormat(spec, id) }, ic(icn), panelDefs()[id].label));
-    body.append(h("div", { class: "lsec" }, h("span", { class: "lbl" }, t("Format")),
-      h("div", { class: "ftiles" }, ...tiles), h("p", { class: "hint" }, t("A starting point already arranged. Everything below stays editable."))));
-  }
   body.append(h("div", { class: "look-top" }, h("img", { id: "lookImg", class: "look-img", alt: t("Key preview") }),
     h("div", { class: "look-side" }, h("p", { class: "hint" }, t("The preview uses the values right now (or an example, with the app closed).")))));
 
@@ -237,7 +229,7 @@ function infoLook(spec, target) {
     bgSec.append(bandsEditor(icon.bg, (v) => save({ bg: v }), t("Color by value")),
       h("button", { class: "btn small", onclick: () => save({ bg: (icon.bg.bands && icon.bg.bands[0] && icon.bg.bands[0][1]) || "#1d2330" }, true) }, t("Use one color")));
   } else {
-    bgSec.append(swatchRow(icon.bg || null, (c) => save({ bg: c }), true, INFO_SWATCHES, t("Default")),
+    bgSec.append(swatchRow(icon.bg || null, (c) => save({ bg: c }), true, KEY_SWATCHES, t("Default")),
       h("button", { class: "btn small", onclick: () => save({ bg: { value: firstNumber(), bands: [[30, "#1d2330"], [80, "#3a2a12"], [100, "#b4232a"]] } }, true) },
         ic("sliders-horizontal"), t("Depending on a value")));
   }
@@ -260,18 +252,16 @@ function infoLook(spec, target) {
       save({ bar: b }, true);
     }, t("Bar color")));
     if (b.bands) barSec.append(bandRows(b.bands, () => save({ bar: b })));
-    else barSec.append(swatchRow(b.color || "#F5A524", (c) => { b.color = c; upd(); }, false, INFO_SWATCHES));
+    else barSec.append(swatchRow(b.color || "#F5A524", (c) => { b.color = c; upd(); }, false, KEY_SWATCHES));
   }
   body.append(barSec);
 
   if (!target.cell) body.append(rulesSection(spec));
   return body;
 }
-const INFO_SWATCHES = [["#1d2330", t("Graphite")], ["#22336e", t("Blue")], ["#1f3a5f", t("Sky blue")], ["#1d4d37", t("Green")], ["#3a2a12", t("Amber")],
-  ["#b4232a", t("Red")], ["#2b2440", t("Violet")], ["#5865F2", "Discord"], ["#F5A524", t("Orange")], ["#000000", t("Black")]];
 // nome da cor para os resumos ("Luz verde por 3 s" em vez do código)
 function colorName(hex) {
-  const all = INFO_SWATCHES.concat([["#22c55e", t("green")], ["#ef4444", t("red")], ["#b4232a", t("red")], ["#F5A524", t("orange")]]);
+  const all = KEY_SWATCHES.concat([["#22c55e", t("green")], ["#ef4444", t("red")], ["#b4232a", t("red")], ["#F5A524", t("orange")]]);
   const hit = all.find(([c]) => String(c).toLowerCase() === String(hex || "").toLowerCase());
   return hit ? String(hit[1]).toLowerCase() : (hex || "");
 }
@@ -300,18 +290,6 @@ function bandRows(bands, on) {
   return wrap;
 }
 
-function applyFormat(spec, id) {
-  const p = panelDefs()[id];
-  if (!p || !p.sizes["1x1"]) return;
-  const kid = keyId(S.page, S.key);
-  spec.icon = withId(p.sizes["1x1"][0][0], kid);
-  Object.keys(spec.icon).forEach((k) => spec.icon[k] === null && delete spec.icon[k]);
-  spec.format = id;
-  if (p.action && !spec.action) spec.action = withId(p.action, kid);
-  if (p.hold && !spec.hold) spec.hold = withId(p.hold, kid);
-  S.previews[S.page] = null; buildModel(); changed(); renderKeys(); renderInspector();
-}
-
 // regras: o bloco "Se" do sistema, com a aparência dentro
 function rulesSection(spec) {
   const sec = h("div", { class: "lsec" }, h("div", { class: "row", style: { alignItems: "center" } },
@@ -327,7 +305,7 @@ function rulesSection(spec) {
       look.text ? `“${look.text}”` : null].filter(Boolean).join(", ") || t("no changes yet");
     const mini = h("span", { class: "rule-mini", style: { background: look.bg || "#1d2330" } }, look.lucide ? h("span", { class: "lu-ch" }, luChar(look.lucide)) : null);
     const inner = editing ? h("div", { class: "rule-edit" },
-      h("span", { class: "msub" }, t("Background")), swatchRow(look.bg || null, (c) => { setOrDelete(look, "bg", c); changed(); }, true, INFO_SWATCHES, t("Unchanged")),
+      h("span", { class: "msub" }, t("Background")), swatchRow(look.bg || null, (c) => { setOrDelete(look, "bg", c); changed(); }, true, KEY_SWATCHES, t("Unchanged")),
       h("span", { class: "msub" }, t("Icon")), h("div", { class: "row", style: { gap: "8px" } },
         h("button", { class: "btn small", onclick: () => openGlyphPicker((c) => { if (c) { look.lucide = c; changed(); renderInspector(); } }) }, ic("search"), look.lucide ? look.lucide : t("Choose")),
         look.lucide ? h("button", { class: "btn small ghost", onclick: () => { delete look.lucide; changed(); renderInspector(); } }, t("Remove")) : null),
@@ -335,7 +313,7 @@ function rulesSection(spec) {
       h("button", { class: "btn small", style: { alignSelf: "flex-start" }, onclick: () => { S.ruleOpen = null; renderInspector(); } }, t("Done")))
       : h("div", { class: "rule-look" }, mini, h("span", { class: "grow" }, h("b", {}, t("Appearance")), h("small", {}, summary)),
         h("button", { class: "icon-btn small", "aria-label": t("Edit appearance"), onclick: () => { S.ruleOpen = `${S.page}:${S.key}:${i}`; renderInspector(); } }, ic("pencil")));
-    sec.append(h("div", { class: "cblk rule", "data-m": M.id(r), style: { "--cat": "#e5701a" } },
+    sec.append(h("div", { class: "cblk rule", "data-m": M.id(r), style: { "--cat": "var(--cat-orange)" } },
       h("div", { class: "cbar" }, h("span", { class: "blk-icon" }, ic("split")),
         h("span", { class: "blk-words" }, h("span", { class: "chiplabel" }, t("If")), inlCond(r.if, () => changed())),
         h("button", { class: "icon-btn small", "aria-label": t("Remove rule"), onclick: () => { rules.splice(i, 1); if (!rules.length) delete spec.rules; changed(); renderInspector(); } }, ic("trash-2"))),
@@ -354,7 +332,8 @@ function rulesSection(spec) {
 const COLS_N = 5, ROWS_N = 3;
 const kpos = (k) => [(Number(k) - 1) % COLS_N, Math.floor((Number(k) - 1) / COLS_N)];
 const kat = (c, r) => String(r * COLS_N + c + 1);
-const spanOf = (spec) => (spec && Array.isArray(spec.span) ? [Number(spec.span[0]) || 1, Number(spec.span[1]) || 1] : [1, 1]);
+const spanOf = (spec) => (spec && spec.widget ? widgetSpan(spec)
+  : spec && Array.isArray(spec.span) ? [Number(spec.span[0]) || 1, Number(spec.span[1]) || 1] : [1, 1]);
 function coverMap(page = S.page) {
   const out = {};
   for (const [k, spec] of Object.entries(pageKeys(page))) {
@@ -390,24 +369,6 @@ function placedToast(msg, removed) {
     action: { label: t("Keep the replaced ones"), fn: () => { removed.forEach((r) => saveSpec(r.spec)); toast(t("Saved in Saved keys, in the library.")); } } });
 }
 
-// encaixa um painel (formato do app ou painel de plugin) num tamanho, a partir de uma tecla
-function placePanel(anchor, panelId, size) {
-  const p = panelDefs()[panelId];
-  if (!p || !p.sizes[size]) return;
-  const [rows, cols] = size.split("x").map(Number);
-  const keys = footprint(anchor, cols, rows);
-  if (!keys) return toast(t("It doesn't fit there: the piece goes past the edge."), { bad: true });
-  const removed = clearKeys(keys);
-  const kid = keyId(S.page, anchor);
-  const cells = withId(p.sizes[size], kid).flat().map((c) => { const o = { ...c }; Object.keys(o).forEach((k) => o[k] === null && delete o[k]); return o; });
-  const spec = rows === 1 && cols === 1 ? { icon: cells[0], format: panelId }
-    : { span: [cols, rows], cells, mode: "split", panel: panelId, format: panelId, icon: { text: p.label } };
-  if (p.action) spec.action = withId(p.action, kid);
-  if (p.hold) spec.hold = withId(p.hold, kid);
-  pageKeys()[anchor] = spec;
-  afterPlace(anchor);
-  placedToast(t("{0} {1} placed.", [p.label, sizeLabel(size)]), removed);
-}
 function placeSaved(anchor, idx) {
   const item = (S.cfg.saved_keys || [])[idx];
   if (!item) return;
@@ -441,7 +402,7 @@ function multiRect() {
   const cols = c1 - c0 + 1, rows = r1 - r0 + 1;
   if (cols * rows !== ks.length) return null;                     // tem buraco: não é um retângulo
   const cov = coverMap();
-  if (ks.some((k) => cov[k] || spanOf(pageKeys()[k])[0] * spanOf(pageKeys()[k])[1] > 1)) return null;   // já tem bloco no meio
+  if (ks.some((k) => cov[k] || isWidget(pageKeys()[k]) || spanOf(pageKeys()[k])[0] * spanOf(pageKeys()[k])[1] > 1)) return null;   // já tem bloco ou widget no meio
   return { anchor: kat(c0, r0), cols, rows };
 }
 function markMulti() {
@@ -486,7 +447,7 @@ function splitBlock(anchor) {
     keys[k] = { icon: cells[i] ? clone(cells[i]) : {} };
   });
   if (cells[0]) spec.icon = clone(cells[0]);
-  for (const f of ["span", "cells", "mode", "panel", "format"]) delete spec[f];
+  for (const f of ["span", "cells", "mode"]) delete spec[f];
   afterPlace(anchor);
   toast(t("Block separated into {0} keys.", [list.length]), { undo: true });
 }
@@ -521,7 +482,10 @@ function blockLook(spec) {
     body.append(infoLook(spec, { cell: true, get: () => spec.cells[sel] || {}, set: (v) => { spec.cells[sel] = v; S.previews[S.page] = null; } }));
   }
   body.append(rulesSection(spec));
-  body.append(h("div", { class: "lsec" }, h("button", { class: "btn", style: { alignSelf: "flex-start" }, onclick: () => splitBlock(S.key) }, ic("ungroup"), t("Separate keys"))));
+  body.append(h("div", { class: "lsec" }, h("div", { class: "row", style: { gap: "8px", flexWrap: "wrap" } },
+    h("button", { class: "btn", onclick: () => splitBlock(S.key) }, ic("ungroup"), t("Separate keys")),
+    spec.mode !== "image" ? h("button", { class: "btn", onclick: () => saveAsWidget(spec) }, ic("bookmark"), t("Save as widget")) : null),
+    spec.mode !== "image" ? h("p", { class: "hint" }, t("Save as widget: it goes to My widgets, in the library, to place again on any page.")) : null));
   return body;
 }
 
@@ -594,51 +558,19 @@ function pieceDrop(k) {
   const d = S.drag;
   endFoot();
   if (!d) return;
-  if (d.kind === "piece") placePanel(k, d.panel, d.size);
+  if (d.kind === "widget") placeWidget(k, d.widget, d.size);
   else if (d.kind === "saved") placeSaved(k, d.index);
   S.drag = null;
 }
 
 // ---------------------------------------------------------------------------- biblioteca: informação e guardadas
 
-const LIB_PANEL_OPEN = new Set();
 function infoLibraryGroups(query) {
   const nq = norm(query);
   const out = [];
-  const panels = Object.entries(panelDefs()).filter(([id, p]) => !nq || norm(`${p.label} ${id}`).includes(nq));
-  if (panels.length) {
-    const gname = "Show information";
-    const open = !!query || libOpen.has(gname);
-    const head = h("button", { class: "lib-head", "aria-expanded": open ? "true" : "false", onclick: () => toggleLibGroup(gname) },
-      h("i", { class: "lib-dot", "aria-hidden": "true" }), h("span", { class: "grow" }, t(gname)),
-      h("span", { class: "lib-count" }, String(panels.length)), ic("chevron-right"));
-    const sec = h("section", { class: "lib-group", style: { "--cat": "#8e4ec6" } }, head);
-    if (open) for (const [id, p] of panels) {
-      const sizes = Object.keys(p.sizes);
-      const expanded = LIB_PANEL_OPEN.has(id) || !!query;
-      const item = h("button", { class: "lib-item", draggable: "true", style: { "--cat": "#8e4ec6" }, title: t("Drag onto a key, or open to see the sizes"),
-        "aria-expanded": sizes.length > 1 ? (expanded ? "true" : "false") : null,
-        onclick: () => { if (sizes.length > 1) { if (expanded) LIB_PANEL_OPEN.delete(id); else LIB_PANEL_OPEN.add(id); renderLibrary(); }
-          else if (S.key) placePanel(S.key, id, sizes[0]); } },
-        h("span", { class: "chip" }, ic(p.icon || "braces")), h("span", { class: "label" }, p.label),
-        p.plugin ? h("span", { class: "lib-tag" }, t("plugin")) : null);
-      const first = sizes[0];
-      item.addEventListener("dragstart", (e) => startPieceDrag(e, pieceOf(id, p, first)));
-      item.addEventListener("dragend", () => { S.drag = null; endFoot(); });
-      sec.append(item);
-      if (expanded && sizes.length > 1) sec.append(h("div", { class: "pieces" }, ...sizes.map((size) => pieceThumb(id, p, size))));
-    }
-    out.push(sec);
-  }
   const saved = (S.cfg.saved_keys || []).map((it, i) => [it, i]).filter(([it]) => !nq || norm(it.name).includes(nq));
   if (saved.length) {
-    const gname = "Saved keys";
-    const open = !!query || libOpen.has(gname);
-    const head = h("button", { class: "lib-head", "aria-expanded": open ? "true" : "false", onclick: () => toggleLibGroup(gname) },
-      h("i", { class: "lib-dot", "aria-hidden": "true" }), h("span", { class: "grow" }, t(gname)),
-      h("span", { class: "lib-count" }, String(saved.length)), ic("chevron-right"));
-    const sec = h("section", { class: "lib-group", style: { "--cat": "#a7aebb" } }, head);
-    if (open) for (const [it, i] of saved) {
+    out.push(libGroup("Saved keys", "var(--fg-muted)", saved.length, query, () => saved.map(([it, i]) => {
       const [cols, rows] = spanOf(it.key);
       const icon = normalizeIcon(it.key.icon);
       const item = h("div", { class: "lib-item saved-item", draggable: "true", title: t("Drag onto the keys to use it again") },
@@ -651,30 +583,11 @@ function infoLibraryGroups(query) {
         startPieceDrag(e, { kind: "saved", index: i, cols, rows, label: it.name, cellsPreview: cells });
       });
       item.addEventListener("dragend", () => { S.drag = null; endFoot(); });
-      sec.append(item);
-    }
-    out.push(sec);
+      return item;
+    })));
   }
   return out;
 }
-function pieceOf(id, p, size) {
-  const [rows, cols] = size.split("x").map(Number);
-  return { kind: "piece", panel: id, size, rows, cols, label: p.label, cellsPreview: (p.sizes[size] || []).flat() };
-}
-function pieceThumb(id, p, size) {
-  const [rows, cols] = size.split("x").map(Number);
-  const u = 15, g = 3;
-  const cells = (p.sizes[size] || []).flat();
-  const grid = h("span", { class: "piece-grid", style: { gridTemplateColumns: `repeat(${cols}, ${u}px)`, gap: `${g}px` } },
-    ...cells.map(() => h("span", { class: "piece-cell" })));
-  const btn = h("button", { class: "piece", draggable: "true", title: t("{0} in {1}", [p.label, sizeLabel(size)]),
-    onclick: () => { if (S.key) placePanel(S.key, id, size); else toast(t("Click a key first, or drag the piece onto it.")); } },
-    grid, h("span", {}, sizeLabel(size)));
-  btn.addEventListener("dragstart", (e) => { e.stopPropagation(); startPieceDrag(e, pieceOf(id, p, size)); });
-  btn.addEventListener("dragend", () => { S.drag = null; endFoot(); });
-  return btn;
-}
-
 // guardar teclas para usar depois (vai para o config: saved_keys)
 function saveSpec(spec, name) {
   if (!spec) return;

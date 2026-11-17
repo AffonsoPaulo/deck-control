@@ -286,7 +286,7 @@ function drawStrip(canvas, cols, geo) {
   }
   // a fita
   ctx.save(); ctx.clip(band, "evenodd");
-  ctx.fillStyle = "#1b1d22"; ctx.fillRect(0, 0, w, hgt);
+  ctx.fillStyle = cssVar("--device-shell-2"); ctx.fillRect(0, 0, w, hgt);
   blobs(ctx, r, false);
   ctx.restore();
 }

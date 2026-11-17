@@ -10,14 +10,23 @@ const TOKEN = new URLSearchParams(location.hash.slice(1)).get("t") || "";
 const KEYS = Array.from({ length: 15 }, (_, i) => String(i + 1));
 const MOMENTS = ["action", "double", "hold", "release"];
 
+// tokens do tema (tokens.css); o CSS já está carregado quando os scripts rodam
+const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+// paleta de tecla: uma lista só, a mesma do tokens.css (o que vai para o Deck)
+const KEY_SWATCHES = [["--key-graphite", t("Graphite")], ["--key-blue", t("Blue")], ["--key-sky", t("Sky blue")],
+  ["--key-green", t("Green")], ["--key-amber-dark", t("Dark amber")], ["--key-red", t("Red")], ["--key-violet", t("Violet")],
+  ["--key-discord", "Discord"], ["--key-amber", t("Amber")], ["--key-black", t("Black")]].map(([v, l]) => [cssVar(v), l]);
+const KEY_BG = KEY_SWATCHES[0][0];
+
+// color: matiz da categoria (tokens.css); bg: fundo da tecla nova dessa categoria
 const GROUPS = {
-  "Keyboard and text":   { color: "#3e63dd", bg: "#22336e" },
-  "Programs and system": { color: "#2f9e6a", bg: "#1d4d37" },
-  "OBS":                 { color: "#0f8f99", bg: "#134a4f" },
-  "Discord":             { color: "#5865f2", bg: "#5865F2" },
-  "Temporary responses": { color: "#8e4ec6", bg: "#2b2440" },
-  "Pages and logic":     { color: "#e5701a", bg: "#3d3027" },
-  "Other":               { color: "#868d99", bg: "#2b2f36" },
+  "Keyboard and text":   { color: "var(--cat-blue)", bg: cssVar("--key-blue") },
+  "Programs and system": { color: "var(--cat-green)", bg: cssVar("--key-green") },
+  "OBS":                 { color: "var(--cat-teal)", bg: "#134a4f" },
+  "Discord":             { color: "var(--cat-indigo)", bg: cssVar("--key-discord") },
+  "Temporary responses": { color: "var(--cat-violet)", bg: cssVar("--key-violet") },
+  "Pages and logic":     { color: "var(--cat-orange)", bg: "#3d3027" },
+  "Other":               { color: "var(--cat-gray)", bg: KEY_BG },
 };
 const GROUP_ORDER = Object.keys(GROUPS);
 // categorias e cores que vêm dos plugins (OBS, Discord e os de terceiros)
@@ -113,21 +122,67 @@ async function api(path, body) {
   return j;
 }
 
-let toastTimer;
-function toast(msg, { bad = false, undo = false, action = null, sticky = false } = {}) {
+// aviso: some sozinho (menos o fixo); com o mouse em cima, o tempo para.
+// long: algo grande foi apagado (uma página): fica 10 s, com uma barrinha mostrando o tempo.
+let toastTimer, toastLeft = 0, toastStart = 0;
+function armToast(ms) { clearTimeout(toastTimer); toastLeft = ms; toastStart = Date.now(); toastTimer = setTimeout(hideToast, ms); }
+function toast(msg, { bad = false, undo = false, action = null, sticky = false, long = false } = {}) {
   const el = $("#toast");
-  const btns = [action, undo ? { label: t("Undo"), fn: () => travel(-1) } : null].filter(Boolean);
-  el.replaceChildren(h("span", {}, msg), ...btns.map((b) => h("button", { onclick: () => { hideToast(); b.fn(); } }, b.label)));
-  action = btns[0] || null;
-  el.className = "toast" + (bad ? " bad" : "");
+  const btns = [action, undo ? { label: t("Undo"), icon: "undo-2", fn: () => travel(-1) } : null].filter(Boolean);
+  const ms = long ? 10000 : bad || btns.length ? 6000 : 2600;
+  el.replaceChildren(h("span", {}, msg),
+    ...btns.map((b) => h("button", { onclick: () => { hideToast(); b.fn(); } }, b.icon ? ic(b.icon) : null, b.label)),
+    ...(long && !sticky ? [h("i", { class: "toast-time", style: { animationDuration: `${ms}ms` } })] : []));
+  el.className = "toast" + (bad ? " bad" : "") + (long ? " long" : "");
   el.hidden = false;
-  clearTimeout(toastTimer);
-  if (!sticky) toastTimer = setTimeout(hideToast, bad || action ? 6000 : 2600);
+  clearTimeout(toastTimer); toastLeft = 0;
+  if (!sticky) armToast(ms);
 }
 function hideToast() {
   const el = $("#toast");
-  clearTimeout(toastTimer);
+  clearTimeout(toastTimer); toastLeft = 0;
   if (!el.hidden) M.leave(el, () => { el.hidden = true; }, 160);
+}
+$("#toast").addEventListener("mouseenter", () => { if (toastLeft > 0) { clearTimeout(toastTimer); toastLeft -= Date.now() - toastStart; } });
+$("#toast").addEventListener("mouseleave", () => { if (toastLeft > 0) armToast(Math.max(toastLeft, 1500)); });
+
+// menu flutuante: um componente só (menu da página, botão direito na tecla, páginas que não couberam).
+// items: { icon, label, kbd, danger, disabled, keep, fn } | "-" (divisória) | { head }
+function closeMenu() {
+  const m = $("#popMenu");
+  if (m) m.remove();
+  $("#pageMenuBtn")?.setAttribute("aria-expanded", "false");
+  document.removeEventListener("pointerdown", menuOutside, true);
+}
+function menuOutside(e) { const m = $("#popMenu"); if (m && !m.contains(e.target)) closeMenu(); }
+const menuOpen = (kind) => { const m = $("#popMenu"); return !!m && m.dataset.kind === kind; };
+function menuItems(items) {
+  return items.filter(Boolean).map((it) => it === "-" ? h("div", { class: "menu-sep", role: "separator" })
+    : it.head ? h("div", { class: "menu-head" }, it.head)
+    : h("button", { role: "menuitem", class: "menu-item" + (it.danger ? " danger" : ""), disabled: !!it.disabled,
+      onclick: () => { if (!it.keep) closeMenu(); it.fn(); } },
+      it.icon ? ic(it.icon) : null, h("span", { class: "grow" }, it.label), it.kbd ? h("kbd", {}, it.kbd) : null));
+}
+function keepInWindow(menu) {
+  const r = menu.getBoundingClientRect();
+  if (r.right > innerWidth - 8) menu.style.left = `${Math.max(8, innerWidth - r.width - 8)}px`;
+  if (r.bottom > innerHeight - 8) menu.style.top = `${Math.max(8, innerHeight - r.height - 8)}px`;
+}
+function popMenu(x, y, children, { kind = "", label = null } = {}) {
+  closeMenu();
+  const menu = h("div", { class: "menu", id: "popMenu", role: "menu", "data-kind": kind, "aria-label": label, style: { left: `${x}px`, top: `${y}px` } }, ...children);
+  document.body.append(menu);
+  keepInWindow(menu);
+  menu.addEventListener("keydown", (e) => {                // setas andam pelos itens
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    const items = [...menu.querySelectorAll("button:not(:disabled)")];
+    if (!items.length) return;
+    const i = items.indexOf(document.activeElement), step = e.key === "ArrowDown" ? 1 : -1;
+    items[(i < 0 ? (step > 0 ? 0 : items.length - 1) : (i + step + items.length) % items.length)].focus();
+  });
+  setTimeout(() => document.addEventListener("pointerdown", menuOutside, true), 0);
+  return menu;
 }
 
 function normalizeAction(spec) {   // mesmas regras de app/actions.normalize
@@ -623,6 +678,7 @@ function renderPages() {
       onclick: () => { if (S.page === name) return; S.page = name; S.key = null; buildModel(); renderAll(); },
       ondblclick: () => { startRename(name); } },
       name);
+    b.addEventListener("contextmenu", (e) => { e.preventDefault(); openPageMenu(e.clientX, e.clientY, name); });
     b.addEventListener("dragover", (e) => { if (dragKey && name !== S.page) { e.preventDefault(); b.classList.add("drop-target"); } });
     b.addEventListener("dragleave", () => b.classList.remove("drop-target"));
     b.addEventListener("drop", (e) => { e.preventDefault(); b.classList.remove("drop-target"); moveKeyToPage(dragKey, name); });
@@ -630,8 +686,8 @@ function renderPages() {
   }
   el.append(
     h("button", { class: "page-tab page-more", hidden: true, title: t("Other pages"), "aria-haspopup": "menu",
-      onclick: (e) => { e.stopPropagation(); $("#pagesMenu") ? closePagesMenu() : openPagesMenu(e.currentTarget); },
-      ondragenter: (e) => { if (dragKey && !$("#pagesMenu")) openPagesMenu(e.currentTarget); } },
+      onclick: (e) => { e.stopPropagation(); menuOpen("pages") ? closeMenu() : openPagesMenu(e.currentTarget); },
+      ondragenter: (e) => { if (dragKey && !menuOpen("pages")) openPagesMenu(e.currentTarget); } },
       h("span", { class: "n" }), ic("chevron-down")),
     h("button", { class: "page-tab add", onclick: addPage, title: t("Create page") }, ic("plus"), t("Page")));
   requestAnimationFrame(fitPages);
@@ -646,7 +702,7 @@ function fitPages() {
   tabs.forEach((t) => (t.hidden = false));
   more.hidden = true;
   const gap = 2, width = (t) => t.offsetWidth + gap;
-  const avail = el.parentElement.clientWidth - $("#viewToggle").offsetWidth - 12 - 8;
+  const avail = el.parentElement.clientWidth - $("#viewToggle").offsetWidth - $("#pageMenuBtn").offsetWidth - 12 - 8 - 8;
   if (tabs.reduce((w, t) => w + width(t), 0) + width(add) <= avail) return;
   more.hidden = false;
   more.querySelector(".n").textContent = "+00";       // reserva espaço para o número
@@ -667,21 +723,69 @@ function fitPages() {
 window.addEventListener("resize", debounce(fitPages, 80));
 
 function openPagesMenu(btn) {
-  closePagesMenu();
   const names = JSON.parse(btn.dataset.pages || "[]");
   const r = btn.getBoundingClientRect();
-  const menu = h("div", { class: "menu", id: "pagesMenu", role: "menu", style: { left: `${r.left}px`, top: `${r.bottom + 6}px` } },
-    ...names.map((name) => {
-      const item = h("button", { role: "menuitem", class: "menu-item", onclick: () => { closePagesMenu(); S.page = name; S.key = null; buildModel(); renderAll(); } },
-        h("span", { class: "grow" }, name));
-      item.addEventListener("dragover", (e) => { if (dragKey) e.preventDefault(); });
-      item.addEventListener("drop", (e) => { e.preventDefault(); closePagesMenu(); moveKeyToPage(dragKey, name); });
-      return item;
-    }));
-  document.body.append(menu);
-  setTimeout(() => document.addEventListener("click", closePagesMenu, { once: true }), 0);
+  const items = menuItems(names.map((name) => ({ label: name, fn: () => { S.page = name; S.key = null; buildModel(); renderAll(); } })));
+  items.forEach((item, i) => {
+    item.addEventListener("dragover", (e) => { if (dragKey) e.preventDefault(); });
+    item.addEventListener("drop", (e) => { e.preventDefault(); closeMenu(); moveKeyToPage(dragKey, names[i]); });
+  });
+  popMenu(r.left, r.bottom + 6, items, { kind: "pages", label: t("Other pages") });
 }
-function closePagesMenu() { const m = $("#pagesMenu"); if (m) m.remove(); }
+
+// menu da página: botão "…" ao lado das abas ou botão direito numa aba
+function openPageMenu(x, y, name) {
+  if (S.page !== name) { S.page = name; S.key = null; buildModel(); renderAll(); }
+  const isHome = S.cfg.home === name, onlyOne = Object.keys(pages()).length < 2;
+  const menu = popMenu(x, y, menuItems([
+    { head: t("Page {0}", [name]) },
+    { icon: "pencil", label: t("Rename"), fn: () => startRename(name) },
+    { icon: "house", label: t("Use as home page"), disabled: isHome, fn: () => { S.cfg.home = name; changed({ keys: false }); renderPages(); renderStageBar(); } },
+    { icon: "monitor-up", label: t("Show on Deck"), fn: showPageOnDeck },
+    "-",
+    { icon: "trash-2", label: t("Delete page…"), danger: true, disabled: onlyOne, keep: true, fn: () => askDeletePage(menu, name) },
+  ]), { kind: "page", label: t("Page options") });
+  menu.querySelector("button:not(:disabled)")?.focus();
+}
+$("#pageMenuBtn").append(ic("ellipsis"));
+$("#pageMenuBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (menuOpen("page")) return closeMenu();
+  const btn = e.currentTarget, r = btn.getBoundingClientRect();
+  openPageMenu(r.left, r.bottom + 6, S.page);
+  btn.setAttribute("aria-expanded", "true");
+});
+// página com teclas: confirma dentro do próprio menu (o foco começa em Cancelar); página vazia sai direto
+function askDeletePage(menu, name) {
+  const n = Object.keys(pageKeys(name)).length;
+  if (!n) { closeMenu(); return deletePage(); }
+  const title = t("Delete page \"{0}\"?", [name]);
+  const cancel = h("button", { class: "btn small", onclick: closeMenu }, t("Cancel"));
+  menu.classList.add("confirm");
+  menu.setAttribute("role", "alertdialog");
+  menu.setAttribute("aria-label", title);
+  menu.replaceChildren(h("div", { class: "menu-confirm" },
+    h("b", {}, title),
+    h("p", {}, n === 1 ? t("Its 1 key goes with it. You can undo right after, or from the history.")
+      : t("Its {0} keys go with it. You can undo right after, or from the history.", [n])),
+    h("div", { class: "menu-confirm-btns" }, cancel,
+      h("button", { class: "btn small solid-danger", onclick: () => { closeMenu(); deletePage(); } }, ic("trash-2"), t("Delete page")))));
+  keepInWindow(menu);
+  cancel.focus();
+}
+
+// botão direito na tecla
+function openKeyMenu(x, y, k) {
+  selectKey(k);
+  const spec = pageKeys()[k];
+  popMenu(x, y, menuItems([
+    { icon: "copy", label: t("Copy"), kbd: "Ctrl+C", disabled: !spec, fn: copyKey },
+    { icon: "clipboard-paste", label: t("Paste"), kbd: "Ctrl+V", disabled: !S.clipboard, fn: pasteKey },
+    { icon: "bookmark-plus", label: t("Save key"), disabled: !spec, fn: saveCurrentKey },
+    "-",
+    { icon: "trash-2", label: t("Delete key"), kbd: "Del", danger: true, disabled: !spec, fn: clearKey },
+  ]), { kind: "key", label: t("Key {0}", [k]) }).querySelector("button:not(:disabled)")?.focus();
+}
 
 function startRename(name) {
   if (S.page !== name) { S.page = name; S.key = null; buildModel(); renderAll(); }
@@ -719,17 +823,29 @@ function toggleLibGroup(gname) {
   renderLibrary();
 }
 
+// Um grupo da biblioteca: cabeçalho em sanfona e, aberto, os filhos que fill() devolve. É o único lugar que monta um
+// grupo (ações, informação, guardadas); o recuo e a linha que desce do quadradinho da categoria vêm do CSS de .lib-group.
+function libGroup(gname, color, count, query, fill, label = t(gname)) {
+  const open = !!query || libOpen.has(gname);            // buscando: tudo aberto
+  const head = h("button", { class: "lib-head", "aria-expanded": open ? "true" : "false", onclick: () => toggleLibGroup(gname) },
+    h("i", { class: "lib-dot", "aria-hidden": "true" }), h("span", { class: "grow" }, label),
+    h("span", { class: "lib-count" }, String(count)), ic("chevron-right"));
+  const sec = h("section", { class: "lib-group", "data-group": gname, style: { "--cat": color } }, head);
+  if (open) sec.append(...fill());
+  return sec;
+}
+
 function renderLibrary() {
   const list = $("#libList");
   const query = $("#libSearch").value;
+  // abas Ações | Widgets (buscando, cada aba mostra quantos resultados tem)
+  $("#libTabs").replaceChildren(...libTabs(query));
+  $("#libSearch").placeholder = libTab === "widgets" ? t("Search widgets") : t("Search actions");
+  $("#libTip").textContent = libTab === "widgets" ? t("Drag a widget onto the Deck. Click it to see the sizes.") : t("Drag an action onto a Deck key, or into the list of steps.");
+  if (libTab === "widgets") { list.replaceChildren(...widgetLibrary(query)); return; }
   const groups = groupedActions(query);
   list.replaceChildren(...groups.map(([gname, items]) => {
-    const open = !!query || libOpen.has(gname);          // buscando: tudo aberto
-    const head = h("button", { class: "lib-head", "aria-expanded": open ? "true" : "false", onclick: () => toggleLibGroup(gname) },
-      h("i", { class: "lib-dot", "aria-hidden": "true" }), h("span", { class: "grow" }, t(gname)),
-      h("span", { class: "lib-count" }, String(items.length)), ic("chevron-right"));
-    const sec = h("section", { class: "lib-group", style: { "--cat": GROUPS[gname].color } }, head);
-    if (open) sec.append(...items.map(([type, d]) => {
+    return libGroup(gname, GROUPS[gname].color, items.length, query, () => items.map(([type, d]) => {
       const item = h("button", { class: "lib-item", draggable: "true", title: d.help || d.label, style: catStyle(type),
         onclick: () => {
           if (!S.key) return toast(t("Click a key first, or drag the action onto it."));
@@ -751,13 +867,12 @@ function renderLibrary() {
       item.addEventListener("dragend", () => { S.drag = null; clearDropMarks(); endFoot(); });
       return item;
     }));
-    return sec;
   }));
   // "Mostrar informação" (painéis em peças de cada tamanho) antes de Páginas e lógica; guardadas no fim
   const [info, saved] = [infoLibraryGroups(query), null];
-  const logic = [...list.children].find((sec) => sec.querySelector(".lib-head .grow") && sec.querySelector(".lib-head .grow").textContent === t("Pages and logic"));
+  const logic = [...list.children].find((sec) => sec.dataset.group === "Pages and logic");
   for (const sec of info) {
-    if (sec.querySelector(".lib-head .grow").textContent === t("Saved keys")) list.append(sec);
+    if (sec.dataset.group === "Saved keys") list.append(sec);
     else list.insertBefore(sec, logic || null);
   }
   if (!groups.length && !info.length) list.append(h("p", { class: "fine", style: { padding: "0 8px" } }, t("No actions found.")));
@@ -791,11 +906,12 @@ function renderKeys() {
       onclick: (e) => { if (e.shiftKey) return toggleMulti(k); if (S.multi && S.multi.size) { S.multi = new Set(); renderJoinBar(); markMulti(); } selectKey(k); },
     }, ...(cols * rows > 1 ? Array.from({ length: cols * rows }, (_, j) => h("span", { class: "cellbox" }, p && p.cells && p.cells[j] ? h("img", { src: p.cells[j], alt: "" }) : null))
       : [spec && src ? h("img", { src, alt: "" }) : null]));
+    el.addEventListener("contextmenu", (e) => { e.preventDefault(); openKeyMenu(e.clientX, e.clientY, k); });
     el.addEventListener("dragstart", (e) => { dragKey = k; e.dataTransfer.setData("text/plain", "key"); e.dataTransfer.effectAllowed = "move"; });
     el.addEventListener("dragend", () => { dragKey = null; });
     el.addEventListener("dragover", (e) => {
       const files = [...e.dataTransfer.types].includes("Files");
-      if (S.drag && (S.drag.kind === "piece" || S.drag.kind === "saved" || S.drag.kind === "new")) {
+      if (S.drag && (S.drag.kind === "widget" || S.drag.kind === "saved" || S.drag.kind === "new")) {
         e.preventDefault();
         const d = S.drag.kind === "new" ? Object.assign(S.drag, { cols: 1, rows: 1 }) : S.drag;
         const target = d.cols * d.rows > 1 ? cellUnder(e, k) : k;
@@ -808,7 +924,7 @@ function renderKeys() {
     el.addEventListener("drop", (e) => {
       e.preventDefault();
       el.classList.remove("drop");
-      if (S.drag && (S.drag.kind === "piece" || S.drag.kind === "saved")) return pieceDrop(S.drag.lastOver || k);
+      if (S.drag && (S.drag.kind === "widget" || S.drag.kind === "saved")) return pieceDrop(S.drag.lastOver || k);
       if (S.drag && S.drag.kind === "new") { const at = S.drag.lastOver || k; endFoot(); return assignAction(at, S.drag.type); }
       if (dragKey) return swapKeys(dragKey, k);
       const f = e.dataTransfer.files[0];
@@ -863,7 +979,7 @@ async function assignAction(k, type) {
     }
   }
   S.previews[S.page] = null;
-  S.key = k; S.tab = "do";
+  S.key = k; S.tab = isWidget(pageKeys()[k]) ? "look" : "do";
   buildModel();
   changed();
   renderKeys(); renderInspector();
@@ -914,12 +1030,7 @@ function renderStageBar() {
     onDeck
       ? h("span", { class: "page-fact" }, ic("monitor-check"), t("Showing on the Deck"))
       : h("button", { class: "btn small ghost", onclick: showPageOnDeck, title: t("Show this page on the Deck") }, ic("monitor-up"), t("Show on Deck")),
-    isHome
-      ? h("span", { class: "page-fact" }, ic("house"), t("Home page"))
-      : h("button", { class: "btn small ghost", onclick: () => { S.cfg.home = S.page; changed({ keys: false }); renderPages(); renderStageBar(); } }, ic("house"), t("Set as home")),
-    h("span", { class: "grow" }),
-    h("button", { class: "btn small ghost", onclick: () => startRename(S.page) }, ic("pencil"), t("Rename")),
-    Object.keys(pages()).length > 1 ? h("button", { class: "btn small ghost danger", onclick: deletePage }, ic("trash-2"), t("Delete page")) : null,
+    isHome ? h("span", { class: "page-fact" }, ic("house"), t("Home page")) : null,
   ].filter(Boolean));
   renderViewToggle();
 }
@@ -933,10 +1044,11 @@ async function updatePreviews(page = S.page) {
   const list = KEYS.map((k) => {
     const s = keys[k];
     return s ? { icon: normalizeIcon(s.icon), active_icon: s.active_icon ? normalizeIcon(s.active_icon) : null,
-      action: s.action ?? null, state: s.state || null, span: s.span || null, cells: s.cells || null, mode: s.mode || null } : null;
+      action: s.action ?? null, state: s.state || null, span: s.span || null, cells: s.cells || null, mode: s.mode || null,
+      ...(s.widget ? widgetKey(s) : {}) } : null;
   });
   try {
-    const r = await api("/api/preview", { keys: list, icons: isObj(S.cfg.icons) ? S.cfg.icons : null, device: S.cfg.device || null });
+    const r = await api("/api/preview", { keys: list, icons: isObj(S.cfg.icons) ? S.cfg.icons : null, device: S.cfg.device || null, widgets: S.cfg.widgets || null });
     if (seq !== previewSeq) return;
     S.previews[page] = r.images;
     if (page === S.page) { paintKeyImages(); paintInspectorImages(); }
@@ -1040,24 +1152,26 @@ function renderInspector() {
     oninput: (e) => { spec.icon = { ...normalizeIcon(spec.icon), text: e.target.value || undefined }; if (!e.target.value) delete spec.icon.text;
       if (S.model) S.model.autoText = null; changed(); } });
   // tecla de informação: o texto tem valores; o título vira o nome do formato (editar o texto é na Aparência)
-  const infoTitle = isInfoKey(spec) && spanOf(spec)[0] * spanOf(spec)[1] === 1
-    ? h("span", { class: "insp-static", id: "keyName" }, (panelDefs()[spec.format] || {}).label || t("Information")) : null;
+  const infoTitle = isWidget(spec) ? h("span", { class: "insp-static", id: "keyName" }, widgetTitle(spec))
+    : isInfoKey(spec) && spanOf(spec)[0] * spanOf(spec)[1] === 1 ? h("span", { class: "insp-static", id: "keyName" }, t("Information")) : null;
   const [bc, br] = spanOf(spec);
   el.append(h("div", { class: "insp-head" },
     h("img", { class: "insp-thumb", id: "inspThumb", alt: "" }),
     h("div", { class: "insp-title" }, infoTitle || name,
-      h("small", {}, bc * br > 1 ? t("Block {0} from key {1}, page {2}", [`${br}×${bc}`, S.key, S.page]) : t("Key {0}, page {1}", [S.key, S.page]))),
+      h("small", {}, isWidget(spec) ? t("Widget {0} from key {1}, page {2}", [`${br}×${bc}`, S.key, S.page])
+        : bc * br > 1 ? t("Block {0} from key {1}, page {2}", [`${br}×${bc}`, S.key, S.page]) : t("Key {0}, page {1}", [S.key, S.page]))),
     h("div", { class: "insp-tools" },
       ...keyTools())));
   el.append(h("div", { class: "tabs", role: "tablist" },
-    ...[["do", t("What it does")], ["look", t("Appearance")], ["light", t("Light")]].map(([v, l]) =>
+    ...(isWidget(spec) ? [["look", t("Widget")], ["do", t("What it does")], ["light", t("Light")]]
+      : [["do", t("What it does")], ["look", t("Appearance")], ["light", t("Light")]]).map(([v, l]) =>
       h("button", { role: "tab", "aria-selected": S.tab === v ? "true" : "false", onclick: () => { S.tab = v; renderInspector(); } }, l)),
     h("span", { class: "grow" }),
     S.tab === "do" ? h("button", { class: "icon-btn expand-btn", title: t("Open the logic in a larger area"), "aria-label": t("Expand"),
       onclick: () => { S.expanded = true; S.tab = "do"; renderAll(); } }, ic("maximize-2")) : null));
   const block = spanOf(spec)[0] * spanOf(spec)[1] > 1;
   el.append(S.tab === "do" ? doTab(spec) : S.tab === "light" ? lightTab(spec)
-    : block ? blockLook(spec) : isInfoKey(spec) ? infoLook(spec) : lookTab(spec));
+    : isWidget(spec) ? widgetLook(spec) : block ? blockLook(spec) : isInfoKey(spec) ? infoLook(spec) : lookTab(spec));
   paintInspectorImages();
 }
 
@@ -1067,7 +1181,7 @@ function keyTools() {
     h("button", { class: "icon-btn", title: t("Copy (Ctrl+C)"), "aria-label": t("Copy"), onclick: copyKey }, ic("copy")),
     h("button", { class: "icon-btn", title: t("Save to use later (Saved keys)"), "aria-label": t("Save key"), onclick: saveCurrentKey }, ic("bookmark-plus")),
     h("button", { class: "icon-btn", title: t("Paste (Ctrl+V)"), "aria-label": t("Paste"), onclick: pasteKey, disabled: !S.clipboard }, ic("clipboard-paste")),
-    h("button", { class: "icon-btn", title: t("Delete key (Delete)"), "aria-label": t("Delete key"), onclick: clearKey }, ic("trash-2")),
+    h("button", { class: "icon-btn danger", title: t("Delete key (Delete)"), "aria-label": t("Delete key"), onclick: clearKey }, ic("trash-2")),
   ];
 }
 
@@ -1106,7 +1220,7 @@ function renderEmptyKey(el) {
       ...QUICK.filter(actionDef).map((type) => h("button", { style: catStyle(type), onclick: () => assignAction(S.key, type) },
         h("span", { class: "chip" }, actionIc(type)), actionDef(type).label)),
       h("button", { onclick: () => openActionPicker(null, (t) => t && assignAction(S.key, t)) },
-        h("span", { class: "chip", style: { "--cat": "#868d99" } }, ic("layout-grid")), t("See all"))),
+        h("span", { class: "chip", style: { "--cat": "var(--cat-gray)" } }, ic("layout-grid")), t("See all"))),
     S.clipboard ? h("button", { class: "btn small", style: { marginTop: "14px" }, onclick: pasteKey }, ic("clipboard-paste"), t("Paste the copied key")) : null));
 }
 
@@ -1539,7 +1653,7 @@ function fieldFor(f, spec, emit) {
     case "combo": return field(f.label, comboInput(v, set), f.help);
     case "bind": return field(f.label, bindInput(spec, set, f.hint), f.help);
     case "json": return field(f.label, jsonInput(v, set), f.help);
-    case "color": return field(f.label, swatchRow(v || null, (c) => set(c), !f.default, INFO_SWATCHES.concat([["#22c55e", t("Green")], ["#ef4444", t("Red")]]), t("None")), f.help);
+    case "color": return field(f.label, swatchRow(v || null, (c) => set(c), !f.default, KEY_SWATCHES.concat([["#22c55e", t("Green")], ["#ef4444", t("Red")]]), t("None")), f.help);
     case "icon": return field(f.label, v ? glyphCard({ lucide: v }, (c) => { set(c); rerenderLogic(); }, () => { set(null); rerenderLogic(); })
       : h("button", { class: "btn small", onclick: () => openGlyphPicker((c) => { if (c) { set(c); rerenderLogic(); } }) }, ic("search"), t("Choose icon")), f.help);
     case "page": {
@@ -1760,8 +1874,6 @@ function activeWhenSelect(spec) {
   return sel;
 }
 
-const SWATCHES = [["#2B2F36", t("Graphite")], ["#22336E", t("Blue")], ["#5865F2", "Discord"], ["#1D4D37", t("Green")],
-  ["#C62828", t("Red")], ["#F5A524", t("Amber")], ["#8E4EC6", t("Purple")], ["#000000", t("Black")]];
 const FG_SWATCHES = [["#FFFFFF", t("White")], ["#16181D", t("Near black")], ["#F5A524", t("Amber")], ["#E5484D", t("Red")], ["#30A46C", t("Green")]];
 const BORDER_SWATCHES = [["#F5A524", t("Amber")], ["#E5484D", t("Red")], ["#30A46C", t("Green")], ["#FFFFFF", t("White")]];
 const GRAD_DIRS = [["down", "arrow-down", t("Top to bottom")], ["right", "arrow-right", t("Left to right")],
@@ -1916,15 +2028,15 @@ function backgroundEditor(icon, base, ov, setMany, set) {
     h("button", { "aria-pressed": grad ? "false" : "true", onclick: () => grad && setMany({ bg_to: ov && base.bg_to ? "" : null, bg_dir: null }) }, t("Solid color")),
     h("button", { "aria-pressed": grad ? "true" : "false", onclick: () => {
       if (grad) return;
-      const from = icon.bg || base.bg || "#2B2F36";
+      const from = icon.bg || base.bg || KEY_BG;
       setMany({ bg: from, bg_to: darker(from), bg_dir: icon.bg_dir || null });
     } }, t("Gradient")));
   wrap.append(seg);
   if (!grad) {
-    wrap.append(swatchRow(icon.bg, (v) => set("bg", v), ov, SWATCHES, t("Same as normal")));
+    wrap.append(swatchRow(icon.bg, (v) => set("bg", v), ov, KEY_SWATCHES, t("Same as normal")));
     return wrap;
   }
-  const from = icon.bg || base.bg || "#2B2F36", to = icon.bg_to || base.bg_to || "#000000";
+  const from = icon.bg || base.bg || KEY_BG, to = icon.bg_to || base.bg_to || "#000000";
   const pill = (value, label, onPick) => {
     const dot = h("i", { style: { background: value } });
     const txt = h("span", {}, value.replace("#", "").toUpperCase());
@@ -1974,7 +2086,7 @@ function sizesSection(icon, mode, set, setMany) {
 }
 
 function swatchRow(value, onChange, allowNone, colors, noneLabel) {
-  const list = (colors || SWATCHES).map((c) => (Array.isArray(c) ? c : [c, c]));
+  const list = (colors || KEY_SWATCHES).map((c) => (Array.isArray(c) ? c : [c, c]));
   const row = h("div", { class: "swatches" });
   const up = (v) => (v || "").toUpperCase();
   const paint = () => row.querySelectorAll(".swatch").forEach((s) =>
@@ -2264,7 +2376,7 @@ function pluginBlock(pl) {
     onclick: () => setPluginOn(pl, !on) });
   const meta = pl.builtin ? pl.description : [pl.description, h("span", { class: "int-by" }, (pl.author ? t("By {0}, version {1}", [pl.author, pl.version || "?"]) : t("Version {0}", [pl.version || "?"])))];
   const block = h("section", { class: "int-block" + (on ? "" : " off"), "data-plugin": pl.id },
-    h("div", { class: "int-head", style: { "--cat": pl.color || "#868d99" } },
+    h("div", { class: "int-head", style: { "--cat": pl.color || "var(--cat-gray)" } },
       h("span", { class: "int-logo" }, ic(pl.icon || "plug")),
       h("div", { class: "grow" }, h("h3", {}, pl.name), h("small", {}, meta)),
       pluginState(pl, on), sw));
@@ -2286,6 +2398,7 @@ function pluginBlock(pl) {
     }
     block.append(fields);
   }
+  { const ws = pluginWidgetsSection(pl); if (ws) block.append(ws); }   // mesmo desligado: mostra o que o plugin traz
   if (!pl.builtin) {
     const perms = pl.permissions || [];
     block.append(h("div", { class: "int-foot" },
@@ -2340,7 +2453,7 @@ function installConfirm() {
   const m = info.manifest;
   const perms = m.permissions || [];
   const box = h("section", { class: "int-block install" },
-    h("div", { class: "int-head", style: { "--cat": m.color || "#868d99" } },
+    h("div", { class: "int-head", style: { "--cat": m.color || "var(--cat-gray)" } },
       h("span", { class: "int-logo" }, ic(m.icon || "plug")),
       h("div", { class: "grow" }, h("h3", {}, m.name), h("small", {}, (m.author ? t("By {0}, version {1}", [m.author, m.version || "?"]) : t("Version {0}", [m.version || "?"]))))),
     m.description ? h("p", { class: "set-lead" }, m.description) : null,
@@ -2461,13 +2574,14 @@ function renamePage(name) {
 }
 
 function deletePage() {
-  const name = S.page;
+  const name = S.page, n = Object.keys(pageKeys(name)).length;
   delete pages()[name];
   if (S.cfg.home === name) S.cfg.home = Object.keys(pages())[0];
   S.page = Object.keys(pages())[0]; S.key = null; buildModel();
   changed();
   renderAll();
-  toast(t("Page {0} deleted.", [name]), { undo: true });
+  toast(!n ? t("Page {0} deleted.", [name]) : n === 1 ? t("Page \"{0}\" deleted, with 1 key.", [name])
+    : t("Page \"{0}\" deleted, with {1} keys.", [name, n]), { undo: true, long: n > 0 });
 }
 
 async function showPageOnDeck() {
@@ -2644,13 +2758,13 @@ window.addEventListener("keydown", (e) => {
   if (mod && k === "s") { e.preventDefault(); return flushSave(); }
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
   const sheetOpen = [...document.querySelectorAll(".sheet")].some((s) => !s.hidden);
+  if (e.key === "Escape" && $("#popMenu")) return closeMenu();
   if (e.key === "Escape") {
-    closePagesMenu();
     if (sheetOpen) return closeSheets();
     document.body.classList.remove("lib-open");
     if (S.expanded && !typing) { S.expanded = false; return renderAll(); }
   }
-  if (typing || sheetOpen) return;
+  if (typing || sheetOpen || $("#popMenu")) return;
   if (mod && k === "z" && !e.shiftKey) { e.preventDefault(); return travel(-1); }
   if (mod && (k === "y" || (k === "z" && e.shiftKey))) { e.preventDefault(); return travel(1); }
   if (mod && k === "c" && S.key) return copyKey();
