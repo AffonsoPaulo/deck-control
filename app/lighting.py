@@ -225,6 +225,17 @@ def scale(c, k):
     return tuple(v * k for v in c)
 
 
+# As cores do config são de tela (já ajustadas para o olho); o LED acende linear. Sem converter, as "sobras" de
+# uma cor misturada aparecem demais (o verde #22c55e puxava para o ciano, o vermelho #e5484d para o rosa).
+# 2,8 foi o que ficou mais fiel no D6 (comparado na página de teste "cores", 2026-11-17, contra sem e 2,2).
+GAMMA = 2.8
+
+
+def to_led(c):
+    """Cor de tela (0-255 por canal) -> o valor que o LED precisa para parecer essa cor."""
+    return tuple(int(round(255 * (max(0.0, min(255.0, float(v))) / 255) ** GAMMA)) for v in c)
+
+
 def hsv(h, s=1.0, v=1.0):
     r, g, b = colorsys.hsv_to_rgb(h % 1.0, s, v)
     return (r * 255, g * 255, b * 255)
@@ -345,7 +356,9 @@ class Lighting:
         self._last_t = now
         cols = self._effect(s, now, dt)
         cols = self._reactions(cols, now)
-        k = (max(0, min(100, float(s.get("brightness", 80)))) / 100) ** 1.6
+        # o quadro sai em cores de tela; quem manda ao LED converte (to_led). O brilho é aplicado aqui com o
+        # expoente dividido pela correção, para o resultado no LED continuar (brilho/100) ** 1.6, como antes
+        k = (max(0, min(100, float(s.get("brightness", 80)))) / 100) ** (1.6 / GAMMA)
         return [tuple(int(max(0, min(255, round(v * k)))) for v in c) for c in cols]
 
     def animating(self, page: str) -> bool:

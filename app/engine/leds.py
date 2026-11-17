@@ -102,9 +102,9 @@ class Leds:
         # reenvia o mesmo quadro de vez em quando: depois dos dois cliques no botão de trás,
         # a luz do app volta sozinha
         if frame != self._led_sent or now - self._led_at > 1.5:
-            deck.set_leds(frame)
+            deck.set_leds([lighting.to_led(c) for c in frame])  # o LED acende linear: converte a cor de tela
             self._led_sent, self._led_at = frame, now
 
     def now(self) -> list[Rgb] | None:
-        """Último quadro mandado ao anel (para a prévia do editor)."""
+        """Último quadro mandado ao anel, em cores de tela (para a prévia do editor; o LED recebeu o convertido)."""
         return self._led_sent
