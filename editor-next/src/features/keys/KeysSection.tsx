@@ -13,9 +13,10 @@ import { Ghost } from "@/features/keys/Ghost";
 import { Inspector } from "@/features/keys/inspector/Inspector";
 import { LibraryPanel } from "@/features/keys/LibraryPanel";
 import { pageKeysOf, pieceSize, spanOf, type DragPayload } from "@/features/keys/model";
+import { useCurrentPage } from "@/features/keys/currentPage";
 import { usePagePreviews } from "@/features/keys/previews";
 import { useKeyShortcuts } from "@/features/keys/shortcuts";
-import { Stage, useCurrentPage } from "@/features/keys/Stage";
+import { Stage } from "@/features/keys/Stage";
 import { keyText } from "@/features/keys/keys";
 
 export function KeysSection() {

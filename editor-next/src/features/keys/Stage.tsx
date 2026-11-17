@@ -2,7 +2,7 @@
 // Deck" e se é a página inicial. As abas que não cabem vão para o menu "+N" (a aberta fica sempre à mostra);
 // criar, renomear e o menu da página chegam depois.
 import { ChevronDown, House, MonitorCheck, MonitorUp } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { MenuButton } from "@/components/Menu";
@@ -17,20 +17,9 @@ import { useUi } from "@/core/store/ui";
 import { toast } from "@/core/toast";
 import { DeckGrid } from "@/features/keys/DeckGrid";
 import { Problems } from "@/features/keys/Problems";
-import { initialPage, pagesOf } from "@/features/keys/model";
+import { pagesOf } from "@/features/keys/model";
 
 /** A página aberta, sempre uma que existe (a da URL, a inicial ou a primeira). */
-export function useCurrentPage(): string | null {
-  const cfg = useConfig((s) => s.cfg);
-  const page = useUi((s) => s.page);
-  const go = useUi((s) => s.go);
-  const valid = initialPage(cfg, page);
-  useEffect(() => {
-    if (valid !== page) go({ page: valid, key: null });
-  }, [valid, page, go]);
-  return valid;
-}
-
 const TAB =
   "inline-flex h-control-md flex-none cursor-pointer items-center gap-2 rounded-md px-3.5 text-base font-semibold whitespace-nowrap transition-colors duration-(--duration-fast) focus-visible:outline-2 focus-visible:outline-accent";
 const TAB_STATE =

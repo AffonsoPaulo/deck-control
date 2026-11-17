@@ -67,3 +67,19 @@
   .deck-key[data-ring] { animation: none; }
 }
 }
+
+/* Tela Luz: o Deck com a fita em volta (o .lv-* do editor atual; medidas em cqw para crescer junto) */
+.deck-lv-stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 28px;
+  border-radius: var(--radius-xl); box-shadow: inset 0 0 0 1px var(--border);
+  background: radial-gradient(ellipse at 50% 45%, var(--device-stage) 0%, var(--field) 70%); }
+.deck-lv-device { position: relative; width: min(640px, 100%); aspect-ratio: 520 / 330; container-type: inline-size; }
+.deck-lv-device > canvas { position: absolute; left: -9.2308%; top: -14.5455%; width: 118.4615%; height: 129.0909%; pointer-events: none; }
+.deck-lv-body { position: absolute; inset: 4.23cqw; border-radius: 5cqw; background: var(--device-face);
+  box-shadow: 0 0 0 1px var(--device-edge), var(--shadow-dialog); display: grid; place-content: center; }
+.deck-lv-keys { display: grid; grid-template-columns: repeat(5, 14.6cqw); gap: 2.7cqw; }
+.deck-lv-key { width: 14.6cqw; aspect-ratio: 1; padding: 0; border: 0; border-radius: 2.2cqw; background: var(--device-key); cursor: pointer;
+  overflow: hidden; box-shadow: 0 0 0 1px var(--device-edge); }
+.deck-lv-key img { width: 100%; height: 100%; display: block; pointer-events: none; }
+.deck-lv-key:active { transform: scale(.94); }
+.deck-lv-key:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.deck-lv-key[data-empty] { background: var(--device-key-empty); }
