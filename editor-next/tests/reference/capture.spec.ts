@@ -32,7 +32,10 @@ mkdirSync(OUT, { recursive: true });
 
 for (const [name, state] of Object.entries(SCREENS)) {
   test(name, async ({ page }) => {
-    const url = readFileSync(OUT + ".url", "utf8").trim();
+    // o .url é o endereço novo (/XXXX-XXXX-XXXX/teclas); as telas daqui usam o formato antigo, que o editor ainda
+    // entende: a origem + #t=token&estado
+    const saved = new URL(readFileSync(OUT + ".url", "utf8").trim());
+    const url = `${saved.origin}/#t=${saved.pathname.split("/")[1] ?? ""}`;
     await page.clock.install({ time: FIXED });
     // as miniaturas de Estrelas e Faíscas sorteiam posições: sequência fixa para sair igual toda vez
     await page.addInitScript(() => {
@@ -42,7 +45,7 @@ for (const [name, state] of Object.entries(SCREENS)) {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(`${url}&${state}`);
-    await page.waitForFunction(() => document.querySelectorAll(".key").length > 0 || !!document.querySelector("main"));
+    await page.waitForFunction(() => document.querySelectorAll(".deck-key").length > 0 || !!document.querySelector("main"));
     await page.waitForLoadState("networkidle");
     await page.evaluate(() => document.fonts.ready);
     // o logo e as prévias das teclas são imagens: espera todas carregarem

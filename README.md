@@ -56,16 +56,17 @@ python -m mypy             # tipos (só os módulos listados no pyproject.toml, 
 
 A CI do GitHub (`.github/workflows/ci.yml`) roda os quatro a cada push, no Windows.
 
-Editor novo (React, em construção, em `editor-next/`; precisa do Node 22 ou mais novo):
+Editor (React, em `editor-next/`; precisa do Node 22 ou mais novo). O app serve o `editor-next/dist` na raiz, com o
+token no caminho (`http://127.0.0.1:8765/<token>/teclas`, o link da bandeja); sem o build, a página pede o `npm run build`:
 
 ```
 cd editor-next
 npm ci
-npm run dev           # http://127.0.0.1:5173/next/#t=<token> (a /api vai para o servidor de teste, porta 8799)
+npm run dev           # http://127.0.0.1:5173/<token>/teclas (a /api vai para o servidor de teste, porta 8799)
 npm run check         # lint (inclui as regras do design system), tipos e contrato em dia
-npx vite build        # gera editor-next/dist, que o app serve em /next
+npm run build         # gera editor-next/dist, que o app serve na raiz
 npm run gen:api       # tipos da API, depois de mudar app/editor/contract.py
-npm run ref:capture   # prints de referência do editor atual (editor-next/reference/)
+npm run ref:capture   # prints de cada tela (editor-next/reference/; o servidor de tests/reference/serve.py)
 ```
 
 ## Executável e instalador
