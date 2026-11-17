@@ -483,6 +483,8 @@ export interface PluginInspect {
   actions: unknown[];
   installed: string | null;
   builtin_conflict: boolean;
+  runtime: "exe" | "deck-python";
+  run: string[];
 }
 /**
  * Só o id é conferido pelo validador do manifesto; o resto vem como o plugin escreveu (normalmente texto ou null). Fica tipado quando a Fase 6 validar o manifesto.

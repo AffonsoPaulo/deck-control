@@ -1068,13 +1068,27 @@
         },
         "builtin_conflict": {
           "type": "boolean"
+        },
+        "runtime": {
+          "enum": [
+            "exe",
+            "deck-python"
+          ]
+        },
+        "run": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
         "manifest",
         "actions",
         "installed",
-        "builtin_conflict"
+        "builtin_conflict",
+        "runtime",
+        "run"
       ],
       "additionalProperties": false
     },

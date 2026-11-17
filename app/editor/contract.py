@@ -291,6 +291,8 @@ class PluginInspect(TypedDict):
     actions: list[Any]  # o "label" de cada ação, como o manifesto escreveu
     installed: str | None  # versão já instalada
     builtin_conflict: bool  # o id é de um plugin que vem com o app
+    runtime: Literal["exe", "deck-python"]  # como vai rodar: um programa do plugin ou o Python do app
+    run: list[str]  # o que vai rodar, como o manifesto escreveu (a confirmação mostra)
 
 
 class PluginInstalled(TypedDict):

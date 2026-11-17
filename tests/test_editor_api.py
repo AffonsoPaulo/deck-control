@@ -372,6 +372,10 @@ def test_plugin_inspect_install_remove(api):
         "homepage",
     }
     assert r["actions"] == ["Go"] and r["installed"] is None and r["builtin_conflict"] is False
+    # de onde vem e o que roda (a confirmação mostra): manifesto antigo com python vale como deck-python
+    assert r["runtime"] == "deck-python" and r["run"] == ["python", "main.py"]
+    r2 = api.post("/api/plugins/inspect", {"data": _plugin_zip(runtime="exe", run=["bin/plugin.exe", "--port", "1"])})
+    assert r2["runtime"] == "exe" and r2["run"] == ["bin/plugin.exe", "--port", "1"]
 
     r = api.post("/api/plugins/install", {"data": _plugin_zip()})
     assert r["ok"] is True and r["id"] == "meu-plugin" and "meu-plugin.go" in r["schema"]["actions"]

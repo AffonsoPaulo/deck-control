@@ -1048,5 +1048,9 @@
  "adjusted": "ajustado",
  "This link no longer opens the editor": "Este link não abre mais o editor",
  "{0}: position {1} in the list.": "{0}: posição {1} na lista.",
- "{0} went to position {1} in the list.": "{0} foi para a posição {1} da lista."
+ "{0} went to position {1} in the list.": "{0} foi para a posição {1} da lista.",
+ "Where it comes from": "De onde vem",
+ "What runs": "O que roda",
+ "A Python script, run by the Deck app.": "Um script em Python, rodado pelo app do Deck.",
+ "A program that comes with the plugin.": "Um programa que vem com o plugin."
 }

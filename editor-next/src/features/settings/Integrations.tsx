@@ -133,13 +133,13 @@ export function Integrations() {
   const t = useT();
   const schema = useSchema().data;
   const plugins = (schema?.plugins ?? []) as Plugin[];
-  const [install, setInstall] = useState<{ data: string; info: PluginInspect } | null>(null);
+  const [install, setInstall] = useState<{ file: string; data: string; info: PluginInspect } | null>(null);
   const qc = useQueryClient();
   const applySchema = (s: EditorSchema) => qc.setQueryData(["schema"], s);
   const pick = () =>
-    pickFile(".zip", async (_name, data) => {
+    pickFile(".zip", async (file, data) => {
       try {
-        setInstall({ data, info: await api("POST /api/plugins/inspect", { data }) });
+        setInstall({ file, data, info: await api("POST /api/plugins/inspect", { data }) });
       } catch (e) {
         toast((e as Error).message, { bad: true });
         setInstall(null);
@@ -169,6 +169,7 @@ export function Integrations() {
       ))}
       {install ? (
         <InstallConfirm
+          file={install.file}
           info={install.info}
           onCancel={() => setInstall(null)}
           onInstall={async () => {
@@ -467,10 +468,12 @@ function PluginWidgets({ pl }: { pl: Plugin }) {
   );
 }
 
-function InstallConfirm({ info, onCancel, onInstall }: { info: PluginInspect; onCancel: () => void; onInstall: () => void }) {
+function InstallConfirm({ file, info, onCancel, onInstall }: { file: string; info: PluginInspect; onCancel: () => void; onInstall: () => void }) {
   const t = useT();
   const m = info.manifest;
   const perms = Array.isArray(m.permissions) ? (m.permissions as string[]) : [];
+  // só link http(s): o manifesto é de quem fez o plugin
+  const home = typeof m.homepage === "string" && /^https?:\/\//i.test(m.homepage) ? m.homepage : null;
   return (
     <section className={cn(BLOCK, "inset-ring-accent")}>
       <Head name={String(m.name ?? m.id)} icon={m.icon} color={m.color} meta={byLine(t, m.author, m.version)} />
@@ -480,6 +483,25 @@ function InstallConfirm({ info, onCancel, onInstall }: { info: PluginInspect; on
           <p className={LEAD}>{info.actions.map(String).join(", ")}</p>
         </SetRow>
       )}
+      <SetRow label={t("Where it comes from")}>
+        <p className={LEAD}>
+          {file}
+          {home && (
+            <>
+              {" · "}
+              <a href={home} target="_blank" rel="noopener noreferrer" className="font-semibold text-fg underline">
+                {home}
+              </a>
+            </>
+          )}
+        </p>
+      </SetRow>
+      <SetRow
+        label={t("What runs")}
+        hint={info.runtime === "deck-python" ? t("A Python script, run by the Deck app.") : t("A program that comes with the plugin.")}
+      >
+        <code className="rounded-md border border-border-strong bg-field px-2.5 py-1.75 font-mono text-xs break-all text-fg-muted">{info.run.join(" ") || "?"}</code>
+      </SetRow>
       <SetRow label={t("What it can do")} hint={t("The plugin runs as a program on your PC. Only install it if you trust whoever made it.")}>
         <p className={LEAD}>{perms.length ? perms.join("; ") + "." : t("The plugin didn't say.")}</p>
       </SetRow>

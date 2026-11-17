@@ -28,6 +28,8 @@ def get_schema(ctx: Context, _body: dict):
 
 def plugin_inspect(ctx: Context, body: dict):
     import shutil
+
+    from app.plugin_runner import runtime_of
     from app.plugins import localize, read_locales
 
     folder, m = _plugin_zip(body)
@@ -52,6 +54,9 @@ def plugin_inspect(ctx: Context, body: dict):
             "actions": [d.get("label") for d in m.get("actions", {}).values()],
             "installed": existing.manifest.get("version") if existing and not existing.builtin else None,
             "builtin_conflict": bool(existing and existing.builtin),
+            # de onde vem e o que roda: a confirmação mostra (é um programa rodando no PC da pessoa)
+            "runtime": runtime_of(m),
+            "run": [str(x) for x in m.get("run") or []],
         }
     finally:
         shutil.rmtree(folder if folder.name.startswith("d6plugin-") else folder.parent, ignore_errors=True)
