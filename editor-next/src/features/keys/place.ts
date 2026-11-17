@@ -5,7 +5,7 @@ import { api } from "@/core/api";
 import type { EditorSchema } from "@/core/api-types";
 import { useT } from "@/core/i18n";
 import { useObs, useSchema } from "@/core/queries";
-import { useConfig, type Config } from "@/core/store/config";
+import { useConfig } from "@/core/store/config";
 import { useUi } from "@/core/store/ui";
 import { undoButton } from "@/core/store/undo";
 import { toast } from "@/core/toast";
@@ -26,15 +26,11 @@ import {
   type Removed,
 } from "@/features/keys/actions";
 import { useLib } from "@/features/keys/libStore";
-import { footprint, type DropResult, type KeySpec, type PageKeys } from "@/features/keys/model";
+import { footprint, type DropResult, type KeySpec } from "@/features/keys/model";
+import { draftKeys } from "@/features/keys/keys";
 
 type T = ReturnType<typeof useT>;
 type Obj = Record<string, unknown>;
-
-const draftKeys = (d: Config, page: string): PageKeys => {
-  const pages = (d.pages ??= {}) as Record<string, PageKeys>;
-  return (pages[page] ??= {});
-};
 
 const TOKEN_RE = /\{([A-Za-z0-9_.:\-$]+)(?:\|([a-z0-9]+))?\}/g;
 
@@ -70,7 +66,7 @@ function placedToast(msg: string, removed: Removed[], t: T, schema: EditorSchema
 }
 
 /** Dá atalhos novos (F13–F24, sem bater com os do config) aos passos que precisam. */
-async function fillBinds(steps: Obj[], t: T, schema: EditorSchema | undefined): Promise<void> {
+export async function fillBinds(steps: Obj[], t: T, schema: EditorSchema | undefined): Promise<number> {
   const defs = actionDefs(schema);
   const programs = (schema?.plugins ?? []) as Obj[];
   const rulesOf = (s: Obj) =>
@@ -78,7 +74,8 @@ async function fillBinds(steps: Obj[], t: T, schema: EditorSchema | undefined): 
       ? ((programs.find((p) => p.id === s.for)?.shortcut_rules as Obj | undefined) ?? null)
       : (((defs[String(s.type)] as Obj | undefined)?.shortcut_rules as Obj | undefined) ?? null);
   const taken: string[] = [];
-  for (const s of stepsNeedingBind(defs, steps)) {
+  const found = stepsNeedingBind(defs, steps);
+  for (const s of found) {
     try {
       const { combos } = await api("POST /api/free_bind", { config: useConfig.getState().cfg ?? {}, count: 1, rules: rulesOf(s), taken });
       const c = combos[0];
@@ -90,6 +87,7 @@ async function fillBinds(steps: Obj[], t: T, schema: EditorSchema | undefined): 
       toast(t("No free shortcuts left: ") + (e as Error).message, { bad: true });
     }
   }
+  return found.length;
 }
 
 /** As operações de colocar, para a página aberta. */

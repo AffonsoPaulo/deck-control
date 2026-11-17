@@ -2,9 +2,8 @@
 // tecla, as marcas de onde a peça arrastada vai cair e soltar uma imagem do Windows numa tecla. O arrastar em si
 // (provedor, mover, soltar) é da seção (KeysSection), porque a biblioteca também arrasta para cá.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
-import { api } from "@/core/api";
 import { useT } from "@/core/i18n";
-import { useConfig, type Config } from "@/core/store/config";
+import { useConfig } from "@/core/store/config";
 import { useUi } from "@/core/store/ui";
 import { undoButton } from "@/core/store/undo";
 import { toast } from "@/core/toast";
@@ -12,13 +11,10 @@ import { measureGrid, useDeckState } from "@/features/keys/deckState";
 import { useKeyDnd } from "@/features/keys/dnd";
 import { KEYS, coverMap, kpos, pageKeysOf, spanOf, type KeySpec, type PageKeys } from "@/features/keys/model";
 import { isCells, usePagePreviews, type KeyPreview } from "@/features/keys/previews";
+import { normalizeIcon } from "@/core/obj";
+import { draftKeys, keyText, uploadImage } from "@/features/keys/keys";
 
 const EMPTY: PageKeys = {};
-
-const draftKeys = (d: Config, page: string): PageKeys => {
-  const pages = (d.pages ??= {}) as Record<string, PageKeys>;
-  return (pages[page] ??= {});
-};
 
 export function DeckGrid({ page }: { page: string }) {
   const t = useT();
@@ -45,24 +41,19 @@ export function DeckGrid({ page }: { page: string }) {
     };
   }, [grid]);
 
-  const dropImage = (k: string, file: File) => {
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const { path } = await api("POST /api/upload", { name: file.name, data: String(reader.result) });
-        edit((d) => {
-          const ks = draftKeys(d, page);
-          const spec = ks[k];
-          const icon = typeof spec?.icon === "string" ? { text: spec.icon } : ((spec?.icon as Record<string, unknown> | undefined) ?? {});
-          ks[k] = spec ? { ...spec, icon: { ...icon, image: path } } : { icon: { image: path, bg: "#000000" } };
-        });
-        go({ key: k });
-        toast(t("Image applied to the key."), { undo: undoButton(t) });
-      } catch (e) {
-        toast(t("Error sending the image: ") + (e as Error).message, { bad: true });
-      }
-    };
-    reader.readAsDataURL(file);
+  const dropImage = async (k: string, file: File) => {
+    try {
+      const path = await uploadImage(file);
+      edit((d) => {
+        const ks = draftKeys(d, page);
+        const spec = ks[k];
+        ks[k] = spec ? { ...spec, icon: { ...normalizeIcon(spec.icon), image: path } } : { icon: { image: path, bg: "#000000" } };
+      });
+      go({ key: k });
+      toast(t("Image applied to the key."), { undo: undoButton(t) });
+    } catch (e) {
+      toast(t("Error sending the image: ") + (e as Error).message, { bad: true });
+    }
   };
 
   return (
@@ -84,7 +75,7 @@ export function DeckGrid({ page }: { page: string }) {
                 view={view}
                 selected={selected === k}
                 onSelect={() => go({ key: k, lookMode: "normal" })}
-                onImage={(file) => dropImage(k, file)}
+                onImage={(file) => void dropImage(k, file)}
               />
             ),
           )}
@@ -120,8 +111,7 @@ function DeckKey({ k, spec, preview, view, selected, onSelect, onImage }: DeckKe
   const [cols, rows] = spanOf(spec);
   const [c0, r0] = kpos(k);
   const block = cols * rows > 1;
-  const text = (spec?.icon as { text?: unknown } | undefined)?.text;
-  const summary = typeof text === "string" ? text : typeof spec?.icon === "string" ? spec.icon : "";
+  const summary = keyText(spec);
   const style = { gridColumn: `${c0 + 1} / span ${cols}`, gridRow: `${r0 + 1} / span ${rows}`, "--bc": cols, "--br": rows } as CSSProperties;
   const hasFiles = (e: DragEvent) => [...e.dataTransfer.types].includes("Files");
   // a marca de "vai cair aqui" da troca de teclas só quando não há marca de encaixe (peça da biblioteca)
@@ -134,6 +124,7 @@ function DeckKey({ k, spec, preview, view, selected, onSelect, onImage }: DeckKe
       className="deck-key"
       data-key={k}
       style={style}
+      aria-roledescription={t("draggable key")}
       // escolhida: aria-current (o dnd-kit usa o aria-pressed das peças arrastáveis e apagaria o nosso)
       aria-current={selected || undefined}
       data-selected={selected || undefined}

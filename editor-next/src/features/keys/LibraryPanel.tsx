@@ -22,9 +22,7 @@ import { useLib } from "@/features/keys/libStore";
 import { spanOf, type DragPayload } from "@/features/keys/model";
 import { usePlacer } from "@/features/keys/place";
 import { useThumbs, type ThumbItem } from "@/features/keys/thumbs";
-
-type Obj = Record<string, unknown>;
-const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.isArray(v);
+import { isObj, type Obj } from "@/core/obj";
 
 const ITEM =
   "flex w-full cursor-grab items-center gap-3 rounded-md px-2 py-1.75 text-left hover:bg-sunken active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-accent";

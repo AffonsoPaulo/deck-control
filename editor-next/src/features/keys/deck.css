@@ -51,6 +51,10 @@
 .deck-key[data-foot="bad"] { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 3px var(--danger-fg); }
 .deck-replace { position: absolute; left: 8%; top: 8%; z-index: var(--z-raised); padding: 2px 6px; border-radius: 5px; background: var(--warning-bg); color: var(--warning-fg); font-size: 10.5px; font-weight: 700; }
 
+/* a tecla em miniatura no inspetor (cabeçalho) e a prévia grande da Aparência */
+.deck-insp-thumb { width: 52px; height: 52px; border-radius: var(--radius-lg); flex: none; display: block; background: var(--device-face); box-shadow: 0 0 0 1px var(--device-thumb-rim), 0 0 0 3px var(--device-thumb-rim-2); }
+.deck-look-img { width: 104px; height: 104px; margin: 4px; flex: none; display: block; border-radius: var(--radius-xl); background: var(--device-face); box-shadow: 0 0 0 1px var(--device-thumb-rim), 0 0 0 4px var(--device-thumb-rim-2); }
+
 /* o contorno da tecla escolhida fecha sobre ela (mesmas sombras do estado escolhido) */
 @keyframes deck-ring {
   from { box-shadow: 0 0 0 1px var(--device-rim), 0 0 0 9px transparent, 0 0 34px 8px transparent, 0 3px 0 3px var(--device-base); }

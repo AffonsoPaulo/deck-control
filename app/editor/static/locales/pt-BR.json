@@ -1043,5 +1043,7 @@
  "{0} is over key {1}.": "{0} está sobre a tecla {1}.",
  "{0} is outside the Deck.": "{0} está fora do Deck.",
  "{0} was dropped on key {1}.": "{0} foi solta na tecla {1}.",
- "{0}: moving canceled.": "{0}: arrasto cancelado."
+ "{0}: moving canceled.": "{0}: arrasto cancelado.",
+ "draggable key": "tecla arrastável",
+ "adjusted": "ajustado"
 }

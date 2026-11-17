@@ -12,8 +12,7 @@ import { useDeckState } from "@/features/keys/deckState";
 import { pageKeysOf, pieceSize, spanOf, type DragPayload } from "@/features/keys/model";
 import { isCells, type KeyPreview } from "@/features/keys/previews";
 import { cachedThumb } from "@/features/keys/thumbs";
-
-const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+import { isObj } from "@/core/obj";
 
 function Cell({ icon }: { icon: IconSpec & { sub?: string } }) {
   const idx = useLucideIndex();

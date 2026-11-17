@@ -5,11 +5,9 @@
 import type { EditorSchema } from "@/core/api-types";
 import type { Config } from "@/core/store/config";
 import { coverMap, footprint, pagesOf, sizeRC, spanOf, type KeySpec, type PageKeys } from "@/features/keys/model";
+import { clone, isObj, normalizeIcon, type Obj } from "@/core/obj";
 
 type T = (s: string, args?: unknown[]) => string;
-type Obj = Record<string, unknown>;
-const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.isArray(v);
-const clone = <V>(v: V): V => (v === undefined ? v : (JSON.parse(JSON.stringify(v)) as V));
 
 export interface ActionField {
   name: string;
@@ -203,13 +201,37 @@ export function stepsNeedingBind(defs: Record<string, ActionDef>, steps: unknown
   return found;
 }
 
+/** O passo como o editor trabalha (if/toggle/multi com listas de passos); o contrário de toSpec. */
+export function fromSpec(a: unknown): Obj {
+  const n: Obj = clone(normalizeAction(a)) ?? { type: "none" };
+  if (n.type === "if") {
+    n.then = ((n.then as unknown[] | undefined) ?? []).map(fromSpec);
+    n.else = ((n.else as unknown[] | undefined) ?? []).map(fromSpec);
+  } else if (n.type === "toggle") {
+    n.on = toList(n.on);
+    n.off = toList(n.off);
+  } else if (n.type === "multi") n.actions = ((n.actions as unknown[] | undefined) ?? []).map(fromSpec);
+  return n;
+}
+
+/** Uma ação do config como lista de passos (sequência vira os passos dela; nada vira lista vazia). */
+export function toList(a: unknown): Obj[] {
+  const n = normalizeAction(a);
+  if (!n) return [];
+  return n.type === "multi" ? ((n.actions as unknown[] | undefined) ?? []).map(fromSpec) : [fromSpec(n)];
+}
+
+/** Lista de passos de volta para o config: vazia = null, um = ele, vários = sequência. */
+export function collapse(list: unknown): Obj | null {
+  const l = (Array.isArray(list) ? list : []).map((x) => toSpec(x as Obj));
+  return !l.length ? null : l.length === 1 ? (l[0] as Obj) : { type: "multi", actions: l };
+}
+
+export const MOMENTS = ["action", "double", "hold", "release"] as const;
+
 /** O passo como vai para o config (toggle com listas vira on/off; if sem then/else perde o campo). */
 export function toSpec(step: Obj): Obj {
   const s: Obj = { ...step };
-  const collapse = (list: unknown): Obj | null => {
-    const l = (Array.isArray(list) ? list : []).map((x) => toSpec(x as Obj));
-    return !l.length ? null : l.length === 1 ? (l[0] as Obj) : { type: "multi", actions: l };
-  };
   if (s.type === "if") {
     s.then = (s.then as Obj[]).map(toSpec);
     s.else = (s.else as Obj[]).map(toSpec);
@@ -226,7 +248,6 @@ export function toSpec(step: Obj): Obj {
   return s;
 }
 
-const normalizeIcon = (v: unknown): Obj => (typeof v === "string" ? { text: v } : isObj(v) ? v : {});
 const firstStep = (a: unknown): Obj | null => {
   const n = normalizeAction(a);
   if (!n) return null;

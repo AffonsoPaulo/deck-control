@@ -2,18 +2,14 @@
 // ocupadas com "substitui"; a que passa da borda em vermelho) e, ao soltar, troca as teclas ou coloca a peça.
 // Mesmas regras do pieceOver/pieceDrop do editor atual. Lê o estado na hora (o dnd-kit guarda a primeira versão).
 import { useT } from "@/core/i18n";
-import { useConfig, type Config } from "@/core/store/config";
+import { useConfig } from "@/core/store/config";
 import { useUi } from "@/core/store/ui";
 import { footprintAt } from "@/features/keys/actions";
 import { NO_FOOT, useDeckState, type Foot } from "@/features/keys/deckState";
 import type { DragPoint } from "@/features/keys/dnd";
 import { cellAt, coverMap, dropAnchor, pageKeysOf, pieceSize, resolveDrop, selectionAfterSwap, swapKeys, type PageKeys } from "@/features/keys/model";
 import { usePlacer } from "@/features/keys/place";
-
-const draftKeys = (d: Config, page: string): PageKeys => {
-  const pages = (d.pages ??= {}) as Record<string, PageKeys>;
-  return (pages[page] ??= {});
-};
+import { draftKeys } from "@/features/keys/keys";
 
 /** A casa debaixo do ponto, dentro da tecla (ou do bloco) `target`. */
 function cellUnder(target: string, keys: PageKeys, x: number, y: number): string {

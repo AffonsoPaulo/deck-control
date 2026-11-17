@@ -12,6 +12,7 @@ import { Accessibility } from "@dnd-kit/dom";
 import { DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable } from "@dnd-kit/react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useT } from "@/core/i18n";
+import { useDeckState } from "@/features/keys/deckState";
 import type { DragPayload } from "@/features/keys/model";
 
 export interface Pitch {
@@ -99,7 +100,10 @@ export function DeckDnd({ children, pitch, onMove, onDrop, ghost, ghostSize, can
         const src = (e.operation as unknown as Op).source;
         if (src && !canDrag(src.data as DragPayload)) e.preventDefault();
       }}
-      onDragStart={(e) => setActive(((e.operation as unknown as Op).source?.data as DragPayload | undefined) ?? null)}
+      onDragStart={(e) => {
+        setActive(((e.operation as unknown as Op).source?.data as DragPayload | undefined) ?? null);
+        useDeckState.setState({ dragging: true });
+      }}
       onDragMove={(_e, manager) => {
         const p = point(manager.dragOperation as unknown as Op);
         if (p) onMove(p);
@@ -110,6 +114,7 @@ export function DeckDnd({ children, pitch, onMove, onDrop, ghost, ghostSize, can
       }}
       onDragEnd={(e) => {
         setActive(null);
+        useDeckState.setState({ dragging: false });
         const p = point(e.operation as unknown as Op);
         if (p) onDrop(e.canceled ? { ...p, target: null } : p);
       }}

@@ -67,6 +67,8 @@
   --font-lucide: "Lucide";
   /* nome embaixo do ícone no seletor (o line-height: 1.2 do .glyph-item do editor atual) */
   --leading-tight: 1.2;
+  /* colunas do seletor de ações (o minmax(220px, 1fr) do .picker-grid do editor atual) */
+  --grid-template-columns-picker: repeat(auto-fill, minmax(220px, 1fr));
 
   --text-2xs: var(--text-2xs);
   --text-2xs--line-height: var(--text-2xs--line-height);

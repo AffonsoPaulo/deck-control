@@ -1,5 +1,5 @@
 // Campo com rótulo e dica (o .set-row / .set-label / .hint do editor atual) e o campo de texto (input).
-import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
 import { cn } from "@/core/cn";
 
 interface FieldProps {
@@ -33,6 +33,21 @@ export const TextInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLIn
       type={type}
       className={cn(
         "h-control-lg w-full rounded-md border border-border-strong bg-sunken px-2.75 text-base text-fg outline-none",
+        "placeholder:text-fg-subtle focus:border-accent focus:ring-3 focus:ring-accent-ring disabled:opacity-45",
+        className,
+      )}
+      {...rest}
+    />
+  );
+});
+
+/** Texto de várias linhas (o textarea do editor atual), com o mesmo visual do campo. */
+export const TextArea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function TextArea({ className, ...rest }, ref) {
+  return (
+    <textarea
+      ref={ref}
+      className={cn(
+        "w-full resize-none rounded-md border border-border-strong bg-sunken px-2.75 py-2 text-base leading-(--text-md--line-height) text-fg outline-none",
         "placeholder:text-fg-subtle focus:border-accent focus:ring-3 focus:ring-accent-ring disabled:opacity-45",
         className,
       )}

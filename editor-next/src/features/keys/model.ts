@@ -3,6 +3,7 @@
 // atual (info.js: kpos/kat/spanOf/coverMap/footprint; app.js: swapKeys, a página inicial e updatePreviews).
 import type { PreviewRequest } from "@/core/api-types";
 import type { Config } from "@/core/store/config";
+import { isObj, normalizeIcon } from "@/core/obj";
 
 export const COLS = 5;
 export const ROWS = 3;
@@ -10,8 +11,6 @@ export const KEYS: readonly string[] = Array.from({ length: COLS * ROWS }, (_, i
 
 export type KeySpec = Record<string, unknown>;
 export type PageKeys = Record<string, KeySpec>;
-
-const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
 /** Coluna e linha da tecla ("1" = canto de cima à esquerda). */
 export const kpos = (k: string): [number, number] => [(Number(k) - 1) % COLS, Math.floor((Number(k) - 1) / COLS)];
@@ -156,8 +155,6 @@ export const selectionAfterSwap = (sel: string | null, a: string, b: string): st
   sel === a ? b : sel === b ? a : sel;
 
 // ---------------------------------------------------------------------------- prévias
-
-const normalizeIcon = (v: unknown): Record<string, unknown> => (typeof v === "string" ? { text: v } : isObj(v) ? v : {});
 
 /** O pedido de prévias de uma página: uma entrada por tecla (null = vazia), como no updatePreviews do atual. */
 export function previewRequest(cfg: Config | null, page: string | null): PreviewRequest {

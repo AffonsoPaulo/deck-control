@@ -18,9 +18,10 @@ interface DeckState {
   gapX: number;
   gapY: number;
   foot: Foot;
+  dragging: boolean; // tem peça andando (as setas são do arrastar, não da seleção)
 }
 
-export const useDeckState = create<DeckState>()(() => ({ grid: null, size: 84, gapX: 24, gapY: 26, foot: NO_FOOT }));
+export const useDeckState = create<DeckState>()(() => ({ grid: null, size: 84, gapX: 24, gapY: 26, foot: NO_FOOT, dragging: false }));
 
 /** Mede a grade (uma tecla, o vão) e guarda; chamado pela grade quando muda de tamanho. */
 export function measureGrid(grid: HTMLElement): void {
