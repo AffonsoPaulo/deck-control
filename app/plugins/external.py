@@ -31,8 +31,9 @@ import sys
 import threading
 import time
 from typing import TYPE_CHECKING
-from app import i18n, logs
+from app import logs
 from app.i18n import tr
+from app.plugins.api import PluginAPI
 
 if TYPE_CHECKING:
     from app.plugins import Plugin, PluginManager
@@ -47,6 +48,7 @@ LOG_LEVELS = {"debug": 10, "info": 20, "warn": 30, "warning": 30, "error": 40}
 class ExternalPlugin:
     def __init__(self, manager: "PluginManager", plugin: "Plugin"):
         self.m, self.p = manager, plugin
+        self.api = PluginAPI(manager, plugin)  # a mesma porta dos embutidos: valores, estados, log
         self.proc: subprocess.Popen | None = None
         self.settings: dict = {}
         self._lock = threading.Lock()
@@ -55,8 +57,8 @@ class ExternalPlugin:
         self._stopping = False
         self._restarts: list[float] = []
         self._status = {"state": "wait", "label": tr("Starting")}
-        self.locale = i18n.language()
-        self.log = logs.get(f"plugins.{plugin.id}")
+        self.locale = self.api.language()
+        self.log = self.api.log
         self._crashed = False  # o problema "plugin.<id>.crash" está aberto
 
     @property
@@ -139,7 +141,7 @@ class ExternalPlugin:
         proc = self.proc
         threading.Thread(target=self._read_out, args=(proc,), daemon=True, name=f"plugin-{self.p.id}").start()
         threading.Thread(target=self._read_err, args=(proc,), daemon=True, name=f"plugin-{self.p.id}-err").start()
-        self.locale = i18n.language()
+        self.locale = self.api.language()
         self._send(
             {
                 "type": "hello",
@@ -240,23 +242,13 @@ class ExternalPlugin:
             if waiter is not None:
                 waiter["msg"] = msg
                 waiter["event"].set()
-        elif kind == "state":
-            name = str(msg.get("name", ""))
-            if not name.startswith(self.p.id + "."):
-                self.log.warning("State '%s' ignored: it must start with '%s.'", name, self.p.id)
-                return
-            eng = self.m.engine
-            if eng is not None:
-                eng.set_state(name, bool(msg.get("value")))
+        elif kind == "state":  # o prefixo <id>. é conferido pela API (fora dele: aviso no log e ignora)
+            self.api.set_state(str(msg.get("name", "")), msg.get("value"))
         elif kind == "status":
             state = msg.get("state") if msg.get("state") in ("ok", "wait", "error") else "ok"
             self._status = {"state": state, "label": str(msg.get("label") or "")[:40] or tr("On")}
         elif kind == "value":
-            name = str(msg.get("name", ""))
-            if not name.startswith(self.p.id + "."):
-                self.log.warning("Value '%s' ignored: it must start with '%s.'", name, self.p.id)
-                return
-            self.m.values.set(name, msg.get("value"))
+            self.api.set_value(str(msg.get("name", "")), msg.get("value"))
         elif kind == "log":
             level = LOG_LEVELS.get(str(msg.get("level", "info")).lower(), 20)
             self.log.log(level, "%s", msg.get("message", ""))

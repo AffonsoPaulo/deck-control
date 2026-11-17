@@ -90,6 +90,23 @@ class Plugin:
 
 
 class PluginManager:
+    """Os plugins do app e o ciclo de vida de cada um:
+
+        carregar (load)   ler e validar o plugin.json e registrar as ações. Embutido: importa o plugin.py e chama
+                          setup(api), que registra as ações e devolve a instância. De terceiros: cria o
+                          ExternalPlugin (o processo ainda não abre) e registra as ações do manifesto.
+        ligar (start)     o config liga o plugin: instance.start(settings). O de terceiros abre o processo e
+                          manda o "hello".
+        atualizar         continua ligado e o config foi lido de novo: instance.update(settings) e
+                          instance.set_locale(idioma).
+        desligar (stop)   instance.stop(); os valores e os problemas do plugin somem e o status volta a "Off".
+
+    Cada método da instância é opcional (o app só chama o que existe; ver PluginHooks em api.py). Só o carregar
+    registra ações: um plugin desligado continua com as ações no editor, e o run_guard barra quando uma tecla
+    tenta rodar. O carregar roda no bootstrap e depois de instalar ou remover um plugin; ligar, atualizar e
+    desligar, a cada leitura do config (sync) e ao fechar o app (stop_all).
+    """
+
     def __init__(self, values: Values):
         self.values = values  # onde os plugins publicam os valores deles
         self.plugins: dict[str, Plugin] = {}
@@ -98,7 +115,7 @@ class PluginManager:
         self._cfg: dict = {}
         self._lock = threading.RLock()
 
-    # -- descoberta
+    # -- carregar
     def load(self) -> None:
         with self._lock:
             self._unregister_all()
@@ -110,13 +127,7 @@ class PluginManager:
                 pass
             for folder, builtin in folders:
                 try:
-                    m = read_manifest(folder, builtin)
-                    if m["id"] in self.plugins:
-                        raise PluginError(tr("there's already a plugin with the id '{id}'", id=m["id"]))
-                    p = Plugin(m["id"], folder, m, builtin, locales=read_locales(folder))
-                    for miss in missing_keys(m, p.locales)[:5]:
-                        log.warning("Plugin %s: missing translation %s", m["id"], miss)
-                    self._register(p)
+                    p = self._load_one(folder, builtin)
                     self.plugins[p.id] = p
                 except Exception as e:  # um plugin com defeito não impede os outros
                     self.errors.append({"folder": folder.name, "error": str(e)})
@@ -135,6 +146,17 @@ class PluginManager:
                 )
                 or "none",
             )
+
+    def _load_one(self, folder: Path, builtin: bool) -> Plugin:
+        """Lê e valida o manifesto da pasta e registra as ações do plugin (que continua desligado)."""
+        m = read_manifest(folder, builtin)
+        if m["id"] in self.plugins:
+            raise PluginError(tr("there's already a plugin with the id '{id}'", id=m["id"]))
+        p = Plugin(m["id"], folder, m, builtin, locales=read_locales(folder))
+        for miss in missing_keys(m, p.locales)[:5]:
+            log.warning("Plugin %s: missing translation %s", m["id"], miss)
+        self._register(p)
+        return p
 
     def _register(self, p: Plugin) -> None:
         if p.builtin:
@@ -171,7 +193,7 @@ class PluginManager:
             if self.engine is not None:
                 self.sync(self._cfg)
 
-    # -- liga/desliga conforme o config
+    # -- ligar, atualizar e desligar conforme o config
     def attach(self, engine: "Engine") -> None:
         self.engine = engine
 
@@ -183,26 +205,12 @@ class PluginManager:
                 settings = p.effective_settings(self._cfg)
                 try:
                     if on and not p.running:
-                        p.error = None
-                        if hasattr(p.instance, "start"):
-                            p.instance.start(settings)
-                        p.running = True
-                        if p.status.get("state") == "off":
-                            p.status = {"state": "ok", "label": tr("On")}
-                        log.info(
-                            "Plugin started: %s %s%s",
-                            p.id,
-                            p.manifest.get("version") or "?",
-                            " (built-in)" if p.builtin else "",
-                        )
+                        self._start(p, settings)
                     elif on and p.running:
-                        if hasattr(p.instance, "update"):
-                            p.instance.update(settings)
-                        if hasattr(p.instance, "set_locale"):  # o idioma mudou no editor
-                            p.instance.set_locale(i18n.language())
+                        self._update(p, settings)
                     elif not on and p.running:
                         self._stop(p)
-                except Exception as e:
+                except Exception as e:  # inclusive ao atualizar: o status vira "Didn't start" (como sempre foi)
                     p.error = str(e)
                     p.status = {"state": "error", "label": tr("Didn't start")}
                     log.error(
@@ -212,6 +220,26 @@ class PluginManager:
                         exc_info=True,
                         extra={"ctx": {"plugin": p.id, "version": p.manifest.get("version")}},
                     )
+
+    def _start(self, p: Plugin, settings: dict) -> None:
+        p.error = None
+        if hasattr(p.instance, "start"):
+            p.instance.start(settings)
+        p.running = True
+        if p.status.get("state") == "off":
+            p.status = {"state": "ok", "label": tr("On")}
+        log.info(
+            "Plugin started: %s %s%s",
+            p.id,
+            p.manifest.get("version") or "?",
+            " (built-in)" if p.builtin else "",
+        )
+
+    def _update(self, p: Plugin, settings: dict) -> None:
+        if hasattr(p.instance, "update"):
+            p.instance.update(settings)
+        if hasattr(p.instance, "set_locale"):  # o idioma mudou no editor
+            p.instance.set_locale(i18n.language())
 
     def _stop(self, p: Plugin) -> None:
         was = p.running

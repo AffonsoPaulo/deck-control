@@ -105,6 +105,8 @@ files = [
     "app/engine/input.py",
     "app/engine/leds.py",
     "app/engine/engine.py",
+    # plugins (Fase 6): a API entregue ao plugin; manager.py e external.py ainda não
+    "app/plugins/api.py",
 ]
 follow_imports = "silent"
 warn_unused_ignores = true
@@ -132,6 +134,7 @@ module = [
     "app.engine.states",
     "app.engine.drawing",
     "app.engine.input",
+    "app.plugins.api",
 ]
 # o "strict" do mypy só vale para o projeto inteiro; estas são as partes dele que funcionam por módulo
 disallow_untyped_defs = true

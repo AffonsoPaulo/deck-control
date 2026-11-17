@@ -69,6 +69,29 @@ def test_plugin_values_go_to_the_shared_values():
     MANAGER.values.forget_prefix("obs.test_value")
 
 
+def test_plugin_api_states_log_and_language(monkeypatch, caplog):
+    class Engine:
+        def __init__(self):
+            self.states = {}
+
+        def set_state(self, name, value):
+            self.states[name] = value
+
+    p = MANAGER.plugins["obs"]
+    api = PluginAPI(MANAGER, p)
+    assert api.id == "obs" and api.folder == p.path
+    assert api.log.name == "deck.plugins.obs"
+    assert api.language() == "en"
+    monkeypatch.setattr(MANAGER, "engine", None)
+    api.set_state("obs.test", True)  # sem engine (app abrindo): não faz nada
+    eng = Engine()
+    monkeypatch.setattr(MANAGER, "engine", eng)
+    api.set_state("obs.test", 1)
+    api.set_state("other.test", True)
+    assert eng.states == {"obs.test": True}
+    assert "State 'other.test' ignored: it must start with 'obs.'" in caplog.messages
+
+
 def test_obs_publishes_scene_and_times_through_the_api():
     import sys
 
