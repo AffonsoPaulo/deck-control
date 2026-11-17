@@ -46,7 +46,8 @@ O campo `runtime` diz quem abre o programa do plugin:
   - O plugin roda como `python main.py` na pasta dele: o `sys.argv`, o `__name__ == "__main__"` e o
     `__file__` são os de sempre, e ele não enxerga os módulos do app.
 - **Sem `runtime`** (plugins de antes): um `run` que começa com `python` (ou `python3`, `pythonw`)
-  vale como `"deck-python"`; qualquer outro, como `"exe"`.
+  vale como `"deck-python"`; qualquer outro, como `"exe"`. Um desses com outra opção do Python
+  (`["python", "-X", "utf8", "main.py"]`) continua abrindo como antes, com o Python do app direto.
 
 O campo `protocol` diz a versão do [protocolo](#protocolo-versão-1) que o plugin precisa (padrão: 1).
 Se o app tiver uma versão menor, o plugin não carrega e o editor explica que é preciso atualizar o

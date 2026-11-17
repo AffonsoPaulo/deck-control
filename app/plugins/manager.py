@@ -17,7 +17,8 @@ from app import paths
 from app.errors import PluginError
 from app.i18n import tr
 from app.plugins.api import PluginAPI
-from app.plugins.manifest import localize, missing_keys, read_locales, read_manifest, runtime_of
+from app.plugin_runner import runtime_of
+from app.plugins.manifest import localize, missing_keys, read_locales, read_manifest
 from app.values import VALUES, Values
 
 if TYPE_CHECKING:

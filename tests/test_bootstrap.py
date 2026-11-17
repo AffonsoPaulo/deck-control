@@ -34,7 +34,7 @@ MODULES = [
     "app.plugins.api",
     "app.plugins.manager",
     "app.plugins.external",
-    "app.plugins.runner",
+    "app.plugin_runner",
     "app.actions",
     "app.config",
     "app.engine",

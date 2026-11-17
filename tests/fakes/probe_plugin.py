@@ -17,6 +17,7 @@ FACTS = {
     "path0": sys.path[0],
     "path": sys.path,
     "app_loaded": sorted(m for m in sys.modules if m == "app" or m.startswith(("app.", "d6"))),
+    "modules": sorted(sys.modules),
     "plugin_id": os.environ.get("D6_PLUGIN_ID"),
     "unbuffered": os.environ.get("PYTHONUNBUFFERED"),
     "stdout_encoding": sys.stdout.encoding,

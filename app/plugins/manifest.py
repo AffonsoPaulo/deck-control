@@ -15,29 +15,14 @@ from app import logs
 from app.errors import PluginError
 from app.i18n import tr
 
+# como o plugin de terceiros roda (runtime_of, python_run, parse_run) mora em app/plugin_runner.py, com o modo
+# --run-plugin, que usa isso sem carregar o resto do app
+from app.plugin_runner import RUNTIMES, parse_run, python_run
+
 log = logs.get("plugins")
 ID_RE = re.compile(r"^[a-z][a-z0-9_-]{1,39}$")
 SETTING_KINDS = ("text", "password", "number", "bool", "enum", "shortcut")
-
-# Plugins de terceiros (ver PLUGINS.md):
 PROTOCOL = 1  # a versão do protocolo (app/plugins/external.py) que este app fala; o "protocol" do manifesto pede
-RUNTIMES = ("exe", "deck-python")  # "exe": o run é um programa que o plugin traz; "deck-python": o app roda o Python
-PYTHON = ("python", "python3", "pythonw")  # um run que começa assim, sem "runtime", é deck-python (manifesto antigo)
-
-
-def runtime_of(m: dict[str, Any]) -> str:
-    """Como o plugin de terceiros roda: o "runtime" do manifesto ou, sem ele, pelo run (python… = deck-python)."""
-    rt = m.get("runtime")
-    if rt in RUNTIMES:
-        return str(rt)
-    run = m.get("run") or []
-    return "deck-python" if run and run[0] in PYTHON else "exe"
-
-
-def python_run(m: dict[str, Any]) -> list[str]:
-    """deck-python: o run sem o "python" da frente (o script, ou -m módulo, e os argumentos)."""
-    run = [str(x) for x in m.get("run") or []]
-    return run[1:] if run and run[0] in PYTHON else run
 
 
 # ---------------------------------------------------------------------------- idiomas
@@ -228,6 +213,4 @@ def check_runtime(m: dict[str, Any]) -> None:
             )
         )
     if rt == "deck-python":
-        from app.plugins.runner import parse_run  # confere o script (ou -m módulo) e as opções do Python
-
-        parse_run(python_run(m))
+        parse_run(python_run(m))  # confere o script (ou -m módulo) e as opções do Python

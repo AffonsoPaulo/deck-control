@@ -10,9 +10,7 @@ python app/__main__.py --run-plugin <pasta>   vira o processo de um plugin deck-
 
 from __future__ import annotations
 
-import argparse
 import sys
-import webbrowser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -28,10 +26,15 @@ if str(ROOT) not in sys.path:
 
 def main() -> int:
     if "--run-plugin" in sys.argv[1:]:
-        # antes de tudo: este processo é um plugin, não o app (sem log, sem "já está rodando", sem plugins)
-        from app.plugins.runner import main as run_plugin
+        # antes de tudo: este processo é um plugin, não o app (sem log, sem "já está rodando", sem plugins). Fica
+        # fora do argparse de propósito: lá, "--run-plugin=x" ou "--run-p x" passariam e abririam o app de verdade.
+        # E os imports do app vêm depois daqui: o que fica carregado no processo do plugin é o mínimo.
+        from app.plugin_runner import main as run_plugin
 
         return run_plugin(sys.argv[1:], _ADDED_TO_PATH)
+
+    import argparse
+    import webbrowser
 
     from app.i18n import tr
 
@@ -47,9 +50,6 @@ def main() -> int:
     ap.add_argument("--editor", action="store_true", help="abre o editor no navegador ao iniciar")
     ap.add_argument("--port", type=int, default=8765, help="porta do editor (padrão 8765)")
     ap.add_argument("--autostart", choices=["on", "off"], help="liga/desliga iniciar com o Windows")
-    ap.add_argument(
-        "--run-plugin", metavar="PASTA", help="roda o plugin deck-python da pasta (quem usa é o próprio app)"
-    )
     args = ap.parse_args()
 
     from app import logs, winutil

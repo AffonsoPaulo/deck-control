@@ -13,10 +13,10 @@ from pathlib import Path
 import pytest
 
 from app import paths
+from app.plugin_runner import PythonTarget, parse_run, python_run, runtime_of
 from app.plugins import MANAGER, PluginError, check_manifest
 from app.plugins.external import command
-from app.plugins.manifest import PROTOCOL, python_run, runtime_of
-from app.plugins.runner import PythonTarget, parse_run
+from app.plugins.manifest import PROTOCOL
 
 PROBE = Path(__file__).parent / "fakes" / "probe_plugin.py"
 PYTHON = sys.executable.replace("pythonw.exe", "python.exe")
@@ -178,8 +178,29 @@ def test_run_plugin_looks_like_plain_python(tmp_path):
         facts[how] = json.loads(text.replace(json.dumps(str(folder))[1:-1], "<F>"))
     old, new = facts["old"], facts["new"]
     assert new["path"] == [old["path"][0], "<F>\\lib", *old["path"][1:]]
-    assert {k: v for k, v in new.items() if k != "path"} == {k: v for k, v in old.items() if k != "path"}
+    skip = ("path", "modules")
+    assert {k: v for k, v in new.items() if k not in skip} == {k: v for k, v in old.items() if k not in skip}
     assert new["argv"] == ["main.py", "--flag"] and new["name"] == "__main__" and new["app_loaded"] == []
+    # o que já vem carregado a mais: só um pouco da biblioteca padrão (o pathlib e o typing do --run-plugin), nada
+    # do app nem de site-packages; um módulo do plugin com esses nomes perderia para o já carregado
+    extra = set(new["modules"]) - set(old["modules"])
+    assert set(old["modules"]) <= set(new["modules"])
+    assert all(m.split(".")[0].lstrip("_") in sys.stdlib_module_names or m == "__future__" for m in extra), extra
+    assert len(extra) <= 25, sorted(extra)
+
+
+def test_old_manifest_with_another_python_option_opens_as_before(tmp_path):
+    """Sem "runtime", um run com uma opção que o --run-plugin não roda abre como antes da Fase 6 (só fora do .exe)."""
+    old = {"run": ["python", "-X", "utf8", "main.py"]}
+    assert command(old, tmp_path, frozen=False) == [PYTHON, "-X", "utf8", "main.py"]
+    assert command({"run": ["python"]}, tmp_path, frozen=False) == [PYTHON]
+    assert command(old, tmp_path, frozen=True, executable="Deck.exe") == ["Deck.exe", "--run-plugin", str(tmp_path)]
+    folder = make_plugin(tmp_path / "x", old["run"])
+    shutil.copy(PROBE, folder / "main.py")
+    r = run_cmd(command(old, folder, frozen=False), folder)
+    assert r.returncode == 0, r.stderr
+    facts = json.loads((folder / "facts.json").read_text(encoding="utf-8"))
+    assert facts["argv"] == ["main.py"] and Path(facts["cwd"]) == folder
 
 
 SCRIPT = """
@@ -236,3 +257,7 @@ def test_run_plugin_errors(tmp_path):
 
     r = run_cmd([PYTHON, str(paths.MAIN_SCRIPT), "--run-plugin"], tmp_path)
     assert (r.returncode, r.stderr) == (2, "usage: --run-plugin <plugin folder>\n")
+    # outras formas não viram o app de verdade (o --run-plugin fica fora do argparse): o argparse recusa
+    for arg in (f"--run-plugin={folder}", "--run-p"):
+        r = run_cmd([PYTHON, str(paths.MAIN_SCRIPT), arg, str(folder)], tmp_path)
+        assert r.returncode == 2 and "unrecognized arguments" in r.stderr, r.stderr

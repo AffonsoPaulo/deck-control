@@ -110,7 +110,7 @@ files = [
     # fora do estrito: localize() e missing_keys() são as de antes, sem tipos.
     "app/plugins/api.py",
     "app/plugins/manifest.py",
-    "app/plugins/runner.py",
+    "app/plugin_runner.py",
 ]
 follow_imports = "silent"
 warn_unused_ignores = true
@@ -139,7 +139,7 @@ module = [
     "app.engine.drawing",
     "app.engine.input",
     "app.plugins.api",
-    "app.plugins.runner",
+    "app.plugin_runner",
 ]
 # o "strict" do mypy só vale para o projeto inteiro; estas são as partes dele que funcionam por módulo
 disallow_untyped_defs = true

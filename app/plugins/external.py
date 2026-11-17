@@ -1,7 +1,7 @@
 """Plugins de terceiros: um programa separado que conversa com o app por JSON, uma mensagem por linha.
 
 O app abre o programa (command(): o 'run' do plugin.json, na pasta do plugin; em Python, pelo modo
---run-plugin do app, ver runner.py) e escreve no stdin dele; o plugin responde no stdout. O stderr vai
+--run-plugin do app, ver app/plugin_runner.py) e escreve no stdin dele; o plugin responde no stdout. O stderr vai
 para o log do app. O "protocol" do manifesto diz a versão que o plugin pede (manifest.PROTOCOL é a do
 app). Protocolo (versão 1), documentado no PLUGINS.md:
 
@@ -35,9 +35,11 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 from app import logs, paths
+from app.errors import PluginError
 from app.i18n import tr
+from app.plugin_runner import parse_run, python_run, runtime_of
 from app.plugins.api import PluginAPI
-from app.plugins.manifest import PROTOCOL, runtime_of
+from app.plugins.manifest import PROTOCOL
 
 if TYPE_CHECKING:
     from app.plugins import Plugin, PluginManager
@@ -51,9 +53,11 @@ LOG_LEVELS = {"debug": 10, "info": 20, "warn": 30, "warning": 30, "error": 40}
 def command(manifest: dict, folder: Path, *, frozen: bool | None = None, executable: str | None = None) -> list[str]:
     """A linha de comando que abre o plugin (sempre com a pasta dele como pasta de trabalho).
 
-    deck-python: o próprio app roda o plugin (`--run-plugin`, ver runner.py), com o Python do app; no executável,
-    o Deck.exe. exe: o run como está; com "runtime": "exe" escrito, um programa que está na pasta do plugin é
-    aberto de lá (o Windows não procura o programa na pasta de trabalho do processo novo).
+    deck-python: o próprio app roda o plugin (`--run-plugin`, ver app/plugin_runner.py), com o Python do app; no
+    executável, o Deck.exe. Um manifesto antigo (sem "runtime") com uma opção do Python que o --run-plugin não roda
+    (`["python", "-X", "utf8", "main.py"]`) abre como antes, com o Python do app direto (no executável, não abre).
+    exe: o run como está; com "runtime": "exe" escrito, um programa que está na pasta do plugin é aberto de lá (o
+    Windows não procura o programa na pasta de trabalho do processo novo).
     """
     frozen = paths.FROZEN if frozen is None else frozen
     executable = sys.executable if executable is None else executable
@@ -61,6 +65,11 @@ def command(manifest: dict, folder: Path, *, frozen: bool | None = None, executa
         if frozen:
             return [executable, "--run-plugin", str(folder)]
         python = executable.replace("pythonw.exe", "python.exe")  # o mesmo Python do app, com stdin/stdout
+        if manifest.get("runtime") is None:
+            try:
+                parse_run(python_run(manifest))
+            except PluginError:
+                return [python, *python_run(manifest)]  # o comando de antes da Fase 6
         return [python, str(paths.MAIN_SCRIPT), "--run-plugin", str(folder)]
     cmd = [str(x) for x in manifest["run"]]
     if manifest.get("runtime") == "exe" and (folder / cmd[0]).is_file():

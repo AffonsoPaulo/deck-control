@@ -1,8 +1,9 @@
 """Modo --run-plugin: roda um plugin de terceiros em Python ("runtime": "deck-python") com o Python do app.
 
 O app abre `python app/__main__.py --run-plugin <pasta>` (no executável, `Deck.exe --run-plugin <pasta>`), com a
-pasta do plugin como pasta de trabalho, e conversa com esse processo pelo protocolo de sempre (external.py).
-Aqui o processo deixa de ser o app e vira o plugin, o mais parecido possível com `python main.py` na pasta dele:
+pasta do plugin como pasta de trabalho, e conversa com esse processo pelo protocolo de sempre
+(app/plugins/external.py). Aqui o processo deixa de ser o app e vira o plugin, o mais parecido possível com
+`python main.py` na pasta dele:
 
 - o sys.argv é o do run (o script e os argumentos), e o script roda como __main__ (__file__ com o caminho todo);
 - no sys.path: a pasta do script, depois a pasta lib/ do plugin (as bibliotecas que ele traz, na frente das do
@@ -11,6 +12,11 @@ Aqui o processo deixa de ser o app e vira o plugin, o mais parecido possível co
 - erro e saída são os do Python: exceção sem tratar mostra o traceback no stderr (que vai para o log do app) e
   sai com 1; sys.exit(n) sai com n.
 
+Fica fora do pacote app.plugins de propósito: importar aquele pacote carrega o app inteiro (ações, valores,
+widgets) e mais de cem módulos do Python, que ficariam no lugar de um módulo do plugin com o mesmo nome. Daqui só
+saem os módulos de que este arquivo precisa (o plugin.json é lido aqui mesmo; quem valida tudo é o app, ao
+carregar o plugin).
+
 Opções do Python no run: -m <módulo>, -u (a saída já vai sem buffer) e -B (não grava .pyc). Outras não.
 """
 
@@ -18,21 +24,37 @@ from __future__ import annotations
 
 import builtins
 import importlib.machinery
+import json
 import os
-import runpy
 import sys
 import types
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, NamedTuple
 
 from app.errors import PluginError
 from app.i18n import tr
 
+RUNTIMES = ("exe", "deck-python")  # "exe": o run é um programa que o plugin traz; "deck-python": o app roda o Python
+PYTHON = ("python", "python3", "pythonw")  # um run que começa assim, sem "runtime", é deck-python (manifesto antigo)
 LIB = "lib"  # a pasta das bibliotecas do plugin
 
 
-@dataclass(frozen=True, slots=True)
-class PythonTarget:
+def runtime_of(m: dict[str, Any]) -> str:
+    """Como o plugin de terceiros roda: o "runtime" do manifesto ou, sem ele, pelo run (python… = deck-python)."""
+    rt = m.get("runtime")
+    if rt in RUNTIMES:
+        return str(rt)
+    run = m.get("run") or []
+    return "deck-python" if run and run[0] in PYTHON else "exe"
+
+
+def python_run(m: dict[str, Any]) -> list[str]:
+    """deck-python: o run sem o "python" da frente (o script, ou -m módulo, e os argumentos)."""
+    run = [str(x) for x in m.get("run") or []]
+    return run[1:] if run and run[0] in PYTHON else run
+
+
+class PythonTarget(NamedTuple):
     """O que o run de um plugin deck-python pede: um script ou um módulo (-m), com os argumentos."""
 
     script: str | None
@@ -80,6 +102,8 @@ def main(argv: list[str], drop_from_path: list[str]) -> int:
     if target.no_bytecode:
         sys.dont_write_bytecode = True
     if target.module is not None:
+        import runpy
+
         _isolate(str(folder), folder, drop_from_path)
         sys.argv = ["-m", *target.args]  # como o python -m: o runpy troca o "-m" pelo caminho do módulo
         runpy.run_module(target.module, run_name="__main__", alter_sys=True)
@@ -96,9 +120,15 @@ def main(argv: list[str], drop_from_path: list[str]) -> int:
 
 
 def _target(folder: Path) -> PythonTarget:
-    from app.plugins.manifest import python_run, read_manifest, runtime_of
-
-    m = read_manifest(folder, builtin=False)
+    try:
+        m = json.loads((folder / "plugin.json").read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise PluginError(tr("plugin.json is missing")) from None
+    except (OSError, ValueError) as e:
+        raise PluginError(tr("invalid plugin.json: {error}", error=e)) from None
+    run = m.get("run") if isinstance(m, dict) else None
+    if not (isinstance(run, list) and run and all(isinstance(x, str) for x in run)):
+        raise PluginError(tr('\'run\' must be the plugin\'s command line, as a list (e.g.: ["python", "main.py"])'))
     if runtime_of(m) != "deck-python":
         raise PluginError(tr("this plugin's runtime isn't \"deck-python\""))
     return parse_run(python_run(m))
@@ -112,7 +142,8 @@ def _isolate(first: str, folder: Path, drop_from_path: list[str]) -> None:
     sys.path[:] = [first, *([str(lib)] if lib.is_dir() else []), *rest]
     for name in [n for n in sys.modules if n in ("app", "d6") or n.startswith(("app.", "d6."))]:
         del sys.modules[name]
-    importlib.invalidate_caches()
+    # sem importlib.invalidate_caches(): as pastas novas do sys.path ganham buscadores novos, e no 3.12 ele
+    # carregaria o importlib.metadata (e com ele email, zipfile, socket...) no processo do plugin
 
 
 def _run_script(script: Path) -> None:
