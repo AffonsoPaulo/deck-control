@@ -142,8 +142,14 @@ def _like_plain_python() -> None:
     O PyInstaller roda o Python isolado (sys.flags.ignore_environment e no_site): ele não lê as variáveis
     PYTHON* que o app põe ao abrir o plugin (app/plugins/external.py) e não cria o exit()/quit() do site. Sem
     isso o plugin sairia em cp1252 e com a saída presa no buffer (a resposta só chegaria ao app quando o buffer
-    enchesse). Fora do executável o Python já fez tudo isso e aqui nada muda.
+    enchesse). E o PyInstaller aponta a busca de DLLs para a pasta _internal, o que os programas que o plugin
+    abrir herdariam (winutil.reset_dll_directory, aqui sem importar o app). Fora do executável o Python já fez
+    tudo isso e aqui nada muda.
     """
+    if getattr(sys, "frozen", False):
+        import ctypes
+
+        ctypes.windll.kernel32.SetDllDirectoryW(None)
     if sys.flags.ignore_environment:
         encoding, _, errors = (os.environ.get("PYTHONIOENCODING") or "").partition(":")
         unbuffered = bool(os.environ.get("PYTHONUNBUFFERED"))

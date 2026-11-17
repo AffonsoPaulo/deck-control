@@ -77,6 +77,17 @@ def set_autostart(enabled: bool, config: Path) -> None:
                 pass
 
 
+def reset_dll_directory() -> None:
+    """Executável: tira a pasta _internal da busca de DLLs do processo.
+
+    O PyInstaller aponta o SetDllDirectory para a _internal ao abrir, e todo programa que o app abre (ações de
+    abrir programa e de comando, plugins "exe", o navegador) herda isso: poderia carregar o python312.dll, o
+    libssl ou o VCRUNTIME do Deck no lugar dos dele. As DLLs do próprio app não dependem disso (o Python carrega
+    os .pyd e as DLLs ao lado deles sem o SetDllDirectory). Conferido no build: tudo importa e desenha depois.
+    """
+    ctypes.windll.kernel32.SetDllDirectoryW(None)
+
+
 def message_box(text: str, title: str = "Deck") -> None:
     ctypes.windll.user32.MessageBoxW(None, text, title, 0x40)
 

@@ -60,6 +60,8 @@ def main() -> int:
 
     from app import logs, winutil
 
+    if paths.FROZEN:
+        winutil.reset_dll_directory()  # antes de tudo: o que o app abrir não herda a pasta _internal
     config = args.config.resolve()
     cli = bool(args.check or args.autostart)  # só responde no terminal e sai: sem arquivo de log
     if paths.FROZEN and not cli and sys.stdout is None:
