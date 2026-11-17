@@ -1,0 +1,225 @@
+"""Engine e o aparelho: conectar, perder o D6 e reconectar (pelo run() de verdade), brilho e anel de LEDs,
+com o D6 falso (tests/fakes). Também confere que o FakeDeck acompanha o d6.device.D6 de verdade.
+"""
+
+from __future__ import annotations
+
+import inspect
+import re
+from pathlib import Path
+
+import pytest
+
+from app import logs
+from d6.device import D6, DeviceNotFound
+from tests.fakes import DeckProtocol, FakeDeck
+
+ENGINE_PY = Path(__file__).resolve().parent.parent / "app" / "engine.py"
+
+RECONNECT = """
+language: en
+brightness: 70
+device: {settle: 0.5}
+pages:
+  main:
+    1: {icon: {text: Mic}, action: {type: bind, keys: "ctrl+f13"}}
+    2: {icon: {bg: "#ff0000"}}
+"""
+
+
+# ---------------------------------------------------------------------------- o falso e o de verdade
+
+
+def _members(cls) -> set[str]:
+    return {n for n in vars(cls) if not n.startswith("_")}
+
+
+def test_engine_uses_only_what_the_deck_protocol_has():
+    """Tudo o que o engine chama no aparelho está no DeckProtocol (senão o FakeDeck está atrasado)."""
+    used = set(re.findall(r"\bdeck\.([a-z_]+)", ENGINE_PY.read_text(encoding="utf-8")))
+    # lê o app/engine.py: se a conversa com o aparelho mudar de arquivo (Fase 3), isto falha em vez de passar vazio
+    assert {"events", "push", "set_leds", "enable_keys", "close"} <= used, "o uso do aparelho saiu do engine.py?"
+    used.add("open")  # D6().open()
+    assert used <= _members(DeckProtocol) | {"settle"}, used - _members(DeckProtocol)
+
+
+@pytest.mark.parametrize("name", sorted(_members(DeckProtocol)))
+def test_real_d6_has_the_protocol_with_the_same_parameters(name):
+    real, fake = getattr(D6, name), getattr(FakeDeck, name)
+    if isinstance(inspect.getattr_static(D6, name), property):
+        return
+    rp = inspect.signature(real).parameters
+    for p in inspect.signature(fake).parameters.values():
+        if p.kind is p.VAR_KEYWORD:
+            continue
+        assert p.name in rp, f"D6.{name} não tem o parâmetro {p.name}"
+        assert rp[p.name].default == p.default, f"D6.{name}({p.name}) tem outro padrão"
+
+
+def test_real_d6_sets_settle():
+    assert "self.settle" in inspect.getsource(D6.__init__)
+
+
+# ---------------------------------------------------------------------------- conectar
+
+
+def test_connect_enables_keys_with_the_config_options(make_engine):
+    rig = make_engine(RECONNECT)
+    assert rig.engine.device_connected is False
+    deck = rig.connect()
+    assert rig.engine.device_connected is True
+    assert deck.opened
+    assert deck.enabled == [70]  # brilho do config
+    assert deck.settle == 0.5  # device.settle
+    assert rig.engine.firmware == "V3.D6.1.009"
+    assert rig.engine.device_info()["usb"] == "3142:0060"
+
+
+def test_old_draw_mode_uses_one_session(make_engine):
+    """device.session: true — o modo antigo manda tudo pelo draw() (com sessão), não pelo push()."""
+    rig = make_engine(RECONNECT.replace("{settle: 0.5}", "{session: true}"))
+    deck = rig.connect()
+    assert deck.pushes == []
+    assert len(deck.draws) == 1 and sorted(deck.draws[0]) == list(range(1, 16))
+
+
+# ---------------------------------------------------------------------------- perder e reconectar
+
+
+@pytest.mark.parametrize("error", [OSError("unplugged"), ValueError("bad report")])
+def test_lost_deck_is_closed_and_reopened_with_every_key_redrawn(make_engine, error):
+    """Erro de HID no meio do loop: solta as combinações seguradas, fecha o Deck, abre de novo e reenvia as
+    15 imagens (o D6 pode ter perdido as telas), mesmo sem nada ter mudado."""
+    rig = make_engine(RECONNECT)
+    first, second = rig.factory.prepare(), rig.factory.prepare()
+
+    def unplug():
+        raise error
+
+    first.script = [None, lambda: first.queue(1, True), unplug]  # desenha, aperta o bind, cabo puxado
+    second.script = [rig.engine.stop]
+    rig.run()
+
+    assert rig.factory.made == [first, second]
+    assert sorted(first.pushed_keys()) == list(range(1, 16))
+    assert first.closed
+    assert rig.keys == [("down", "ctrl+f13"), ("up", "ctrl+f13")]  # Ctrl não fica preso
+    assert second.enabled == [70]
+    assert second.settle == 0.5
+    assert sorted(second.pushed_keys()) == list(range(1, 16))
+    assert second.screens == first.screens
+    # ao parar: plugins desligados, pool fechado sem esperar, Deck fechado
+    assert second.closed
+    assert rig.engine.deck is None
+    assert rig.engine.plugins.calls == ["attach", "sync", "stop_all"]
+    assert rig.pool.shutdowns == [{"wait": False, "cancel_futures": True}]
+
+
+def test_other_errors_stop_the_loop_and_close_the_deck(make_engine):
+    """Só OSError/ValueError (HID) reconectam; outro erro sai do run(), que ainda fecha tudo."""
+    rig = make_engine(RECONNECT)
+    deck = rig.factory.prepare()
+
+    def bug():
+        raise RuntimeError("boom")
+
+    deck.script = [None, bug]
+    with pytest.raises(RuntimeError):
+        rig.run()
+    assert rig.factory.made == [deck]
+    assert deck.closed
+    assert rig.engine.deck is None
+
+
+def test_missing_deck_is_retried_every_2_s_and_becomes_a_problem_after_5_s(make_engine, monkeypatch):
+    opened: list[str] = []
+    real_problem = logs.problem
+    monkeypatch.setattr(logs, "problem", lambda pid, *a, **k: (opened.append(pid), real_problem(pid, *a, **k)))
+    rig = make_engine(RECONNECT)
+    rig.factory.fail = [DeviceNotFound("Fifine D6 not found")] * 4
+    deck = rig.factory.prepare()
+    deck.script = [rig.engine.stop]
+    stop = rig.run()
+    assert stop.waits == [2, 2, 2, 2]  # tentativas aos 0, 2, 4 e 6 s; a 5ª conecta
+    assert opened == ["device.disconnected"]  # aos 4 s ainda não; aos 6 s sim
+    assert rig.factory.made == [deck]
+    assert sorted(deck.pushed_keys()) == list(range(1, 16))
+    assert "device.disconnected" not in [p.get("id") for p in logs.problems()]  # conectou: resolvido
+
+
+# ---------------------------------------------------------------------------- brilho
+
+
+def test_brightness_action_absolute_and_in_cycle(make_engine):
+    rig = make_engine("""
+        language: en
+        brightness: 90
+        pages:
+          main:
+            1: {icon: {text: "40"}, action: {type: brightness, value: 40}}
+            2: {icon: {text: "+"}, action: {type: brightness, step: 25}}
+    """)
+    deck = rig.connect()
+    assert deck.enabled == [90]
+    rig.tap(1)
+    assert deck.brightness == [40]
+    rig.tap(2)
+    rig.tap(2)
+    rig.tap(2)
+    rig.tap(2)
+    assert deck.brightness == [40, 65, 90, 10, 35]  # passou de 100: volta para 10
+
+
+# ---------------------------------------------------------------------------- anel de LEDs
+
+
+LIGHT = """
+language: en
+lighting:
+  effect: solid
+  color: "#ff0000"
+  brightness: 100
+  off_with_screen: false
+  reaction: {kind: none}
+pages:
+  main:
+    1: {icon: {bg: "#0000ff"}, action: {type: light.flash, color: "#00ff00", seconds: 2}}
+"""
+
+
+def test_light_section_paints_the_ring_and_flash_answers_for_a_while(make_engine):
+    rig = make_engine(LIGHT)
+    deck = rig.connect()
+    assert deck.leds
+    base = deck.leds[-1]
+    assert len(set(base)) == 1 and base[0][0] > 200 and base[0][1] < 30  # vermelho no anel todo
+    rig.tap(1)
+    assert deck.leds[-1] == [(0, 255, 0)] * 18
+    rig.advance(1900)
+    assert deck.leds[-1] == [(0, 255, 0)] * 18
+    rig.advance(200)
+    assert deck.leds[-1] == base
+
+
+def test_same_ring_frame_is_resent_every_1_5_s(make_engine):
+    """O anel volta sozinho depois dos dois cliques no botão de trás: o mesmo quadro é reenviado."""
+    rig = make_engine(LIGHT)
+    deck = rig.connect()
+    deck.clear_log()
+    rig.advance(1400, step=100)
+    assert deck.leds == []
+    rig.advance(200, step=100)
+    assert len(deck.leds) == 1
+
+
+def test_without_light_section_the_ring_is_left_alone(make_engine):
+    rig = make_engine("""
+        language: en
+        pages:
+          main:
+            1: {icon: {bg: "#0000ff"}, action: {type: light.flash, color: "#00ff00", seconds: 2}}
+    """)
+    deck = rig.connect()
+    rig.tap(1)  # light.flash é ignorado (com aviso no log)
+    rig.advance(2000)
+    assert deck.leds == []
