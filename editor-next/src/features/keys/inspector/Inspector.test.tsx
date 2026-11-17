@@ -25,7 +25,6 @@ const SCHEMA = {
   widget_categories: [],
 };
 
-const PLACE = { section: "keys", setSection: "general", page: "main", key: null, tab: "do", lookMode: "normal", lightMoment: "press", view: "normal", expanded: false } as const;
 
 beforeAll(() => {
   globalThis.ResizeObserver ??= class {
@@ -48,7 +47,7 @@ afterEach(cleanup);
 
 function Harness() {
   useKeyShortcuts("main");
-  return <Inspector page="main" previews={undefined} place={PLACE} />;
+  return <Inspector page="main" previews={undefined} />;
 }
 function setup() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });

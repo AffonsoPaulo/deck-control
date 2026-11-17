@@ -2,7 +2,6 @@
 // ampliada, "O que faz" ocupa o meio e a direita. O arrastar envolve tudo: as peças saem da biblioteca e caem no
 // Deck ou numa lista de passos.
 import { useEffect } from "react";
-import type { Place } from "@/core/hash";
 import { useT } from "@/core/i18n";
 import { useConfig } from "@/core/store/config";
 import { useUi } from "@/core/store/ui";
@@ -19,13 +18,13 @@ import { useKeyShortcuts } from "@/features/keys/shortcuts";
 import { Stage, useCurrentPage } from "@/features/keys/Stage";
 import { keyText } from "@/features/keys/keys";
 
-export function KeysSection({ place }: { place: Place }) {
+export function KeysSection() {
   const page = useCurrentPage();
   if (page === null) return null;
-  return <KeysWorkspace page={page} place={place} />;
+  return <KeysWorkspace page={page} />;
 }
 
-function KeysWorkspace({ page, place }: { page: string; place: Place }) {
+function KeysWorkspace({ page }: { page: string }) {
   const t = useT();
   const { size, gapX, gapY } = useDeckState();
   const { onMove, onDrop } = useDeckDrop(page);
@@ -72,7 +71,7 @@ function KeysWorkspace({ page, place }: { page: string; place: Place }) {
         ) : (
           <>
             <Stage page={page} />
-            <Inspector page={page} previews={previews} place={place} />
+            <Inspector page={page} previews={previews} />
           </>
         )}
       </div>

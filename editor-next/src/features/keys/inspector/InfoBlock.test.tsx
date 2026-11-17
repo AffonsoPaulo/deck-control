@@ -23,7 +23,6 @@ const SCHEMA = {
   widgets: {},
   widget_categories: [],
 };
-const PLACE = { section: "keys", setSection: "general", page: "p", key: null, tab: "look", lookMode: "normal", lightMoment: "press", view: "normal", expanded: false } as const;
 
 beforeAll(() => {
   globalThis.ResizeObserver ??= class {
@@ -57,7 +56,7 @@ function setup(key: string) {
   qc.setQueryData(["values"], {});
   return render(
     <QueryClientProvider client={qc}>
-      <Inspector page="p" previews={undefined} place={PLACE} />
+      <Inspector page="p" previews={undefined} />
     </QueryClientProvider>,
   );
 }

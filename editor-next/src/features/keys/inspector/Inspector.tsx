@@ -1,14 +1,12 @@
 // O inspetor (coluna da direita da seção Teclas): sem tecla escolhida, como montar o Deck; tecla vazia, as ações
-// rápidas; tecla com algo, o cabeçalho (miniatura, nome, ferramentas) e as abas. Nesta parte: a aba Aparência da
-// tecla simples. "O que faz", "Luz" e a aparência de bloco, informação e widget ainda abrem no editor atual.
+// rápidas; tecla com algo, o cabeçalho (miniatura, nome, ferramentas) e as abas (O que faz, Aparência ou Widget,
+// Luz).
 import { BookmarkPlus, Check, ClipboardPaste, Copy, LayoutGrid, ListOrdered, Maximize2, MousePointer2, Pencil, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { SectionPlaceholder } from "@/app/SectionPlaceholder";
 import { Button } from "@/components/Button";
 import { IconButton } from "@/components/IconButton";
 import { Chip, catStyle } from "@/components/Library";
 import { useT } from "@/core/i18n";
-import type { Place } from "@/core/hash";
 import { normalizeIcon } from "@/core/obj";
 import { useSchema } from "@/core/queries";
 import { useConfig } from "@/core/store/config";
@@ -18,6 +16,7 @@ import { ActionPicker } from "@/features/keys/ActionPicker";
 import { LookTab } from "@/features/keys/inspector/LookTab";
 import { WidgetTab } from "@/features/keys/inspector/WidgetTab";
 import { DoTab } from "@/features/keys/logic/DoTab";
+import { LightTab } from "@/features/light/LightTab";
 import { BlockLook } from "@/features/keys/inspector/BlockLook";
 import { InfoLook } from "@/features/keys/inspector/InfoLook";
 import { isInfoKey } from "@/features/keys/look";
@@ -30,12 +29,12 @@ import { useSession } from "@/features/keys/session";
 
 const QUICK = ["hotkey", "launch", "obs.scene", "discord.mute", "page", "media"];
 
-export function Inspector({ page, previews, place }: { page: string; previews: KeyPreview[] | undefined; place: Place }) {
+export function Inspector({ page, previews }: { page: string; previews: KeyPreview[] | undefined }) {
   const k = useUi((s) => s.key);
   const spec = useConfig((s) => (k ? pageKeysOf(s.cfg, page)[k] : undefined));
   return (
     <aside className="min-h-0 w-107.5 flex-none overflow-y-auto border-l border-border bg-surface scrollbar-stable">
-      {k === null ? <Guide /> : !spec ? <EmptyKey page={page} k={k} /> : <KeyInspector page={page} k={k} spec={spec} preview={previews?.[Number(k) - 1] ?? null} place={place} />}
+      {k === null ? <Guide /> : !spec ? <EmptyKey page={page} k={k} /> : <KeyInspector page={page} k={k} spec={spec} preview={previews?.[Number(k) - 1] ?? null} />}
     </aside>
   );
 }
@@ -124,7 +123,7 @@ function EmptyKey({ page, k }: { page: string; k: string }) {
 
 const isWidget = (spec: KeySpec) => !!spec.widget;
 
-function KeyInspector({ page, k, spec, preview, place }: { page: string; k: string; spec: KeySpec; preview: KeyPreview; place: Place }) {
+function KeyInspector({ page, k, spec, preview }: { page: string; k: string; spec: KeySpec; preview: KeyPreview }) {
   const t = useT();
   const tab = useUi((s) => s.tab);
   const go = useUi((s) => s.go);
@@ -155,7 +154,6 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
         ["look", t("Appearance")],
         ["light", t("Light")],
       ];
-  const ready = tab === "look" || tab === "do";
 
   return (
     <>
@@ -205,8 +203,8 @@ function KeyInspector({ page, k, spec, preview, place }: { page: string; k: stri
           <IconButton icon={Maximize2} label={t("Expand")} title={t("Open the logic in a larger area")} onClick={() => go({ expanded: true, tab: "do" })} className="ml-auto" />
         )}
       </div>
-      {!ready ? (
-        <SectionPlaceholder place={place} compact />
+      {tab === "light" ? (
+        <LightTab page={page} k={k} spec={spec} />
       ) : tab === "do" ? (
         <DoTab page={page} k={k} spec={spec} />
       ) : widget ? (

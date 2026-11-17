@@ -86,7 +86,7 @@ export function Shell() {
           onRedo={redo}
         />
         <Suspense>
-          {section === "keys" ? <KeysSection place={{ ...place, section }} /> : <SectionPlaceholder place={{ ...place, section }} />}
+          {section === "keys" ? <KeysSection /> : <SectionPlaceholder place={{ ...place, section }} />}
         </Suspense>
       </div>
       <Toaster />

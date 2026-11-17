@@ -23,6 +23,7 @@ import { Card } from "@/components/Card";
 import { TextArea } from "@/components/Field";
 import { Icon } from "@/components/Icon";
 import { IconButton } from "@/components/IconButton";
+import { RangeRow } from "@/components/RangeRow";
 import { IconPicker, useLucideIndex, usePopularIcons } from "@/components/IconPicker";
 import { Segmented } from "@/components/Segmented";
 import { Select } from "@/components/Select";
@@ -58,7 +59,7 @@ export function SectionHead({ title, sub, children }: { title: string; sub?: Rea
 
 export const Hint = ({ children }: { children: ReactNode }) => <p className="m-0 text-xs leading-4.25 text-fg-subtle">{children}</p>;
 
-function ColorRow({ label, children, flush }: { label: string; children: ReactNode; flush?: boolean }) {
+export function ColorRow({ label, children, flush }: { label: string; children: ReactNode; flush?: boolean }) {
   return (
     <div className="flex items-start gap-3">
       <span className="w-23 flex-none text-sm leading-7.5 text-fg-muted">{label}</span>
@@ -526,22 +527,7 @@ function SizesSection({ icon, mode, set, setMany, tag }: SizesProps) {
   const slider = (label: string, key: string, min: number, max: number, step: number, def: number, fmt: (v: number) => string) => {
     const raw = icon[key];
     const val = typeof raw === "number" ? raw : def;
-    return (
-      <div key={key} className="flex min-h-7.5 items-center gap-3">
-        <span className="w-23 flex-none text-sm leading-7.5 text-fg-muted">{label}</span>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={val}
-          aria-label={label}
-          onChange={(e) => set(key, Number(e.target.value), tag(key))}
-          className="min-w-0 flex-1 accent-accent"
-        />
-        <span className="w-10 text-right text-sm text-fg-muted tabular-nums">{raw == null ? "auto" : fmt(val)}</span>
-      </div>
-    );
+    return <RangeRow key={key} label={label} min={min} max={max} step={step} value={val} onChange={(v) => set(key, v, tag(key))} shown={raw == null ? "auto" : fmt(val)} />;
   };
   return (
     <section className="flex flex-col gap-2.5">

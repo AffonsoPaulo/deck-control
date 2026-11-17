@@ -5,8 +5,8 @@
 import { Keyboard, RefreshCw, Send, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
-import { Icon } from "@/components/Icon";
 import { IconButton } from "@/components/IconButton";
+import { NoteBox } from "@/components/NoteBox";
 import { Select } from "@/components/Select";
 import { api } from "@/core/api";
 import { useT } from "@/core/i18n";
@@ -75,10 +75,9 @@ export function BindField({ step, set, hint }: BindFieldProps) {
       </div>
       <SendRow combo={combo} />
       {others.length > 0 && (
-        <div className="mt-2 flex items-start gap-2.5 rounded-md bg-danger-bg px-3 py-2.5 text-sm text-fg-label">
-          <Icon icon={TriangleAlert} className="mt-px text-fg-subtle" />
-          <span className="min-w-50 flex-1">{t("This shortcut is also used in {0}. Click ↻ to make another, so each one does only one thing.", [others.map((p) => placeText(t, schema, p)).join("; ")])}</span>
-        </div>
+        <NoteBox icon={TriangleAlert} tone="bad" className="mt-2">
+          {t("This shortcut is also used in {0}. Click ↻ to make another, so each one does only one thing.", [others.map((p) => placeText(t, schema, p)).join("; ")])}
+        </NoteBox>
       )}
       <ol className="m-0 grid list-decimal gap-0.5 pl-5 text-sm text-fg-muted">
         <li>{t("Save.")}</li>
@@ -168,12 +167,9 @@ export function SendRow({ combo }: { combo: string }) {
         </Button>
       </div>
       {listen !== null && (
-        <div role="status" className="flex items-start gap-2.5 rounded-md bg-sunken px-3 py-2.5 text-sm">
-          <Icon icon={Keyboard} className="mt-px text-fg-subtle" />
-          <span className="min-w-50 flex-1">
-            {t("Now go to the other program, click to record a shortcut and press any Deck key. It will send only {0}: no action runs and nothing changes on the Deck. {1} s left.", [combo, listen])}
-          </span>
-        </div>
+        <NoteBox icon={Keyboard} status>
+          {t("Now go to the other program, click to record a shortcut and press any Deck key. It will send only {0}: no action runs and nothing changes on the Deck. {1} s left.", [combo, listen])}
+        </NoteBox>
       )}
     </>
   );

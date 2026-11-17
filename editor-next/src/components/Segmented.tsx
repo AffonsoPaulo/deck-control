@@ -1,6 +1,7 @@
 // O trilho de escolha do design system (cinza; o escolhido em --selected com texto --fg). Variantes do editor
 // atual: normal (.segmented), largura toda (.segmented.full), pequeno (.segmented.small), só ícones
-// (.segmented.icons) e pílulas (.pills, da Config e dos logs).
+// (.segmented.icons), pílulas (.pills, da Config e dos logs) e momentos (.segmented.moments, com um resumo
+// embaixo de cada um, na aba Luz).
 import { cva, type VariantProps } from "class-variance-authority";
 import type { LucideIcon } from "lucide-react";
 import { Icon } from "@/components/Icon";
@@ -8,7 +9,7 @@ import { cn } from "@/core/cn";
 
 const track = cva("gap-0.5 rounded-lg bg-sunken p-0.75", {
   variants: {
-    variant: { default: "inline-flex", full: "flex w-full", small: "inline-flex self-start", icons: "inline-flex", pills: "inline-flex" },
+    variant: { default: "inline-flex", full: "flex w-full", small: "inline-flex self-start", icons: "inline-flex", pills: "inline-flex", moments: "flex w-full" },
   },
   defaultVariants: { variant: "default" },
 });
@@ -23,6 +24,7 @@ const option = cva(
         small: "h-control-sm px-2.5 font-medium",
         icons: "size-control-md font-medium",
         pills: "h-control-md px-3 font-semibold",
+        moments: "min-w-0 flex-1 flex-col gap-px px-1 py-1.5 leading-4.5 font-semibold",
       },
     },
     defaultVariants: { variant: "default" },
@@ -33,6 +35,7 @@ export interface SegmentedOption<T extends string> {
   value: T;
   label: string; // nas "icons", vira o aria-label e o title
   icon?: LucideIcon;
+  sub?: string; // nos "moments", a linha pequena embaixo (o resumo de cada momento)
 }
 
 interface SegmentedProps<T extends string> extends VariantProps<typeof track> {
@@ -59,7 +62,10 @@ export function Segmented<T extends string>({ options, value, onChange, label, v
             className={option({ variant })}
           >
             {o.icon && <Icon icon={o.icon} />}
-            {!iconOnly && o.label}
+            {!iconOnly && (o.sub === undefined ? o.label : <span>{o.label}</span>)}
+            {o.sub !== undefined && (
+              <small className="max-w-full truncate text-2xs leading-3.75 font-medium text-fg-subtle in-aria-pressed:text-fg-label">{o.sub}</small>
+            )}
           </button>
         );
       })}
