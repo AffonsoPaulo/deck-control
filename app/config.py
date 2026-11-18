@@ -30,6 +30,7 @@ from app.configsections import (
     check_logging,
     check_widgets,
     draw_options,
+    check_screen_color,
     temp_pages,
 )
 from app.errors import ConfigError  # mora em app/errors.py; continua importável daqui
@@ -83,6 +84,7 @@ def build_config(raw: Any, path: Path) -> Config:
     problems += check_page_refs(pages.value)
     problems += check_lighting(raw)
     problems += check_double_tap(raw)
+    problems += check_screen_color(raw)
     problems += check_logging(raw.get("logging"))
     brightness = build_brightness(raw)
     problems += brightness.problems

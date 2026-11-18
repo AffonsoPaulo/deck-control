@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import io
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 
 TILE = 112
 MAX_BYTES = 12000
@@ -63,6 +63,29 @@ def fit(img: Image.Image, size: int = TILE) -> Image.Image:
     canvas = Image.new("RGB", (size, size), (0, 0, 0))
     canvas.paste(img, ((size - img.width) // 2, (size - img.height) // 2), img)
     return canvas
+
+
+def screen_correct(img: Image.Image, red: float = 1.0, blue: float = 1.0, saturation: float = 1.0) -> Image.Image:
+    """Compensa a tela do D6, que exagera o azul nos tons escuros e médios e lava as cores fortes (o roxo sai azul).
+
+    Curva em cada canal (vermelho^red, red < 1, reforça o vermelho baixo; azul^blue, blue > 1, diminui o azul
+    baixo; 0 e 255 não mudam) e um reforço de saturação, aplicados SÓ onde a cor é forte: cinza, branco e preto
+    ficam como estão (o peso é a saturação do original). Tudo em operações do Pillow (rápido para animações)."""
+    if red == 1.0 and blue == 1.0 and saturation == 1.0:
+        return img
+    img = img.convert("RGB")
+
+    def lut(gamma: float) -> list[int]:
+        return [round(255 * (v / 255) ** gamma) for v in range(256)]
+
+    r, g, b = img.split()
+    fixed = Image.merge("RGB", (r.point(lut(red)), g, b.point(lut(blue))))
+    if saturation != 1.0:
+        fixed = ImageEnhance.Color(fixed).enhance(saturation)
+    # peso: nada até saturação 40 (cinzas, brancos, quase-cinzas), cheio a partir de ~170
+    s_chan = img.convert("HSV").split()[1]
+    weight = s_chan.point([0 if v < 40 else min(255, (v - 40) * 2) for v in range(256)])
+    return Image.composite(fixed, img, weight)
 
 
 def encode(img: Image.Image, size: int = TILE, rotate: int = 180, max_bytes: int = MAX_BYTES) -> bytes:

@@ -1056,5 +1056,7 @@
  "{0} is over page {1}.": "{0} está sobre a página {1}.",
  "{0} was dropped on page {1}.": "{0} foi solta na página {1}.",
  "“{0}” can't be a page name.": "“{0}” não pode ser nome de página.",
- "The settings changed somewhere else (another tab, the history or the file). Reload to continue: what you changed here is kept so you can recover it.": "As configurações mudaram em outro lugar (outra aba, o histórico ou o arquivo). Recarregue para continuar: o que você mudou aqui fica guardado para recuperar."
+ "The settings changed somewhere else (another tab, the history or the file). Reload to continue: what you changed here is kept so you can recover it.": "As configurações mudaram em outro lugar (outra aba, o histórico ou o arquivo). Recarregue para continuar: o que você mudou aqui fica guardado para recuperar.",
+ "Correct the screen colors": "Corrigir as cores das telas",
+ "The D6 screens show dark and strong colors bluer than a monitor (purple looks blue). This fixes only what goes to the Deck; the editor keeps the original colors.": "As telas do D6 mostram as cores escuras e fortes mais azuladas que um monitor (o roxo parece azul). Isto corrige só o que vai para o Deck; o editor continua com as cores originais."
 }

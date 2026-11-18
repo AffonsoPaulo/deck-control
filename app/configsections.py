@@ -62,6 +62,41 @@ def check_lighting(raw: dict[str, Any]) -> list[str]:
     return problems
 
 
+# Cor das telas: a tela do D6 exagera o azul nos tons escuros e lava as cores fortes (o roxo sai azul). Calibrado
+# no D6 de verdade em 2026-11-18 com tools/screen_color.py: (vermelho, azul, saturação) de d6.render.screen_correct.
+SCREEN_COLOR = (0.82, 1.45, 1.3)
+SCREEN_COLOR_RANGES = {"red": (0.3, 1.5), "blue": (0.5, 3.0), "saturation": (0.5, 2.5)}
+
+
+def screen_color(raw: dict[str, Any]) -> tuple[float, float, float] | None:
+    """device.screen_color: a correção das telas (ligada por padrão), false desliga, ou {red, blue, saturation}."""
+    dev = raw.get("device")
+    v = dev.get("screen_color", True) if isinstance(dev, dict) else True
+    if v is False:
+        return None
+    if isinstance(v, dict):
+        try:
+            return tuple(float(v.get(k, d)) for k, d in zip(SCREEN_COLOR_RANGES, SCREEN_COLOR, strict=True))  # type: ignore[return-value]
+        except (TypeError, ValueError):
+            return SCREEN_COLOR  # o problema já vai para a lista (check_screen_color)
+    return SCREEN_COLOR
+
+
+def check_screen_color(raw: dict[str, Any]) -> list[str]:
+    dev = raw.get("device")
+    v = dev.get("screen_color") if isinstance(dev, dict) else None
+    if v is None or isinstance(v, bool):
+        return []
+    if not isinstance(v, dict):
+        return [tr("device.screen_color: use true, false or {red, blue, saturation}")]
+    out = []
+    for k, (lo, hi) in SCREEN_COLOR_RANGES.items():
+        x = v.get(k)
+        if x is not None and not (isinstance(x, (int, float)) and not isinstance(x, bool) and lo <= x <= hi):
+            out.append(tr("device.screen_color.{field}: a number from {lo} to {hi}", field=k, lo=lo, hi=hi))
+    return out
+
+
 def check_double_tap(raw: dict[str, Any]) -> list[str]:
     """double_tap_ms: a janela do toque duplo."""
     dt = raw.get("double_tap_ms")

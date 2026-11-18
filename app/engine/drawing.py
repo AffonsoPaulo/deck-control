@@ -18,7 +18,7 @@ import hashlib
 from collections.abc import Collection
 from typing import TYPE_CHECKING, Any
 
-from app import icons, logs, values
+from app import configsections, icons, logs, values
 from app.engine.core import Shared
 from app.i18n import tr
 from d6 import render
@@ -136,6 +136,12 @@ class Drawing:
         self._slices: dict[tuple[str, float, int, int, int], Image.Image] = {}  # bloco "imagem contínua", já cortada
 
     # -- o Deck (re)conectou ou caiu
+    def _encode(self, img: Image.Image) -> bytes:
+        """O JPEG que vai para o D6, com a cor corrigida para a tela dele (device.screen_color; o editor mostra a
+        cor original)."""
+        sc = configsections.screen_color(self._shared.cfg.raw)
+        return render.encode(render.screen_correct(img, *sc) if sc else img)
+
     def forget_screens(self) -> None:
         """O D6 pode ter perdido as imagens: todas vão de novo (quem chama segura a trava)."""
         self._sent.clear()
@@ -288,27 +294,27 @@ class Drawing:
     def _frames_for(self, key: int) -> tuple[list[bytes], list[float]]:
         """JPEGs da tecla e a duração de cada um (s). Um só quadro se não for GIF animado."""
         if key in self._queue.errors:
-            return [render.encode(icons.error_mark(self._still_for(key)))], [0.0]
+            return [self._encode(icons.error_mark(self._still_for(key)))], [0.0]
         icon = self.icon_for(key)
         if icon is None:
-            return [render.encode(icons.BLANK)], [0.0]
+            return [self._encode(icons.BLANK)], [0.0]
         if "__slice__" in icon:
-            return [render.encode(self._block_slice(key, icon))], [0.0]
+            return [self._encode(self._block_slice(key, icon))], [0.0]
         cfg = self._shared.cfg
         defaults = cfg.raw.get("icons")
         if not (icon or {}).get("image"):
-            return [render.encode(icons.render_icon(icon, cfg.base_dir, defaults))], [0.0]
+            return [self._encode(icons.render_icon(icon, cfg.base_dir, defaults))], [0.0]
         # GIF: codificar todos os quadros custa; guarda o resultado por ícone + data do arquivo
         try:
             mtime = icons._image_path(icon, cfg.base_dir).stat().st_mtime
         except OSError:
             mtime = 0
-        ck = repr((sorted(icon.items(), key=str), defaults, mtime))
+        ck = repr((sorted(icon.items(), key=str), defaults, mtime, configsections.screen_color(cfg.raw)))
         if ck not in self._frame_cache:
             frames = icons.render_frames(icon, cfg.base_dir, defaults)
             if len(self._frame_cache) > 24:
                 self._frame_cache.clear()
-            self._frame_cache[ck] = ([render.encode(img) for img, _ in frames], [ms / 1000 for _, ms in frames])
+            self._frame_cache[ck] = ([self._encode(img) for img, _ in frames], [ms / 1000 for _, ms in frames])
         return self._frame_cache[ck]
 
     # -- o envio
@@ -333,7 +339,7 @@ class Drawing:
             for key in sorted(dirty):
                 if key in sunk:
                     # apertada: a imagem de agora, encolhida (o GIF dela fica parado até soltar)
-                    pressed = render.encode(icons.pressed_image(self._still_for(key)))
+                    pressed = self._encode(icons.pressed_image(self._still_for(key)))
                     digest = hashlib.sha1(pressed).hexdigest()
                     if self._sent.get(key) != digest:
                         tiles[key] = pressed
@@ -433,7 +439,7 @@ class Drawing:
             return None
         now = self._shared.clock.monotonic()
         self._anims[key] = {"plan": plan, "icon": icon, "i": 1, "due": now + icons.FLIP_FRAME_S}
-        return render.encode(plan.frame(1))
+        return self._encode(plan.frame(1))
 
     def _once_sig(self, key: int) -> tuple[tuple[Any, ...], str] | None:
         """Assinatura do GIF que toca uma vez nesta tecla agora (de onde vem + ícone), ou None se ele repete."""
@@ -461,7 +467,7 @@ class Drawing:
                 continue
             if "plan" in a:  # virada: um quadro por vez, montado agora; no último, para
                 a["i"] += 1
-                data = render.encode(a["plan"].frame(a["i"]))
+                data = self._encode(a["plan"].frame(a["i"]))
                 deck.push(key, data)
                 self._sent[key] = hashlib.sha1(data).hexdigest()
                 if a["i"] >= a["plan"].n:
