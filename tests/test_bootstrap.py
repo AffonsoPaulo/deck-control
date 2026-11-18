@@ -144,10 +144,10 @@ def test_paths_point_to_the_files_the_app_ships_with():
 
     assert not paths.FROZEN
     assert paths.ROOT == ROOT
-    # o que sobrou do editor antigo e o app usa (o editor em si é o build do editor-next)
+    # o que sobrou do editor antigo e o app usa (o editor em si é o build do editor)
     assert (paths.STATIC / "lucide-index.json").is_file()
     assert (paths.STATIC / "fonts" / "lucide.ttf").is_file()
-    assert paths.EDITOR_NEXT == ROOT / "editor-next" / "dist"
+    assert paths.EDITOR_DIST == ROOT / "editor" / "dist"
     assert (paths.LOCALES / "pt-BR.json").is_file()
     assert (paths.BUILTIN_PLUGINS / "obs" / "plugin.json").is_file()
     assert paths.MAIN_SCRIPT.is_file()

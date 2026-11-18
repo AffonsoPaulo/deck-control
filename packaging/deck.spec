@@ -1,6 +1,6 @@
 # PyInstaller: o Deck.exe em modo pasta, sem console (Fase 7 do plano).
 #
-#   cd editor-next && npm ci && npm run build     (o editor entra pronto, do editor-next/dist)
+#   cd editor && npm ci && npm run build     (o editor entra pronto, do editor/dist)
 #   python -m pip install -r packaging/requirements-build.txt
 #   python -m PyInstaller packaging/deck.spec --noconfirm
 #
@@ -28,8 +28,8 @@ sys.path.insert(0, str(ROOT))
 
 from app import __version__, brand, paths  # noqa: E402
 
-if not (paths.EDITOR_NEXT / "index.html").is_file():
-    raise SystemExit("editor-next/dist is missing: run `npm ci && npm run build` in editor-next first")
+if not (paths.EDITOR_DIST / "index.html").is_file():
+    raise SystemExit("editor/dist is missing: run `npm ci && npm run build` in editor first")
 
 
 # ---------------------------------------------------------------------------- arquivos
@@ -48,7 +48,7 @@ def _tree(folder: Path, skip: tuple[str, ...] = (".pyc", ".pyo")) -> list[tuple[
 
 
 datas = [
-    *_tree(paths.EDITOR_NEXT, skip=(".map",)),  # sem os source maps
+    *_tree(paths.EDITOR_DIST, skip=(".map",)),  # sem os source maps
     *_tree(paths.BUILTIN_PLUGINS),
     *[(str(f), _rel(f)) for f in sorted(paths.LOCALES.glob("*.json"))],
     (str(paths.STATIC / "lucide-index.json"), _rel(paths.STATIC / "lucide-index.json")),

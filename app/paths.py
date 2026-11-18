@@ -33,7 +33,7 @@ APP = ROOT / "app"
 STATIC = APP / "editor" / "static"  # tokens, fontes, traduções e índice do Lucide (o editor e o desenho usam)
 LOCALES = APP / "locales"  # traduções do Python
 BUILTIN_PLUGINS = APP / "plugins" / "builtin"
-EDITOR_NEXT = ROOT / "editor-next" / "dist"  # o editor (React), servido na raiz depois do npm run build
+EDITOR_DIST = ROOT / "editor" / "dist"  # o editor (React), servido na raiz depois do npm run build
 MAIN_SCRIPT = APP / "__main__.py"  # o que o "iniciar com o Windows" roda (fora do executável)
 EXAMPLE_CONFIG = ROOT / "config.example.yaml"
 CONFIG_NAME = "config.yaml"
@@ -42,7 +42,7 @@ CONFIG_NAME = "config.yaml"
 # roda ele), e o packaging/deck.spec leva cada um. Do app/editor/static, só a fonte e o índice do Lucide (o
 # desenho das teclas): o resto entra no build do editor.
 RESOURCES = {
-    "editor": EDITOR_NEXT / "index.html",
+    "editor": EDITOR_DIST / "index.html",
     "lucide index": STATIC / "lucide-index.json",
     "lucide font": STATIC / "fonts" / "lucide.ttf",
     "translations": LOCALES / "pt-BR.json",

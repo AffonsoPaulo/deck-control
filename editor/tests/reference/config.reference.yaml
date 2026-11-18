@@ -281,7 +281,7 @@ pages:
       icon: { lucide: arrow-left, text: Voltar, bg: "#1E3A5F" }
       action: page:back
 
-# --- só das referências (editor-next/tests/reference): widgets, bloco, luz e automação para cobrir as telas
+# --- só das referências (editor/tests/reference): widgets, bloco, luz e automação para cobrir as telas
 lighting:
   effect: solid
   color: "#2f6fed"

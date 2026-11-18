@@ -3,7 +3,7 @@
 ## Design system
 - Tokens em `app/editor/static/tokens.css` (a fonte única; o editor importa no Tailwind). Nada de cor, raio,
   tamanho de fonte, ícone, sombra, duração ou z-index escritos direto: o lint barra.
-  Exceção: o desenho do aparelho (`editor-next/src/features/keys/deck.css`: o Deck, as teclas, a tela Luz, a peça
+  Exceção: o desenho do aparelho (`editor/src/features/keys/deck.css`: o Deck, as teclas, a tela Luz, a peça
   arrastada), que usa `--device-*` e medidas próprias.
 - Dois blocos no `tokens.css`: escalas e paleta de tecla (fixos) e o tema (`[data-theme]`, só cores e sombras).
   Um tema novo redefine só o bloco do tema.
@@ -17,8 +17,8 @@
 - Apareceu em dois lugares: vira componente na hora.
 - Mudança visual passa primeiro pelo canvas (artifact "Editor do D6", página "Design system").
 
-## Editor (React, `editor-next/`)
-- Vite + React 19 + TypeScript 6 (estrito) + Tailwind v4. O Python serve o build (`editor-next/dist`) na raiz, com o
+## Editor (React, `editor/`)
+- Vite + React 19 + TypeScript 6 (estrito) + Tailwind v4. O Python serve o build (`editor/dist`) na raiz, com o
   token no caminho (`/XXXX-XXXX-XXXX/teclas/...`); sem o build, a página explica que falta o `npm run build`.
   O editor antigo (JS puro) saiu; de `app/editor/static` ficaram os tokens, as traduções, as fontes, o índice do
   Lucide e os favicons, que o editor e o Python usam.

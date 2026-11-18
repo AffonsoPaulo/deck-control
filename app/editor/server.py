@@ -44,7 +44,7 @@ CSP = (
 # sem o build do editor (desenvolvimento, antes do npm run build): explica em vez de um 404 seco
 NO_BUILD = (
     "<!doctype html><meta charset=utf-8><title>Deck</title><body style='font:16px system-ui;padding:2rem'>"
-    "<h1>O editor ainda não foi montado</h1><p>Na pasta <code>editor-next</code>, rode <code>npm run build</code> "
+    "<h1>O editor ainda não foi montado</h1><p>Na pasta <code>editor</code>, rode <code>npm run build</code> "
     "e recarregue esta página.</p>"
 ).encode()
 mimetypes.add_type("font/woff2", ".woff2")
@@ -268,11 +268,11 @@ def _make_handler(server: EditorServer):
             if path == OLD_NEXT or path.startswith(OLD_NEXT + "/"):
                 rest = path[len(OLD_NEXT) :] or "/"
                 return self._redirect(rest)
-            # arquivos do build do editor (editor-next/dist). As páginas (/, /XXXX-XXXX-XXXX/qualquer/coisa) são
+            # arquivos do build do editor (editor/dist). As páginas (/, /XXXX-XXXX-XXXX/qualquer/coisa) são
             # todas o index.html: quem lê o resto do caminho (seção, página, tecla) é o próprio editor.
             rest = path.lstrip("/")
             first = rest.split("/", 1)[0]
-            root = paths.EDITOR_NEXT
+            root = paths.EDITOR_DIST
             rel = "index.html" if not rest or TOKEN_RE.fullmatch(first) else rest
             if rel == "index.html" and not (root / rel).is_file():
                 return self._send(503, NO_BUILD, "text/html; charset=utf-8")

@@ -21,10 +21,10 @@ venv/
 
 # Editor novo (React): dependências, build e prints de referência (gerados na máquina de quem testa)
 node_modules/
-editor-next/dist/
-editor-next/reference/
-editor-next/test-results/
-editor-next/playwright-report/
+editor/dist/
+editor/reference/
+editor/test-results/
+editor/playwright-report/
 
 # Saídas de teste e fotos locais
 *.jpg

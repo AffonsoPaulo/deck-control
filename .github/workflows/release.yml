@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: editor-next/package-lock.json
+          cache-dependency-path: editor/package-lock.json
 
       - name: Versão (app/__init__.py) igual à tag
         id: version
@@ -46,8 +46,8 @@ jobs:
           "VERSION=$v" >> $env:GITHUB_ENV
           "version=$v" >> $env:GITHUB_OUTPUT
 
-      - name: Editor (editor-next/dist)
-        working-directory: editor-next
+      - name: Editor (editor/dist)
+        working-directory: editor
         run: |
           npm ci
           if ($LASTEXITCODE) { exit $LASTEXITCODE }

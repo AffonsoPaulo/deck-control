@@ -56,17 +56,17 @@ python -m mypy             # tipos (só os módulos listados no pyproject.toml, 
 
 A CI do GitHub (`.github/workflows/ci.yml`) roda os quatro a cada push, no Windows.
 
-Editor (React, em `editor-next/`; precisa do Node 22 ou mais novo). O app serve o `editor-next/dist` na raiz, com o
+Editor (React, em `editor/`; precisa do Node 22 ou mais novo). O app serve o `editor/dist` na raiz, com o
 token no caminho (`http://127.0.0.1:8765/<token>/teclas`, o link da bandeja); sem o build, a página pede o `npm run build`:
 
 ```
-cd editor-next
+cd editor
 npm ci
 npm run dev           # http://127.0.0.1:5173/<token>/teclas (a /api vai para o servidor de teste, porta 8799)
 npm run check         # lint (inclui as regras do design system), tipos e contrato em dia
-npm run build         # gera editor-next/dist, que o app serve na raiz
+npm run build         # gera editor/dist, que o app serve na raiz
 npm run gen:api       # tipos da API, depois de mudar app/editor/contract.py
-npm run ref:capture   # prints de cada tela (editor-next/reference/; o servidor de tests/reference/serve.py)
+npm run ref:capture   # prints de cada tela (editor/reference/; o servidor de tests/reference/serve.py)
 ```
 
 ## Executável e instalador
@@ -74,7 +74,7 @@ npm run ref:capture   # prints de cada tela (editor-next/reference/; o servidor 
 O `Deck.exe` (PyInstaller, modo pasta, sem console) e o `Deck-Setup.exe` (Inno Setup) saem de `packaging/`:
 
 ```
-cd editor-next && npm ci && npm run build && cd ..          # o editor vai pronto dentro do pacote
+cd editor && npm ci && npm run build && cd ..          # o editor vai pronto dentro do pacote
 python -m pip install -r packaging/requirements-build.txt     # num ambiente só para o build (versões exatas)
 python -m PyInstaller packaging/deck.spec --noconfirm         # dist/Deck/Deck.exe
 python packaging/check_exe.py dist/Deck/Deck.exe              # --check, recursos e um plugin, sem tocar no D6

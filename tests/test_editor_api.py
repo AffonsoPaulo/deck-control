@@ -535,7 +535,7 @@ def _dist(tmp_path, monkeypatch):
     (dist / "assets").mkdir(parents=True)
     (dist / "index.html").write_text("<!doctype html><title>editor</title>", encoding="utf-8")
     (dist / "assets" / "app.js").write_text("export {}", encoding="utf-8")
-    monkeypatch.setattr(paths, "EDITOR_NEXT", dist)
+    monkeypatch.setattr(paths, "EDITOR_DIST", dist)
     return dist
 
 
@@ -618,7 +618,7 @@ def test_optional_keys_are_optional():
         check_contract("error", "", {"error": "x", "code": "outro"})
 
 
-# ---------------------------------------------------------------------------- o editor (build do editor-next)
+# ---------------------------------------------------------------------------- o editor (build do editor)
 
 
 def test_editor_is_served_from_its_build(api, tmp_path, monkeypatch):
@@ -638,7 +638,7 @@ def test_editor_is_served_from_its_build(api, tmp_path, monkeypatch):
 def test_without_build_explains_what_to_do(api, tmp_path, monkeypatch):
     from app import paths
 
-    monkeypatch.setattr(paths, "EDITOR_NEXT", tmp_path / "nao-existe")
+    monkeypatch.setattr(paths, "EDITOR_DIST", tmp_path / "nao-existe")
     status, body = api.request("GET", f"/{api.srv.token}/teclas")
     assert status == 503 and b"npm run build" in body
 
