@@ -41,7 +41,8 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           $v = python -c "import app; print(app.__version__)"
-          if ("v$v" -ne $env:TAG) { throw "A tag $env:TAG não bate com app/__init__.py (v$v)" }
+          # v0.9.0, ou uma pré-versão dela (v0.9.0-rc1): o Release sai marcado como pré-release
+          if ($env:TAG -ne "v$v" -and -not $env:TAG.StartsWith("v$v-")) { throw "A tag $env:TAG não bate com app/__init__.py (v$v)" }
           "VERSION=$v" >> $env:GITHUB_ENV
           "version=$v" >> $env:GITHUB_OUTPUT
 
@@ -101,8 +102,10 @@ jobs:
           TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
+          pre=""
+          case "$TAG" in *-*) pre="--prerelease" ;; esac
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" Deck-Setup.exe --clobber
           else
-            gh release create "$TAG" Deck-Setup.exe --title "Deck $VERSION" --generate-notes
+            gh release create "$TAG" Deck-Setup.exe --title "Deck ${TAG#v}" --generate-notes $pre
           fi
