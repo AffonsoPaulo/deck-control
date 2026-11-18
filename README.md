@@ -39,7 +39,7 @@ configurações gerais; salvar grava no `config.yaml` preservando comentários
 no config; sem a linha, segue o idioma do Windows). Vale para o editor, a bandeja, as mensagens
 de erro e os plugins. O texto em inglês é a chave: as traduções ficam em
 `app/editor/static/locales/pt-BR.json` (editor) e `app/locales/pt-BR.json` (Python). Os logs
-continuam em português.
+ficam sempre em inglês.
 
 Todas as ações, campos de ícone e opções estão documentados no topo de
 `config.example.yaml`. O app recarrega o `config.yaml` sozinho ao salvar.
@@ -120,16 +120,33 @@ Envio em lote (uma sessão para todas as teclas) funciona; página inteira em ~1
 
 ## Estrutura
 
-- `d6/` driver do D6 (HID, protocolo CRT, imagens)
-- `app/engine/` loop principal: teclas, páginas, estados, redesenho só do que mudou (`engine.py` liga as peças)
-- `app/config.py` leitura/validação do YAML (`configmodel.py` o modelo tipado; `configpages.py` e `configsections.py` os validadores de cada seção)
-- `app/storage.py` o arquivo do config: gravar com backup, histórico de versões
-- `app/icons.py` desenho dos ícones (texto, ícones do Lucide, imagens; o Segoe antigo ainda é aceito)
-- `app/lighting.py` luz do D6: efeitos e reações às teclas no anel de LEDs
-- `app/plugins/` plugins: o OBS e o Discord (embutidos) e os de terceiros (programas separados); ver PLUGINS.md
-- `app/editor/` servidor e interface do editor visual
-- `tests/` testes automáticos (pytest)
-- `app/configio.py` gravação do YAML preservando comentários
-- `app/schema.py` descrição das ações para o editor
-- `app/tray.py`, `app/winutil.py` bandeja, autostart, instância única
-- `app/actions/` ações (`basic.py`, `obs.py`, `discord.py`); nova ação = função com `@action("nome")`
+```
+d6/                 driver do D6 (HID, protocolo CRT, imagens)
+app/
+  __main__.py       início do app (opções de linha de comando)
+  bootstrap.py      monta as peças compartilhadas e carrega os plugins
+  paths.py          onde ficam os recursos e os dados da pessoa
+  errors.py, i18n.py, logs.py
+  engine/           laço principal: teclas, páginas, estados, redesenho só do que mudou (engine.py liga as peças)
+  config/           o config.yaml
+    load.py         leitura e validação (build_config, load_config)
+    model.py        o modelo tipado (Config, KeySpec)
+    pages.py        validação de pages:; sections.py as outras seções
+    yamlio.py       gravação do YAML preservando comentários
+    storage.py      o arquivo em disco: gravar com backup; history.py as versões guardadas
+    transfer.py     exportar e importar; firstrun.py primeira abertura do executável
+  actions/          ações (basic.py); nova ação = função com @action("nome")
+  plugins/          plugins: OBS, Discord e clima (embutidos, em builtin/) e os de terceiros; ver docs/plugins.md
+  plugin_runner.py  o processo de um plugin de terceiros em Python (--run-plugin)
+  editor/           servidor do editor: api/ (uma função por rota), contract.py (os tipos), schema.py, static/
+  windows/          bandeja (tray.py), teclado simulado (keys.py), autostart, instância única, tela e volume (winutil.py)
+  icons.py          desenho dos ícones (texto, Lucide, imagens; o Segoe antigo ainda é aceito); brand.py a marca
+  lighting.py       luz do D6: efeitos e reações às teclas no anel de LEDs
+  widgets.py, values.py, automations.py, binds.py   widgets, valores vivos, automações e atalhos
+editor/             o editor visual (React + TypeScript + Tailwind); o build vai para editor/dist
+tests/              testes automáticos (pytest)
+tools/              ferramentas que falam com o D6 de verdade (fora do pytest)
+packaging/          executável (PyInstaller) e instalador (Inno Setup)
+examples/plugins/   plugin de exemplo (pomodoro)
+docs/               plugins.md (como fazer um plugin), roadmap.md, design-system.md
+```

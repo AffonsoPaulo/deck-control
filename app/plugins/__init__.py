@@ -1,6 +1,6 @@
 """Plugins: integrações que acrescentam ações, configurações e estados ao app.
 
-Cada plugin é uma pasta com um plugin.json (ver PLUGINS.md). Dois tipos:
+Cada plugin é uma pasta com um plugin.json (ver docs/plugins.md). Dois tipos:
   * embutidos (app/plugins/builtin/<id>): Python, rodam dentro do app (OBS, Discord);
   * de terceiros (pasta 'plugins' nos dados do app): um programa separado, em qualquer linguagem,
     que conversa com o app por linhas de JSON no stdin/stdout (app/plugins/external.py).

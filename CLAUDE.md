@@ -44,7 +44,8 @@
   `app/editor/contract.py` e a entrada em `ROUTES` (`app/editor/api/__init__.py`). Mudou o formato: rode
   `python -m app.editor.contract` (o teste avisa). O servidor (`server.py`) só cuida do HTTP.
 - Bug achado em teste de caracterização: registrar com `xfail(strict=True)` e avisar, sem corrigir junto.
-- Plano da refatoração: `docs/plano-python.md`.
+- Planos de trabalho em `docs/plano-*.md` (só na máquina: o `.gitignore` deixa entrar no git só o `design-system.md`,
+  o `plugins.md` e o `roadmap.md` de `docs/`).
 
 ## Trabalho
 - Responder em português do Brasil.

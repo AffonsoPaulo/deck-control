@@ -1,6 +1,6 @@
 """Plugin de exemplo do D6: Pomodoro.
 
-Mostra o protocolo dos plugins de terceiros (ver PLUGINS.md): o app manda mensagens JSON,
+Mostra o protocolo dos plugins de terceiros (ver docs/plugins.md): o app manda mensagens JSON,
 uma por linha, no stdin; o plugin responde no stdout. Só usa a biblioteca padrão do Python.
 
 Idiomas: os textos ficam em locales/<idioma>.json (os mesmos arquivos que o plugin.json usa

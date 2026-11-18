@@ -3,7 +3,7 @@
 O app abre o programa (command(): o 'run' do plugin.json, na pasta do plugin; em Python, pelo modo
 --run-plugin do app, ver app/plugin_runner.py) e escreve no stdin dele; o plugin responde no stdout. O stderr vai
 para o log do app. O "protocol" do manifesto diz a versão que o plugin pede (manifest.PROTOCOL é a do
-app). Protocolo (versão 1), documentado no PLUGINS.md:
+app). Protocolo (versão 1), documentado no docs/plugins.md:
 
   app -> plugin
     {"type": "hello", "protocol": 1, "plugin": "<id>", "locale": "pt-BR", "settings": {...}}
