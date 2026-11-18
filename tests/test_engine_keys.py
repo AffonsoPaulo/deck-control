@@ -7,6 +7,8 @@ As ações dos configs são {type: none, tag: x}: não fazem nada, e o 'tag' diz
 
 from __future__ import annotations
 
+import pytest
+
 
 STEP = 10  # ms por volta do loop (o app roda o _tick a cada ~10 ms quando há temporizador)
 
@@ -424,3 +426,35 @@ def test_error_mark_can_be_turned_off(make_engine):
     rig.tap(1)
     rig.advance(100)
     assert deck.screens[1] == normal
+
+
+PAGE_THEN_HOLD = """
+language: en
+pages:
+  main:
+    1:
+      icon: {text: Ir}
+      action: "page:outra"
+  outra:
+    1:
+      icon: {text: Mute}
+      action: {type: none, tag: x}
+      hold: {type: none, tag: h}
+      release: {type: none, tag: rr}
+"""
+
+
+@pytest.mark.xfail(
+    strict=True, reason="bug: o soltar de uma tecla que trocou de página roda a tecla da mesma posição na página nova"
+)
+def test_release_after_a_page_key_does_not_run_the_key_of_the_new_page(make_engine):
+    """A tecla 1 troca de página no aperto; o soltar (logo depois) é dela, não da tecla 1 da página nova.
+    Achado com o D6 de verdade: a tecla de página disparava o mute do Discord que ficava na mesma posição."""
+    rig = make_engine(PAGE_THEN_HOLD)
+    rig.connect()
+    rig.press(1)
+    rig.advance(80)
+    rig.release(1)
+    rig.advance(1000)
+    assert rig.engine.page == "outra"
+    assert rig.moments() == []
