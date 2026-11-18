@@ -51,8 +51,7 @@
 #   bg: "#5865F2"     fundo        | fg: white       cor do texto/glifo
 #   text: "Mute"      texto        | text_size: 18
 #   lucide: mic       ícone do Lucide, pelo nome (lista em https://lucide.dev/icons)
-#                     o formato antigo 'glyph: E720' (Segoe Fluent Icons) ainda funciona;
-#                     tools/migrate_lucide.py troca um pelo outro
+#                     o formato antigo 'glyph: E720' (Segoe Fluent Icons) ainda funciona
 #   image: icons/x.png  imagem (caminho relativo a este arquivo) | image_scale: 0.8
 #   border: "#FF0000"   borda de 4 px
 #   style: below | top | big   ícone com texto embaixo (padrão) | texto em cima | só o ícone, grande
