@@ -90,6 +90,11 @@ aceita gravação); logs e plugins instalados continuam em `%LOCALAPPDATA%\D6Dec
 desenvolvimento nada disso muda: o `config.yaml` é o da pasta do projeto. Para levar o config de desenvolvimento
 para o executável: Configurações › Backup › Exportar no editor de um e Importar no do outro.
 
+O `Deck.exe` ainda não tem assinatura digital. Por isso o "iniciar com o Windows" é ligado pelo instalador (a opção
+na instalação): quando o próprio `Deck.exe` grava a chave de iniciar com o Windows, o Windows Defender o põe em
+quarentena (`Behavior:Win32/Persistence.A!ml`). No executável, ligar pela bandeja ou pela Config explica isso;
+desligar funciona. O SmartScreen também avisa ao abrir o instalador baixado. Os dois somem com a assinatura.
+
 ## Ferramentas de teste do aparelho
 
 Falam com o D6 de verdade (por isso ficam fora do pytest):
