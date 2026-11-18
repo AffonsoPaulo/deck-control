@@ -1,11 +1,11 @@
-"""O config em disco pelo repositório (app/storage.py): ler, validar, gravar com .bak e o histórico."""
+"""O config em disco pelo repositório (app/config/storage.py): ler, validar, gravar com .bak e o histórico."""
 
 from __future__ import annotations
 
 import pytest
 
-from app.config import ConfigError
-from app.storage import ConfigRepository
+from app.errors import ConfigError
+from app.config.storage import ConfigRepository
 
 TEXT = """\
 # comentário que tem de ficar

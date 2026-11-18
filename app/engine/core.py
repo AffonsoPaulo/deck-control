@@ -6,7 +6,7 @@ import threading
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from app.config import Config
+    from app.config.model import Config
 
 
 class Clock(Protocol):

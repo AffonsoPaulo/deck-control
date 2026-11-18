@@ -6,7 +6,8 @@ import logging
 
 import pytest
 
-from app import firstrun, history, paths
+from app import paths
+from app.config import firstrun, history
 
 TEXT = """\
 # o config de antes
@@ -60,7 +61,7 @@ def test_only_on_the_first_start(deck):
 
 
 def test_brings_the_history_of_the_old_config(deck, tmp_path):
-    from app.storage import ConfigRepository
+    from app.config.storage import ConfigRepository
 
     ConfigRepository(deck / "config.yaml").record()  # em desenvolvimento: %LOCALAPPDATA%\D6Deck\history
     copied = _copy(deck)

@@ -11,7 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from app import keys, logs
+from app import logs
+from app.windows import keys
 from app.engine.core import Clock
 
 klog = logs.get("keys")

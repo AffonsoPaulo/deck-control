@@ -21,7 +21,8 @@ from pathlib import Path
 
 import yaml
 
-from app import configio, paths
+from app import paths
+from app.config import yamlio
 from app.i18n import tr
 
 MAX_ENTRIES = 300
@@ -238,7 +239,7 @@ def restore(config_path: Path, entry_id: str) -> str:
     e = _load(p)
     if _safe_yaml(e["text"]) is None:
         raise ValueError(tr("this version has a YAML error and can't be restored"))
-    configio.replace_text(path, e["text"])
+    yamlio.replace_text(path, e["text"])
     when = time.strftime(tr("%m/%d at %H:%M"), time.localtime(e["time"]))
     record(path, reason=tr("Went back to the version from {when}", when=when))
     return when

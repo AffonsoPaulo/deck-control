@@ -18,7 +18,8 @@ import hashlib
 from collections.abc import Collection
 from typing import TYPE_CHECKING, Any
 
-from app import configsections, icons, logs, values
+from app import icons, logs, values
+from app.config import sections
 from app.engine.core import Shared
 from app.i18n import tr
 from d6 import render
@@ -27,7 +28,7 @@ from d6.device import KEY_COUNT
 if TYPE_CHECKING:
     from PIL import Image
 
-    from app.config import KeySpec
+    from app.config.model import KeySpec
     from app.engine.navigation import Navigation
     from app.engine.states import StateTable
     from app.values import Values
@@ -139,7 +140,7 @@ class Drawing:
     def _encode(self, img: Image.Image) -> bytes:
         """O JPEG que vai para o D6, com a cor corrigida para a tela dele (device.screen_color; o editor mostra a
         cor original)."""
-        sc = configsections.screen_color(self._shared.cfg.raw)
+        sc = sections.screen_color(self._shared.cfg.raw)
         return render.encode(render.screen_correct(img, *sc) if sc else img)
 
     def forget_screens(self) -> None:
@@ -309,7 +310,7 @@ class Drawing:
             mtime = icons._image_path(icon, cfg.base_dir).stat().st_mtime
         except OSError:
             mtime = 0
-        ck = repr((sorted(icon.items(), key=str), defaults, mtime, configsections.screen_color(cfg.raw)))
+        ck = repr((sorted(icon.items(), key=str), defaults, mtime, sections.screen_color(cfg.raw)))
         if ck not in self._frame_cache:
             frames = icons.render_frames(icon, cfg.base_dir, defaults)
             if len(self._frame_cache) > 24:

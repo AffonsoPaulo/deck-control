@@ -6,11 +6,12 @@ import base64
 
 import yaml
 
-from app import i18n, logs, transfer
-from app.config import ConfigError
+from app import i18n, logs
+from app.config import transfer
+from app.errors import ConfigError
 from app.editor.api.context import MAX_BODY, Context
 from app.i18n import tr
-from app.storage import WRITE_LOCK
+from app.config.storage import WRITE_LOCK
 
 log = logs.get("editor")
 

@@ -16,7 +16,7 @@ from app.engine.core import Clock
 from d6.device import D6
 
 if TYPE_CHECKING:
-    from app.config import Config
+    from app.config.model import Config
 
 dlog = logs.get("device")  # USB: conectar, desconectar, desenhar
 

@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from app import actions, bootstrap
-from app.config import build_config
+from app.config.load import build_config
 from app.plugins import MANAGER
 from app.values import VALUES
 
@@ -36,16 +36,18 @@ MODULES = [
     "app.plugins.external",
     "app.plugin_runner",
     "app.actions",
-    "app.config",
+    "app.config.load",
+    "app.config.storage",
+    "app.config.firstrun",
     "app.engine",
     "app.editor.server",
     "app.editor.api",
     "app.editor.api.preview",
-    "app.schema",
+    "app.editor.schema",
     "app.widgets",
     "app.binds",
-    "app.transfer",
-    "app.tray",
+    "app.config.transfer",
+    "app.windows.tray",
     "app.bootstrap",
 ]
 
@@ -129,7 +131,7 @@ def test_engine_and_editor_receive_the_shared_objects(tmp_path, example_raw):
 
 def test_error_hierarchy_keeps_old_imports_and_bases():
     from app import errors
-    from app.config import ConfigError
+    from app.errors import ConfigError
     from app.plugins import PluginError
 
     assert ConfigError is errors.ConfigError
@@ -156,7 +158,8 @@ def test_paths_point_to_the_files_the_app_ships_with():
 
 
 def test_data_dir_follows_localappdata(tmp_path, monkeypatch):
-    from app import paths, winutil
+    from app import paths
+    from app.windows import winutil
 
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     assert paths.data_dir() == tmp_path / "D6Deck"
@@ -208,7 +211,8 @@ def test_resources_the_package_needs_exist_in_the_project():
 
 
 def test_autostart_runs_the_main_script():
-    from app import paths, winutil
+    from app import paths
+    from app.windows import winutil
 
     cmd = winutil.autostart_command(ROOT / "config.yaml")
     assert f'"{paths.MAIN_SCRIPT}" --tray --config' in cmd
@@ -216,7 +220,8 @@ def test_autostart_runs_the_main_script():
 
 def test_autostart_command_in_development():
     # caracterização (antes da Fase 7): o pythonw (ou o Python que roda os testes), o __main__.py e o config
-    from app import paths, winutil
+    from app import paths
+    from app.windows import winutil
 
     cfg = ROOT / "config.yaml"
     pythonw = Path(sys.executable).with_name("pythonw.exe")
@@ -225,7 +230,8 @@ def test_autostart_command_in_development():
 
 
 def test_autostart_command_in_the_executable(tmp_path, monkeypatch):
-    from app import paths, winutil
+    from app import paths
+    from app.windows import winutil
 
     monkeypatch.setenv("APPDATA", str(tmp_path))
     exe = r"C:\Program Files\Deck\Deck.exe"
@@ -239,7 +245,7 @@ def test_dll_reset_keeps_the_current_folder_out(monkeypatch):
     """O executável tira a _internal da busca de DLLs com "" (não None, que poria a pasta atual de volta)."""
     import ctypes
 
-    from app import winutil
+    from app.windows import winutil
 
     calls = []
     fake = type("K", (), {"SetDllDirectoryW": staticmethod(lambda v: calls.append(v) or 1)})()
@@ -251,7 +257,7 @@ def test_dll_reset_keeps_the_current_folder_out(monkeypatch):
 def test_exe_does_not_turn_on_autostart_by_itself(monkeypatch):
     """No executável, ligar o "iniciar com o Windows" é pelo instalador: o Deck.exe sem assinatura gravando a chave
     Run vai para a quarentena do Defender. Desligar continua; em desenvolvimento, nada muda."""
-    from app import winutil
+    from app.windows import winutil
 
     touched = []
 

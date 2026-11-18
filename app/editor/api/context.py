@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from app.i18n import tr
-from app.storage import ConfigRepository
+from app.config.storage import ConfigRepository
 
 if TYPE_CHECKING:
     from app.engine import Engine
@@ -26,7 +26,7 @@ class Context:
 
     @property
     def store(self) -> ConfigRepository:
-        """O arquivo do config: ler, gravar, histórico (app/storage.py)."""
+        """O arquivo do config: ler, gravar, histórico (app/config/storage.py)."""
         return ConfigRepository(self.config_path)
 
     def need_engine(self) -> "Engine":

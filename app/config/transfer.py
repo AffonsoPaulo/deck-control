@@ -21,7 +21,7 @@ from pathlib import Path, PurePosixPath
 import yaml
 
 from app.i18n import tr
-from app.storage import ConfigRepository
+from app.config.storage import ConfigRepository
 
 IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp"}
 MAX_IMAGE = 5 * 1024 * 1024

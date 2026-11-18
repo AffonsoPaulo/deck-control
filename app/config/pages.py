@@ -1,7 +1,7 @@
 """Seção pages do config: cada tecla (validada e montada como KeySpec), os blocos e as páginas citadas.
 
 Cada função devolve os problemas que achou (padrão Notification), na ordem em que aparecem no arquivo; quem
-junta tudo e mostra é o build_config (app/config.py).
+junta tudo e mostra é o build_config (app/config/load.py).
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from collections.abc import Callable
 from typing import Any
 
 from app import actions, icons, lighting, values, widgets
-from app.configmodel import MOMENTS, Checked, Cover, Icon, KeySpec, Pages, child_actions
+from app.config.model import MOMENTS, Checked, Cover, Icon, KeySpec, Pages, child_actions
 from app.errors import ConfigError
 from app.i18n import tr
 from d6.device import COLS, KEY_COUNT

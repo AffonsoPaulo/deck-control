@@ -13,7 +13,8 @@ from typing import TYPE_CHECKING
 import pystray
 from pystray._util import win32
 
-from app import brand, logs, winutil
+from app import brand, logs
+from app.windows import winutil
 from app.i18n import tr
 from app import i18n
 

@@ -78,7 +78,7 @@ def check_rules(rules) -> None:
     """Levanta ValueError se 'shortcut_rules' do plugin.json estiver mal escrito."""
     if not isinstance(rules, dict) or not combos_for(rules):
         raise ValueError("shortcut_rules")
-    from app import keys
+    from app.windows import keys
 
     for c in combos_for(rules):
         keys.parse_combo(c)

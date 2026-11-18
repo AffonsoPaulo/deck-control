@@ -76,13 +76,13 @@ def default_config(*, frozen: bool | None = None) -> Path:
 
 
 def history_dir(*, frozen: bool | None = None) -> Path:
-    """Onde fica o histórico de versões (uma pasta por config, ver app/history.py)."""
+    """Onde fica o histórico de versões (uma pasta por config, ver app/config/history.py)."""
     return (config_dir(frozen=True) if _frozen(frozen) else data_dir()) / "history"
 
 
 def old_config(*, frozen: bool | None = None, executable: str | None = None) -> Path | None:
     """O config.yaml de antes da mudança para %APPDATA% (só no executável): o da pasta do Deck.exe, se existir.
-    A primeira abertura copia esse arquivo (app/firstrun.py)."""
+    A primeira abertura copia esse arquivo (app/config/firstrun.py)."""
     if not _frozen(frozen):
         return None
     p = Path(sys.executable if executable is None else executable).parent / CONFIG_NAME

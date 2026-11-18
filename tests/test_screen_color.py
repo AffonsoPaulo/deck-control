@@ -7,8 +7,9 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from app import configsections
-from app.config import ConfigError, build_config
+from app.config import sections
+from app.errors import ConfigError
+from app.config.load import build_config
 from d6 import render
 
 P = Path("config.yaml")
@@ -20,11 +21,11 @@ def px(color, *args):
 
 def test_grays_white_and_black_stay_as_they_are():
     for c in ((0, 0, 0), (255, 255, 255), (85, 85, 85), (48, 48, 48), (200, 200, 205)):
-        assert px(c, *configsections.SCREEN_COLOR) == c
+        assert px(c, *sections.SCREEN_COLOR) == c
 
 
 def test_purple_gets_less_blue_more_red_on_the_d6():
-    r, g, b = px((0x4A, 0x14, 0x8C), *configsections.SCREEN_COLOR)
+    r, g, b = px((0x4A, 0x14, 0x8C), *sections.SCREEN_COLOR)
     assert r > 0x4A and b < 0x8C  # o roxo deixa de sair azul na tela do D6
 
 
@@ -34,11 +35,11 @@ def test_no_correction_is_the_same_image():
 
 
 def test_config_default_on_off_and_custom():
-    assert configsections.screen_color({}) == configsections.SCREEN_COLOR
-    assert configsections.screen_color({"device": {"screen_color": False}}) is None
-    assert configsections.screen_color({"device": {"screen_color": {"red": 0.9}}}) == (
+    assert sections.screen_color({}) == sections.SCREEN_COLOR
+    assert sections.screen_color({"device": {"screen_color": False}}) is None
+    assert sections.screen_color({"device": {"screen_color": {"red": 0.9}}}) == (
         0.9,
-        *configsections.SCREEN_COLOR[1:],
+        *sections.SCREEN_COLOR[1:],
     )
 
 

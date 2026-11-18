@@ -21,7 +21,7 @@ BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 CYAN = (0, 255, 255)
 MAGENTA = (255, 0, 255)
-ACTIVE_RED = (0xC6, 0x28, 0x28)  # DEFAULT_ACTIVE_OVERRIDE do app/config.py
+ACTIVE_RED = (0xC6, 0x28, 0x28)  # DEFAULT_ACTIVE_OVERRIDE do app/config/pages.py
 
 
 def near(got, want, tol: int = 30) -> bool:

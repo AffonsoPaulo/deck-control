@@ -10,7 +10,7 @@ python app/__main__.py --run-plugin <pasta>   vira o processo de um plugin deck-
 No executável (Deck.exe, packaging/deck.spec) as opções são as mesmas. Ele não tem console: sem --check,
 --autostart ou --version, roda sempre na bandeja (senão ficaria invisível e sem como sair), e o que essas três
 escrevem só aparece com a saída redirecionada (`Deck.exe --check | more`). O config fica em %APPDATA%\\Deck
-(app/paths.py); na primeira abertura, o config.yaml da pasta do Deck.exe é copiado para lá (app/firstrun.py).
+(app/paths.py); na primeira abertura, o config.yaml da pasta do Deck.exe é copiado para lá (app/config/firstrun.py).
 """
 
 from __future__ import annotations
@@ -20,8 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 _ADDED_TO_PATH: list[str] = []  # o que este arquivo pôs no sys.path (o --run-plugin tira antes de rodar o plugin)
-# Rodando como script (autostart), a pasta app/ vira sys.path[0] e módulos como
-# app/config.py poderiam ser importados como "config"; tira ela do caminho.
+# Rodando como script (autostart), a pasta app/ vira sys.path[0] e pacotes como
+# app/config/ poderiam ser importados como "config"; tira ela do caminho.
 if sys.path and Path(sys.path[0] or ".").resolve() == Path(__file__).resolve().parent:
     sys.path.pop(0)
 if str(ROOT) not in sys.path:
@@ -58,7 +58,8 @@ def main() -> int:
     ap.add_argument("--version", action="version", version=f"Deck {__version__}")
     args = ap.parse_args()
 
-    from app import logs, winutil
+    from app import logs
+    from app.windows import winutil
 
     if paths.FROZEN:
         winutil.reset_dll_directory()  # antes de tudo: o que o app abrir não herda a pasta _internal
@@ -98,7 +99,7 @@ def main() -> int:
         print("Missing from the package:", *missing, sep="\n  ")
         return 1
 
-    from app.storage import ConfigRepository
+    from app.config.storage import ConfigRepository
 
     _copy_old_config(config, cli, log)
     store = ConfigRepository(config)
@@ -110,7 +111,7 @@ def main() -> int:
             log.info("%s", msg)
 
     from app.bootstrap import services
-    from app.config import ConfigError
+    from app.errors import ConfigError
 
     svc = services()  # carrega os plugins: as ações deles precisam existir para validar o config
     try:
@@ -140,7 +141,7 @@ def main() -> int:
         webbrowser.open(editor.url)
 
     if args.tray:
-        from app.tray import run_tray
+        from app.windows.tray import run_tray
 
         run_tray(engine, editor, config)
         return 0
@@ -159,9 +160,10 @@ def main() -> int:
 
 
 def _copy_old_config(config: Path, cli: bool, log) -> None:
-    """Primeira abertura do executável: copia o config.yaml antigo para %APPDATA%\\Deck e avisa (app/firstrun.py).
-    Em desenvolvimento não faz nada."""
-    from app import firstrun, winutil
+    """Primeira abertura do executável: copia o config.yaml antigo para %APPDATA%\\Deck e avisa
+    (app/config/firstrun.py). Em desenvolvimento não faz nada."""
+    from app.config import firstrun
+    from app.windows import winutil
     from app.i18n import tr
 
     try:

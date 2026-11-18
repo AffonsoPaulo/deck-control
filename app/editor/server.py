@@ -150,7 +150,7 @@ def new_token() -> str:
 def _persistent_token() -> str:
     """Token guardado no perfil do usuário: continua o mesmo quando o app reinicia, para uma aba do editor já
     aberta não perder a permissão de salvar. Um token no formato antigo (comprido) é trocado uma vez."""
-    from app import winutil
+    from app.windows import winutil
 
     f = winutil.data_dir() / "editor-token"
     try:

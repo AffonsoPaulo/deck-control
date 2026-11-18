@@ -28,7 +28,8 @@ import urllib.request
 import uuid
 from ctypes import wintypes
 
-from app import logs, winutil
+from app import logs
+from app.windows import winutil
 
 log = logs.get("plugins.discord")
 

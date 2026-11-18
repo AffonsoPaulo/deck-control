@@ -11,7 +11,7 @@ import yaml
 from app import i18n, logs
 from app.editor.api.context import MAX_BODY, Context
 from app.i18n import tr
-from app.schema import schema
+from app.editor.schema import schema
 
 log = logs.get("editor")
 
@@ -64,7 +64,7 @@ def plugin_inspect(ctx: Context, body: dict):
 
 def plugin_install(ctx: Context, body: dict):
     import shutil
-    from app.schema import schema
+    from app.editor.schema import schema
 
     folder, m = _plugin_zip(body)
     try:
@@ -75,7 +75,7 @@ def plugin_install(ctx: Context, body: dict):
 
 
 def plugin_remove(ctx: Context, body: dict):
-    from app.schema import schema
+    from app.editor.schema import schema
 
     ctx.plugins.remove(str(body.get("id", "")))
     return {"ok": True, "schema": schema()}

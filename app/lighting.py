@@ -81,7 +81,7 @@ DEFAULTS = {
 EFFECT_KEYS = ("effect", "color", "color2", "speed", "size", "direction")  # o que uma página pode trocar
 
 
-# ------------------------------------------------------------------ validação (usada por app.config)
+# ------------------------------------------------------------------ validação (usada pelo app/config/)
 
 
 def _is_hex(v) -> bool:

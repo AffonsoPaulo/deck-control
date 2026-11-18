@@ -21,7 +21,8 @@ from pathlib import Path
 
 import yaml
 
-from app import history, paths
+from app import paths
+from app.config import history
 
 ICONS = "icons"  # a pasta das imagens enviadas pelo editor, ao lado do config
 
@@ -74,7 +75,7 @@ def _raw(data: bytes) -> dict[str, object]:
 def _copy_images(old_dir: Path, new_dir: Path, raw: dict[str, object]) -> int:
     """As imagens com caminho relativo ao config: as referenciadas pelas teclas e a pasta icons/. Não troca uma
     que já existe no lugar novo."""
-    from app.transfer import referenced_images
+    from app.config.transfer import referenced_images
 
     rels = set(referenced_images(raw))
     icons = old_dir / ICONS

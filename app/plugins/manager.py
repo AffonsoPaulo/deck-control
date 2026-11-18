@@ -29,7 +29,7 @@ BUILTIN_DIR = paths.BUILTIN_PLUGINS
 
 
 def user_dir() -> Path:
-    from app import winutil
+    from app.windows import winutil
 
     d = winutil.data_dir() / "plugins"
     d.mkdir(parents=True, exist_ok=True)

@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable
 
-from app import lighting, logs, winutil
+from app import lighting, logs
+from app.windows import winutil
 from app.engine.core import Shared
 
 if TYPE_CHECKING:
-    from app.config import KeySpec
+    from app.config.model import KeySpec
     from d6.device import D6
 
 log = logs.get("engine")

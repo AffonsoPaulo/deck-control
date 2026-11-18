@@ -16,7 +16,8 @@ mode: rpc — conexão direta (Client ID + Client Secret de uma aplicação da p
 
 from __future__ import annotations
 
-from app import keys, logs
+from app import logs
+from app.windows import keys
 from app.actions import Context
 from app.i18n import tr
 

@@ -18,9 +18,9 @@ ordem de sempre, e cada troca de página limpa o que sempre limpou (não é igua
 
 Threads (quem roda o quê):
 
-- Laço do engine: run(). Na bandeja é a thread "engine" (app/tray.py); sem bandeja, a thread principal. Só ele fala
-  com o D6: abrir e fechar o aparelho, ler as teclas, desenhar, animar os GIFs e mandar os quadros do anel. Também
-  roda nele: as decisões das teclas (input, timers), o fim das respostas temporárias, a releitura do config (uma
+- Laço do engine: run(). Na bandeja é a thread "engine" (app/windows/tray.py); sem bandeja, a thread principal. Só
+  ele fala com o D6: abrir e fechar o aparelho, ler as teclas, desenhar, animar os GIFs e mandar os quadros do anel.
+  Também roda nele: as decisões das teclas (input, timers), o fim das respostas temporárias, a releitura do config (uma
   vez por segundo), o automations.tick() e a ligação dos plugins (plugins.attach/sync/stop_all).
 - Pool de ações ("acao_0".."acao_3", 4 threads): actions.run de cada tecla, automação e teste do editor. Daqui vêm
   set_state, go_to_page, set_brightness, flash_light, paint_screens, show_temp_page, values.timer_* e
@@ -54,7 +54,8 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from app import actions, automations, lighting, logs
 from app.actions import Context
-from app.config import Config, load_config
+from app.config.model import Config
+from app.config.load import load_config
 from app.engine.core import Clock, Shared
 from app.engine.drawing import DrawQueue, Drawing
 from app.engine.input import Input
@@ -190,7 +191,7 @@ class Engine:
             self.page,
         )
         try:
-            from app.storage import ConfigRepository
+            from app.config.storage import ConfigRepository
 
             # pega edições feitas direto no arquivo (o editor já registra as dele)
             ConfigRepository(self.config_path).record()

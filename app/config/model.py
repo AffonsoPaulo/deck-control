@@ -1,7 +1,7 @@
 """O modelo tipado do config: o que o app usa depois de validar (Config e uma KeySpec por tecla).
 
-Quem monta é o app/config.py (build_config), com os validadores de cada seção (app/configpages.py e
-app/configsections.py). Aqui ficam só os tipos e o que se pergunta a um config já montado.
+Quem monta é o app/config/load.py (build_config), com os validadores de cada seção (app/config/pages.py e
+app/config/sections.py). Aqui ficam só os tipos e o que se pergunta a um config já montado.
 """
 
 from __future__ import annotations

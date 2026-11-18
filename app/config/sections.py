@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from app import automations, lighting, logs, widgets
-from app.configmodel import Checked, Pages
+from app.config.model import Checked, Pages
 from app.i18n import tr
 
 LOGGING_FLAGS = ("detail", "show_tab", "key_error", "notify")

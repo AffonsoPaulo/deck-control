@@ -12,7 +12,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Mapping
 
-from app import actions, keys, logs
+from app import actions, logs
+from app.windows import keys
 from app.engine.core import Shared, Submit
 from app.engine.leds import Leds
 from app.engine.navigation import Navigation
@@ -20,7 +21,7 @@ from app.engine.recorder import Recorder
 from app.engine.timers import Timers
 
 if TYPE_CHECKING:
-    from app.config import KeySpec
+    from app.config.model import KeySpec
 
 klog = logs.get("keys")  # aperto/soltura e a decisão (toque, duplo, segurar, repetir)
 

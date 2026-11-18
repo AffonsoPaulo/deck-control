@@ -85,7 +85,7 @@ def widget_expand(ctx: Context, body: dict):
 
 def values_now(ctx: Context, _body: dict):
     """Valor atual de cada valor (para a lista do editor e as etiquetas de prévia)."""
-    from app.schema import schema as _schema
+    from app.editor.schema import schema as _schema
 
     get = _sample_getter(ctx.plugins, ctx.values)
     out = {}

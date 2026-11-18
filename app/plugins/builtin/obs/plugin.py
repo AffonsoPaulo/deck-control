@@ -61,7 +61,7 @@ def is_this_pc(host: str) -> bool:
 
 
 def obs_running() -> bool:
-    from app import winutil
+    from app.windows import winutil
 
     return winutil.process_running(*OBS_EXES)
 

@@ -165,7 +165,7 @@ def test_process_running_finds_this_python_and_not_a_made_up_name():
     import os
     import sys
 
-    from app import winutil
+    from app.windows import winutil
 
     assert winutil.process_running(os.path.basename(sys.executable))
     assert not winutil.process_running("nao-existe-deck-123.exe")

@@ -10,7 +10,8 @@ import time
 import urllib.request
 import webbrowser
 
-from app import keys, logs
+from app import logs
+from app.windows import keys
 from app.actions import Context, action, run
 from app.i18n import tr
 

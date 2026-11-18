@@ -34,7 +34,7 @@ def status(ctx: Context, _body: dict):
 
 def about(ctx: Context, _body: dict):
     """Dados da seção Sobre e o 'iniciar com o Windows'."""
-    from app import winutil
+    from app.windows import winutil
 
     e = ctx.engine
     try:
@@ -52,7 +52,7 @@ def about(ctx: Context, _body: dict):
 
 
 def autostart(ctx: Context, body: dict):
-    from app import winutil
+    from app.windows import winutil
 
     try:
         winutil.set_autostart(bool(body.get("enabled")), ctx.config_path)
@@ -64,7 +64,7 @@ def autostart(ctx: Context, body: dict):
 def open_path(ctx: Context, body: dict):
     """Abre o log, a pasta dos logs ou a pasta do app no Windows (só esses)."""
     import os
-    from app import winutil
+    from app.windows import winutil
 
     what = body.get("what")
     target = {"log": winutil.log_path(), "logs": logs.log_dir(), "folder": ctx.config_path.parent}.get(what)
@@ -99,7 +99,7 @@ def free_bind(ctx: Context, body: dict):
 
 def send_combo(ctx: Context, body: dict):
     """Aperta uma combinação depois de N segundos (para gravar o atalho em outro programa)."""
-    from app import keys
+    from app.windows import keys
 
     combo = str(body["keys"])
     keys.parse_combo(combo)  # valida antes de agendar
@@ -114,7 +114,7 @@ def record(ctx: Context, body: dict):
     if body.get("cancel"):
         e.cancel_record()
         return {"ok": True}
-    from app import keys
+    from app.windows import keys
 
     combo = str(body["keys"])
     keys.parse_combo(combo)

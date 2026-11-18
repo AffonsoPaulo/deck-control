@@ -230,7 +230,7 @@ class _Stream(io.TextIOBase):
 
 
 def log_dir() -> Path:
-    from app import winutil
+    from app.windows import winutil
 
     d = winutil.data_dir() / "logs"
     d.mkdir(parents=True, exist_ok=True)

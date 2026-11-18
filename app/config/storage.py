@@ -3,10 +3,10 @@
 Quem mexe no arquivo (o editor, a importação, o engine ao reler, o início do app) passa por ConfigRepository.
 Por baixo continuam as mesmas peças:
 
-- app/configio.py   o YAML "de ida e volta": grava só o que mudou, sem perder comentários; o .bak e a troca
-                    atômica (configio.replace_text) valem para toda gravação
-- app/history.py    as versões guardadas em %LOCALAPPDATA%, para voltar atrás
-- app/config.py     a validação e o modelo tipado (Config)
+- app/config/yamlio.py    o YAML "de ida e volta": grava só o que mudou, sem perder comentários; o .bak e a troca
+                          atômica (yamlio.replace_text) valem para toda gravação
+- app/config/history.py   as versões guardadas em %LOCALAPPDATA%, para voltar atrás
+- app/config/load.py      a validação; o modelo tipado (Config) é o app/config/model.py
 
 As funções antigas desses módulos continuam funcionando; o repositório só junta tudo atrás de um caminho.
 """
@@ -22,8 +22,9 @@ from typing import Any
 
 import yaml
 
-from app import configio, history
-from app.config import Config, build_config, load_config
+from app.config import yamlio, history
+from app.config.model import Config
+from app.config.load import build_config, load_config
 
 
 # conferir a versão e gravar acontecem juntos: o servidor do editor atende pedidos em paralelo (duas abas)
@@ -66,13 +67,13 @@ class ConfigRepository:
 
     def read_plain(self) -> dict[str, Any]:
         """O config para o editor (JSON: as teclas viram texto)."""
-        plain: dict[str, Any] = configio.read_plain(self.path)
+        plain: dict[str, Any] = yamlio.read_plain(self.path)
         return plain
 
     def text_without_secrets(self, secret_paths: Iterable[Sequence[Any]]) -> str:
         """O texto do arquivo com as senhas em branco (para exportar e para o pacote de diagnóstico).
         secret_paths: o caminho até cada senha (PluginManager.secret_paths)."""
-        text: str = configio.without_secrets(self.read_text(), secret_paths)
+        text: str = yamlio.without_secrets(self.read_text(), secret_paths)
         return text
 
     # -- validar
@@ -88,7 +89,7 @@ class ConfigRepository:
     def save(self, cfg: dict[str, Any]) -> None:
         """Grava mexendo só no que mudou (comentários e estilo ficam); o anterior vira o .bak. Não valida nem
         registra no histórico: quem grava valida antes e chama record() depois."""
-        configio.save_plain(self.path, cfg)
+        yamlio.save_plain(self.path, cfg)
 
     # -- histórico
     def record(self, reason: str | None = None) -> None:

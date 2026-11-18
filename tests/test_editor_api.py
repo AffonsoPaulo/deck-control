@@ -17,7 +17,8 @@ from pathlib import Path
 import jsonschema
 import pytest
 
-from app import actions, history
+from app import actions
+from app.config import history
 from app.editor import contract
 from app.editor.api import ROUTES
 from app.editor.server import EditorServer
@@ -121,7 +122,7 @@ def cfg_path(tmp_path) -> Path:
 @pytest.fixture
 def no_side_effects(monkeypatch):
     """Troca o que sai do app (registro do Windows, Explorer, teclado, ações) por gravações numa lista."""
-    from app import keys, winutil
+    from app.windows import keys, winutil
 
     calls: list = []
     state = {"autostart": False}
@@ -666,7 +667,7 @@ def test_old_next_address_redirects_to_the_root(api):
 
 def test_token_is_short_and_old_ones_are_replaced(cfg_path, no_side_effects):
     """XXXX-XXXX-XXXX (base32 de Crockford); um token no formato antigo, comprido, é trocado uma vez."""
-    from app import winutil
+    from app.windows import winutil
     from app.editor.server import TOKEN_RE
 
     f = winutil.data_dir() / "editor-token"

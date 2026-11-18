@@ -55,15 +55,17 @@ def make_engine(tmp_path, monkeypatch):
     """
     import textwrap
 
-    from app import actions, automations, configsections, keys, values, winutil
+    from app import actions, automations, values
+    from app.config import sections
+    from app.windows import keys, winutil
     from app.engine import Engine
     from tests.fakes.clock import FakeClock
 
     # as cores que os testes conferem são as do desenho: a correção da tela do D6 (ligada por padrão no app) só
     # entra quando o config do teste pede (device.screen_color: {...}); test_screen_color.py cobre ela
-    real_screen_color = configsections.screen_color
+    real_screen_color = sections.screen_color
     monkeypatch.setattr(
-        configsections,
+        sections,
         "screen_color",
         lambda raw: real_screen_color(raw) if isinstance((raw.get("device") or {}).get("screen_color"), dict) else None,
     )

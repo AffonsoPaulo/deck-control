@@ -20,7 +20,7 @@ from app.i18n import tr
 from d6.device import KEY_COUNT
 
 if TYPE_CHECKING:
-    from app.config import Config
+    from app.config.model import Config
 
 log = logs.get("engine")
 

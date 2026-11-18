@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 from app import i18n
-from app.config import ConfigError, build_config
+from app.errors import ConfigError
+from app.config.load import build_config
 
 P = Path("config.yaml")
 

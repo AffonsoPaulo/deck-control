@@ -3,11 +3,11 @@
 load_config lê o arquivo; build_config valida um config já lido (dict) e monta o modelo tipado. A validação é
 por seção, e cada seção devolve a lista dos seus problemas em vez de levantar no primeiro:
 
-- app/configmodel.py      o modelo (Config, KeySpec) e o que se pergunta a um config montado
-- app/configpages.py      pages: as teclas, os blocos e as páginas citadas pelas ações
-- app/configsections.py   as outras seções (widgets, automações, luz, log...)
+- app/config/model.py      o modelo (Config, KeySpec) e o que se pergunta a um config montado
+- app/config/pages.py      pages: as teclas, os blocos e as páginas citadas pelas ações
+- app/config/sections.py   as outras seções (widgets, automações, luz, log...)
 
-O arquivo em disco (gravar, backups, histórico) é com o app/storage.py.
+O arquivo em disco (gravar, backups, histórico) é com o app/config/storage.py.
 """
 
 from __future__ import annotations
@@ -18,9 +18,9 @@ from typing import Any
 import yaml
 
 from app import i18n
-from app.configmodel import Config, KeySpec
-from app.configpages import DEFAULT_ACTIVE_OVERRIDE, build_pages, check_page_refs, cover_blocks
-from app.configsections import (
+from app.config.model import Config, KeySpec
+from app.config.pages import DEFAULT_ACTIVE_OVERRIDE, build_pages, check_page_refs, cover_blocks
+from app.config.sections import (
     LOGGING_FLAGS,
     build_automations,
     build_brightness,

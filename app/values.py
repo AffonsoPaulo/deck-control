@@ -251,7 +251,7 @@ class Values:
         val, at = self._vol
         if time.monotonic() - at > 1.0:
             try:
-                from app import winutil
+                from app.windows import winutil
 
                 val = winutil.master_volume()
             except Exception:  # lido toda hora para as teclas; sem áudio = sem valor, sem log
