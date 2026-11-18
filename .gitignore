@@ -1,40 +1,58 @@
-# Config pessoal (tem senhas de integrações) — use config.example.yaml como base
+# ---------------------------------------------------------------- dados pessoais (o repositório é público)
+# config pessoal: tem as senhas das integrações (use o config.example.yaml como base). Sem "/" de propósito:
+# vale para uma cópia do config em qualquer pasta.
 config.yaml
-config.yaml.bak
 *.bak
-docs/
+.env
+.env.*
+# imagens das teclas do config pessoal (image: icons/x.png) e fotos ou saídas dos tools/ soltas na raiz
+/icons/
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+# docs/: os planos de trabalho ficam só na máquina; o que é para quem usa ou contribui entra no git
+docs/*
+!docs/design-system.md
+!docs/plugins.md
+!docs/roadmap.md
 
-# Python
+# ---------------------------------------------------------------- Python
 __pycache__/
 *.py[cod]
 .venv/
+venv/
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-*.egg-info/
-build/
-venv/
+.coverage
+htmlcov/
 
-# Executável e instalador (packaging/): saídas do PyInstaller e do Inno Setup
+# ---------------------------------------------------------------- executável e instalador (packaging/)
+# saídas do PyInstaller (build/ e dist/ na raiz) e do Inno Setup
+/build/
 /dist/
 /packaging/Output/
 
-# Editor novo (React): dependências, build e prints de referência (gerados na máquina de quem testa)
+# ---------------------------------------------------------------- editor (React)
 node_modules/
 editor/dist/
+*.tsbuildinfo
+npm-debug.log*
+# prints de referência e relatórios do Playwright (gerados na máquina de quem testa; o reference/.work tem cópias
+# do histórico do config)
 editor/reference/
 editor/test-results/
 editor/playwright-report/
 
-# Saídas de teste e fotos locais
-*.jpg
-*.jpeg
-*.png
-teste-animado.gif
-
-# Sistema / editores (e as cópias de trabalho temporárias do Claude Code)
+# ---------------------------------------------------------------- sistema e editores
+# as cópias de trabalho temporárias e as permissões locais do Claude Code
 .claude/worktrees/
+.claude/settings.local.json
 Thumbs.db
 desktop.ini
+.DS_Store
 .vscode/
 .idea/
+*.log
