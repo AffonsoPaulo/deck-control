@@ -11,8 +11,11 @@
 ; O que faz:
 ; - instala em Arquivos de Programas (só leitura: o config da pessoa fica em %APPDATA%\Deck, app/paths.py);
 ; - atalho no menu Iniciar, que abre o Deck na bandeja e o editor no navegador;
-; - opção de iniciar com o Windows: roda `Deck.exe --autostart on` como a pessoa (não como o administrador), para
-;   o registro ficar igual ao que o próprio app grava (winutil.autostart_command) e o item da bandeja concordar;
+; - opção de iniciar com o Windows: o PRÓPRIO INSTALADOR grava a chave Run (o mesmo texto que o app grava,
+;   winutil.autostart_command: "...\Deck.exe" --tray). Antes rodava `Deck.exe --autostart on`, e o Windows Defender
+;   pôs o Deck.exe em quarentena (Behavior:Win32/Persistence.A!ml: um exe sem assinatura se registrando para abrir
+;   com o Windows). Gravada pelo instalador, que é o caminho comum, o Deck.exe não faz isso sozinho. Fica no HKCU de
+;   quem confirmou o UAC (o normal: a própria pessoa);
 ; - desinstalador: tira o "iniciar com o Windows" (se apontar para este Deck.exe) e pergunta se apaga os dados da
 ;   pessoa (%APPDATA%\Deck: config, histórico e backup; %LOCALAPPDATA%\D6Deck: logs e plugins instalados).
 ;   Sem resposta (desinstalação silenciosa), os dados ficam.
@@ -60,8 +63,6 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 [CustomMessages]
 pt_BR.AutoStart=Iniciar o Deck junto com o Windows
 en.AutoStart=Start the Deck with Windows
-pt_BR.AutoStartStatus=Ligando o iniciar com o Windows...
-en.AutoStartStatus=Turning on start with Windows...
 pt_BR.OpenNow=Abrir o Deck agora
 en.OpenNow=Open the Deck now
 pt_BR.DeleteData=Apagar também os seus dados do Deck?%n%n%1%nconfig.yaml, histórico de versões e backup%n%n%2%nlogs e plugins instalados%n%nEscolha Não para manter (por exemplo, para instalar de novo depois).
@@ -76,8 +77,10 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs 
 [Icons]
 Name: "{autoprograms}\Deck"; Filename: "{app}\Deck.exe"; Parameters: "--tray --editor"; WorkingDir: "{app}"
 
+[Registry]
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "D6Deck"; ValueData: """{app}\Deck.exe"" --tray"; Tasks: autostart
+
 [Run]
-Filename: "{app}\Deck.exe"; Parameters: "--autostart on"; Tasks: autostart; StatusMsg: "{cm:AutoStartStatus}"; Flags: runasoriginaluser waituntilterminated
 Filename: "{app}\Deck.exe"; Parameters: "--tray --editor"; Description: "{cm:OpenNow}"; Flags: postinstall nowait skipifsilent runasoriginaluser
 
 [Code]

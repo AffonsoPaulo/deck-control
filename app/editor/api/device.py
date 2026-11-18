@@ -54,7 +54,10 @@ def about(ctx: Context, _body: dict):
 def autostart(ctx: Context, body: dict):
     from app import winutil
 
-    winutil.set_autostart(bool(body.get("enabled")), ctx.config_path)
+    try:
+        winutil.set_autostart(bool(body.get("enabled")), ctx.config_path)
+    except winutil.AutostartBlocked as e:
+        raise ValueError(str(e)) from None  # o editor mostra a mensagem no aviso
     return {"autostart": winutil.autostart_enabled()}
 
 

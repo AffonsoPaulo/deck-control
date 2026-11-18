@@ -93,7 +93,10 @@ def run_tray(engine: "Engine", editor: "EditorServer", config: Path) -> None:
         os.startfile(str(config.parent))
 
     def toggle_autostart(icon, item):
-        winutil.set_autostart(not winutil.autostart_enabled(), config)
+        try:
+            winutil.set_autostart(not winutil.autostart_enabled(), config)
+        except winutil.AutostartBlocked as e:  # executável sem assinatura: ligar é pelo instalador
+            winutil.message_box(str(e))
 
     def quit_app(icon, item):
         engine.stop()

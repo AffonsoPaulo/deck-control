@@ -246,3 +246,28 @@ def test_dll_reset_keeps_the_current_folder_out(monkeypatch):
     monkeypatch.setattr(ctypes, "windll", type("W", (), {"kernel32": fake})(), raising=False)
     winutil.reset_dll_directory()
     assert calls == [""]
+
+
+def test_exe_does_not_turn_on_autostart_by_itself(monkeypatch):
+    """No executável, ligar o "iniciar com o Windows" é pelo instalador: o Deck.exe sem assinatura gravando a chave
+    Run vai para a quarentena do Defender. Desligar continua; em desenvolvimento, nada muda."""
+    from app import winutil
+
+    touched = []
+
+    class Key:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(winutil.winreg, "OpenKey", lambda *a: Key())
+    monkeypatch.setattr(winutil.winreg, "SetValueEx", lambda *a: touched.append("set"))
+    monkeypatch.setattr(winutil.winreg, "DeleteValue", lambda *a: touched.append("delete"))
+    with pytest.raises(winutil.AutostartBlocked):
+        winutil.set_autostart(True, Path("config.yaml"), frozen=True)
+    assert touched == []
+    winutil.set_autostart(False, Path("config.yaml"), frozen=True)
+    winutil.set_autostart(True, Path("config.yaml"), frozen=False)
+    assert touched == ["delete", "set"]

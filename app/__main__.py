@@ -86,7 +86,11 @@ def main() -> int:
     if args.autostart:
         if args.autostart == "on":
             _copy_old_config(config, cli, log)  # o instalador liga o "iniciar com o Windows" antes da 1ª abertura
-        winutil.set_autostart(args.autostart == "on", config)
+        try:
+            winutil.set_autostart(args.autostart == "on", config)
+        except winutil.AutostartBlocked as e:
+            print(e)
+            return 1
         print("Start with Windows:", "on" if args.autostart == "on" else "off")
         return 0
 

@@ -66,7 +66,28 @@ def autostart_enabled() -> bool:
         return False
 
 
-def set_autostart(enabled: bool, config: Path) -> None:
+MSG = (
+    "To start the Deck with Windows, run the installer again and check that option. (Windows Defender blocks a "
+    "program that isn't digitally signed from turning this on by itself.)"
+)
+
+
+class AutostartBlocked(RuntimeError):
+    """Ligar o "iniciar com o Windows" de dentro do executável: não (ver set_autostart)."""
+
+
+def set_autostart(enabled: bool, config: Path, *, frozen: bool | None = None) -> None:
+    """Liga ou desliga o "iniciar com o Windows" (a chave Run do usuário).
+
+    No executável, LIGAR fica com o instalador: quando o próprio Deck.exe (sem assinatura digital) grava a chave
+    Run, o Windows Defender o põe em quarentena (Behavior:Win32/Persistence.A!ml, visto no teste da Fase 7); gravada
+    pelo instalador, não. Desligar continua daqui. Em desenvolvimento quem grava é o pythonw (assinado): sem mudança.
+    Quando o Deck.exe for assinado, isto pode sair."""
+    from app import paths
+    from app.i18n import tr
+
+    if enabled and (paths.FROZEN if frozen is None else frozen):
+        raise AutostartBlocked(tr(MSG))
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
         if enabled:
             winreg.SetValueEx(k, RUN_NAME, 0, winreg.REG_SZ, autostart_command(config))
