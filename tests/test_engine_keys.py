@@ -7,8 +7,6 @@ As ações dos configs são {type: none, tag: x}: não fazem nada, e o 'tag' diz
 
 from __future__ import annotations
 
-import pytest
-
 
 STEP = 10  # ms por volta do loop (o app roda o _tick a cada ~10 ms quando há temporizador)
 
@@ -444,9 +442,6 @@ pages:
 """
 
 
-@pytest.mark.xfail(
-    strict=True, reason="bug: o soltar de uma tecla que trocou de página roda a tecla da mesma posição na página nova"
-)
 def test_release_after_a_page_key_does_not_run_the_key_of_the_new_page(make_engine):
     """A tecla 1 troca de página no aperto; o soltar (logo depois) é dela, não da tecla 1 da página nova.
     Achado com o D6 de verdade: a tecla de página disparava o mute do Discord que ficava na mesma posição."""
@@ -457,4 +452,31 @@ def test_release_after_a_page_key_does_not_run_the_key_of_the_new_page(make_engi
     rig.release(1)
     rig.advance(1000)
     assert rig.engine.page == "outra"
-    assert rig.moments() == []
+    assert rig.moments() == [("page", "press")]  # só a troca de página: nada da tecla 1 da página nova
+
+
+def test_holding_a_page_key_does_not_fire_the_hold_of_the_new_page(make_engine):
+    """Segurando a tecla de página (que já trocou de página no aperto): o 'segurar' da tecla 1 da página nova não
+    roda, nem o soltar dela."""
+    rig = make_engine(PAGE_THEN_HOLD)
+    rig.connect()
+    rig.press(1)
+    rig.advance(1500)
+    rig.release(1)
+    rig.advance(500)
+    assert rig.engine.page == "outra"
+    assert rig.moments() == [("page", "press")]
+
+
+def test_the_new_page_key_works_normally_after_the_page_key_is_released(make_engine):
+    rig = make_engine(PAGE_THEN_HOLD)
+    rig.connect()
+    rig.press(1)
+    rig.advance(80)
+    rig.release(1)
+    rig.advance(300)
+    rig.press(1)  # agora sim, a tecla 1 da página nova
+    rig.advance(100)
+    rig.release(1)
+    rig.advance(300)
+    assert rig.moments() == [("page", "press"), ("x", "press"), ("rr", "release")]

@@ -46,6 +46,9 @@ class Input:
         self._recorder = recorder
         self._submit = submit
         self.pressed: dict[int, float] = {}  # tecla -> momento em que foi apertada
+        # tecla -> página em que foi apertada: o soltar é da tecla apertada, mesmo que o aperto tenha trocado de
+        # página (senão a tecla da mesma posição na página nova rodaria como toque curto)
+        self._press_page: dict[int, str] = {}
         self._hold_fired: set[int] = set()
         self._mirrored: dict[int, str] = {}  # tecla -> combinação segurada (ação 'bind')
         self._doubled: set[int] = set()  # teclas cujo 2º toque já rodou o 'double'
@@ -87,6 +90,7 @@ class Input:
     def forget_pressed(self) -> None:
         """O Deck (re)conectou: nenhuma tecla está apertada (quem chama segura a trava)."""
         self.pressed.clear()
+        self._press_page.clear()
         self.sunk.clear()
         self._sink_pending.clear()
 
@@ -162,7 +166,18 @@ class Input:
             self._sink(key, self._shared.clock.monotonic())  # a tecla que só fecha também encolhe
             klog.debug("Key %d pressed (page %s) -> closed a temporary answer", key, self._nav.page)
             return
-        spec = self._shared.cfg.spec_at(self._nav.page, key)[0]
+        if pressed:
+            page = self._press_page[key] = self._nav.page
+        else:
+            page = self._press_page.pop(key, self._nav.page)
+            if page != self._nav.page:
+                klog.debug(
+                    "Key %d released on page %s, pressed on page %s -> it is that key's release",
+                    key,
+                    self._nav.page,
+                    page,
+                )
+        spec = self._shared.cfg.spec_at(page, key)[0] if page in self._shared.cfg.pages else None
         now = self._shared.clock.monotonic()
         self._leds.on_key(key, pressed, spec, now)
         if spec is None:
@@ -173,7 +188,7 @@ class Input:
         if pressed:
             self._on_press(key, spec, now)
         else:
-            self._on_release(key, spec, now)
+            self._on_release(key, spec, now, page)
 
     def _on_press(self, key: int, spec: KeySpec, now: float) -> None:
         cfg = self._shared.cfg
@@ -229,7 +244,7 @@ class Input:
                 ),
             )
 
-    def _on_release(self, key: int, spec: KeySpec, now: float) -> None:
+    def _on_release(self, key: int, spec: KeySpec, now: float, page: str) -> None:
         cfg = self._shared.cfg
         t0 = self.pressed.pop(key, None)
         ms = round((now - t0) * 1000) if t0 is not None else -1
@@ -260,7 +275,7 @@ class Input:
             klog.debug("Key %d released after %d ms (hold already ran)", key, ms)
         else:
             klog.debug("Key %d released after %d ms", key, ms)
-        if self._timers.defer_release(key, spec.release, self._nav.page):
+        if self._timers.defer_release(key, spec.release, page):
             klog.debug("Key %d: 'release' waits for the deferred press", key)
             return
         self._submit(spec.release, key, "release")
@@ -270,7 +285,9 @@ class Input:
         for key, t0 in list(self.pressed.items()):
             if key in self._hold_fired:
                 continue
-            spec = self._shared.cfg.spec_at(self._nav.page, key)[0]
+            # o segurar é da tecla apertada (o aperto pode ter trocado de página)
+            page = self._press_page.get(key, self._nav.page)
+            spec = self._shared.cfg.spec_at(page, key)[0] if page in self._shared.cfg.pages else None
             if spec and spec.hold is not None and spec.repeat != "press" and (now - t0) * 1000 >= spec.hold_ms:
                 self._hold_fired.add(key)
                 if spec.repeat == "hold":
