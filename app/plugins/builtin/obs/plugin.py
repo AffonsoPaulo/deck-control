@@ -25,6 +25,36 @@ logging.getLogger("obsws_python").setLevel(logging.CRITICAL)
 log = logs.get("plugins.obs")
 PROBLEM = "plugin.obs.connect"
 RETRY = 5
+OBS_EXES = ("obs64.exe", "obs32.exe", "obs.exe")
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1", "")
+WEBSOCKET_OFF = (
+    "OBS is open, but its WebSocket server is off: in OBS, Tools › WebSocket Server Settings › Enable WebSocket "
+    "server. Retrying every 5 s."
+)
+
+
+def _refused(e: Exception) -> bool:
+    text = f"{type(e).__name__}: {e}".lower()
+    return isinstance(e, ConnectionRefusedError) or "refused" in text or "10061" in text
+
+
+def obs_running() -> bool:
+    from app import winutil
+
+    return winutil.process_running(*OBS_EXES)
+
+
+def classify(e: Exception, host: str, running) -> tuple[str, str] | None:
+    """O que dizer de uma falha ao conectar: (texto do problema, motivo para o log), ou None quando não é problema.
+
+    Recusou no próprio PC: com o OBS fechado é o normal fora da live (None: conecta sozinho quando ele abrir); com
+    o OBS aberto, o servidor WebSocket dele está desligado. Num OBS em outro computador não dá para saber se está
+    aberto: fica o aviso de antes. `running` só é chamado quando precisa (lê a lista de processos)."""
+    if _refused(e) and str(host).lower() in LOCAL_HOSTS:
+        if not running():
+            return None
+        return WEBSOCKET_OFF, "OBS is open, but its WebSocket server is off"
+    return why_not(e)
 
 
 def why_not(e: Exception) -> tuple[str, str]:
@@ -62,6 +92,7 @@ class OBS:
         self._wake = threading.Event()
         self._last_error = None
         self._attempts = 0
+        self._closed = False  # OBS fechado (fora da live): espera em silêncio, sem problema aberto
         self._thread = threading.Thread(target=self._loop, daemon=True, name="obs")
 
     def start(self) -> None:
@@ -127,6 +158,7 @@ class OBS:
             f" after {self._attempts} failed attempts" if self._attempts else "",
         )
         self._attempts = 0
+        self._closed = False
         logs.resolve(PROBLEM)
         self.engine.set_state("obs.connected", True)
         self.refresh()
@@ -161,7 +193,17 @@ class OBS:
                     if self._stop.is_set():
                         break
                     self._attempts += 1
-                    text, reason = why_not(e)
+                    found = classify(e, self.cfg.get("host", "localhost"), obs_running)
+                    if found is None:  # OBS fechado: espera em silêncio, sem selo na bandeja
+                        if not self._closed:
+                            log.info("OBS is closed; the Deck connects when it opens")
+                            self._closed = True
+                            self._last_error = None
+                        logs.resolve(PROBLEM)
+                        self._sleep(RETRY)
+                        continue
+                    self._closed = False
+                    text, reason = found
                     msg = f"{type(e).__name__}: {e}".strip()
                     if msg != self._last_error:  # só repete o aviso quando o erro muda
                         log.warning(

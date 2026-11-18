@@ -115,3 +115,57 @@ def test_obs_publishes_scene_and_times_through_the_api():
     assert published["obs.scene"] == "Jogo"
     assert eng.states == {"obs.scene:Jogo": True, "obs.scene:Pausa": False}
     assert published["obs.stream_time"]() == "00:00"  # parado: o valor é calculado na hora
+
+
+# ---------------------------------------------------------------------------- OBS fechado não é problema
+
+
+def _obs_plugin():
+    import importlib.util
+
+    from app import paths
+
+    spec = importlib.util.spec_from_file_location("obs_plugin_test", paths.BUILTIN_PLUGINS / "obs" / "plugin.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_obs_closed_on_this_pc_is_not_a_problem():
+    """Fora da live o OBS fica fechado: a conexão recusada não abre problema (sem selo na bandeja)."""
+    obs = _obs_plugin()
+    refused = ConnectionRefusedError(10061, "refused")
+    assert obs.classify(refused, "localhost", lambda: False) is None
+    assert obs.classify(refused, "127.0.0.1", lambda: False) is None
+
+
+def test_obs_open_but_refusing_says_the_websocket_server_is_off():
+    obs = _obs_plugin()
+    text, reason = obs.classify(ConnectionRefusedError(10061, "refused"), "localhost", lambda: True)
+    assert "WebSocket server is off" in text and "Tools" in text
+
+
+def test_obs_on_another_pc_keeps_the_old_warning_and_does_not_read_processes():
+    obs = _obs_plugin()
+
+    def never():
+        raise AssertionError("não lê a lista de processos para um OBS em outro computador")
+
+    text, _ = obs.classify(ConnectionRefusedError(10061, "refused"), "192.168.0.20", never)
+    assert "OBS is closed or its WebSocket server is off" in text
+
+
+def test_obs_wrong_password_is_still_a_problem_even_if_closed_check_says_no():
+    obs = _obs_plugin()
+    text, reason = obs.classify(Exception("authentication failed"), "localhost", lambda: False)
+    assert reason == "wrong password"
+
+
+def test_process_running_finds_this_python_and_not_a_made_up_name():
+    import os
+    import sys
+
+    from app import winutil
+
+    assert winutil.process_running(os.path.basename(sys.executable))
+    assert not winutil.process_running("nao-existe-deck-123.exe")

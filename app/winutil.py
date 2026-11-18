@@ -112,6 +112,44 @@ def reset_dll_directory() -> None:
     ctypes.windll.kernel32.SetDllDirectoryW("")
 
 
+def process_running(*names: str) -> bool:
+    """Algum processo com um destes nomes de arquivo está rodando (ex.: "obs64.exe")? Lê a lista de processos do
+    Windows (Toolhelp32), sem abrir nenhum deles. Em caso de erro, responde True (na dúvida, não esconde aviso)."""
+    from ctypes import wintypes
+
+    class Entry(ctypes.Structure):
+        _fields_ = [
+            ("dwSize", wintypes.DWORD),
+            ("cntUsage", wintypes.DWORD),
+            ("th32ProcessID", wintypes.DWORD),
+            ("th32DefaultHeapID", ctypes.c_void_p),
+            ("th32ModuleID", wintypes.DWORD),
+            ("cntThreads", wintypes.DWORD),
+            ("th32ParentProcessID", wintypes.DWORD),
+            ("pcPriClassBase", ctypes.c_long),
+            ("dwFlags", wintypes.DWORD),
+            ("szExeFile", ctypes.c_wchar * 260),
+        ]
+
+    k32 = ctypes.windll.kernel32
+    k32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+    want = {n.lower() for n in names}
+    snap = k32.CreateToolhelp32Snapshot(0x00000002, 0)  # TH32CS_SNAPPROCESS
+    if not snap or snap == wintypes.HANDLE(-1).value:
+        return True
+    try:
+        e = Entry()
+        e.dwSize = ctypes.sizeof(Entry)
+        ok = k32.Process32FirstW(snap, ctypes.byref(e))
+        while ok:
+            if e.szExeFile.lower() in want:
+                return True
+            ok = k32.Process32NextW(snap, ctypes.byref(e))
+        return False
+    finally:
+        k32.CloseHandle(snap)
+
+
 def message_box(text: str, title: str = "Deck") -> None:
     ctypes.windll.user32.MessageBoxW(None, text, title, 0x40)
 

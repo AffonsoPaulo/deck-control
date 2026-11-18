@@ -272,5 +272,6 @@
  "'run' needs the plugin's Python script (e.g.: [\"main.py\"])": "'run' precisa do script Python do plugin (ex.: [\"main.py\"])",
  "this plugin's runtime isn't \"deck-python\"": "o runtime deste plugin não é \"deck-python\"",
  "Your settings were copied from {old} to {new}. The old file stays where it was; from now on the Deck uses the new one.": "Suas configurações foram copiadas de {old} para {new}. O arquivo antigo ficou onde estava; daqui em diante o Deck usa o novo.",
- "To start the Deck with Windows, run the installer again and check that option. (Windows Defender blocks a program that isn't digitally signed from turning this on by itself.)": "Para o Deck iniciar com o Windows, rode o instalador de novo e marque essa opção. (O Windows Defender bloqueia um programa sem assinatura digital que liga isso sozinho.)"
+ "To start the Deck with Windows, run the installer again and check that option. (Windows Defender blocks a program that isn't digitally signed from turning this on by itself.)": "Para o Deck iniciar com o Windows, rode o instalador de novo e marque essa opção. (O Windows Defender bloqueia um programa sem assinatura digital que liga isso sozinho.)",
+ "OBS is open, but its WebSocket server is off: in OBS, Tools › WebSocket Server Settings › Enable WebSocket server. Retrying every 5 s.": "O OBS está aberto, mas o servidor WebSocket dele está desligado: no OBS, Ferramentas › Configurações do servidor WebSocket › Ativar servidor WebSocket. Tentando de novo a cada 5 s."
 }
