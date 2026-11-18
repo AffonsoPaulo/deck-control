@@ -151,7 +151,7 @@ def test_obs_on_another_pc_keeps_the_old_warning_and_does_not_read_processes():
     def never():
         raise AssertionError("não lê a lista de processos para um OBS em outro computador")
 
-    text, _ = obs.classify(ConnectionRefusedError(10061, "refused"), "192.168.0.20", never)
+    text, _ = obs.classify(ConnectionRefusedError(10061, "refused"), "192.168.0.20", never, local=lambda h: False)
     assert "OBS is closed or its WebSocket server is off" in text
 
 
@@ -169,3 +169,18 @@ def test_process_running_finds_this_python_and_not_a_made_up_name():
 
     assert winutil.process_running(os.path.basename(sys.executable))
     assert not winutil.process_running("nao-existe-deck-123.exe")
+
+
+def test_obs_at_this_pcs_own_network_address_counts_as_this_pc():
+    """O config pode apontar para o 192.168.x.y do próprio PC: conta como local (OBS fechado não é problema)."""
+    import socket
+
+    obs = _obs_plugin()
+    assert obs.is_this_pc("localhost") and obs.is_this_pc("127.0.0.1")
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sk:
+        sk.connect(("192.0.2.1", 9))  # não manda nada: só descobre o endereço desta máquina na rede
+        mine = sk.getsockname()[0]
+    if not mine.startswith("0."):
+        assert obs.is_this_pc(mine)
+    assert not obs.is_this_pc("192.0.2.123")  # endereço de documentação, nunca desta máquina
+    assert not obs.is_this_pc("nao-existe.invalid")

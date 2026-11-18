@@ -38,19 +38,41 @@ def _refused(e: Exception) -> bool:
     return isinstance(e, ConnectionRefusedError) or "refused" in text or "10061" in text
 
 
+def is_this_pc(host: str) -> bool:
+    """O host é este computador? localhost, ou um endereço da própria máquina (o 192.168.x.y dela na rede: o
+    Windows só deixa abrir um socket num endereço que é dela). Nome que não resolve: não."""
+    import socket
+
+    h = str(host).strip().lower()
+    if h in LOCAL_HOSTS:
+        return True
+    try:
+        ip = socket.gethostbyname(h)
+    except OSError:
+        return False
+    if ip.startswith("127."):
+        return True
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sk:
+            sk.bind((ip, 0))
+        return True
+    except OSError:
+        return False
+
+
 def obs_running() -> bool:
     from app import winutil
 
     return winutil.process_running(*OBS_EXES)
 
 
-def classify(e: Exception, host: str, running) -> tuple[str, str] | None:
+def classify(e: Exception, host: str, running, local=is_this_pc) -> tuple[str, str] | None:
     """O que dizer de uma falha ao conectar: (texto do problema, motivo para o log), ou None quando não é problema.
 
-    Recusou no próprio PC: com o OBS fechado é o normal fora da live (None: conecta sozinho quando ele abrir); com
+    Recusou no próprio PC (localhost ou um endereço desta máquina): com o OBS fechado é o normal fora da live (None: conecta sozinho quando ele abrir); com
     o OBS aberto, o servidor WebSocket dele está desligado. Num OBS em outro computador não dá para saber se está
     aberto: fica o aviso de antes. `running` só é chamado quando precisa (lê a lista de processos)."""
-    if _refused(e) and str(host).lower() in LOCAL_HOSTS:
+    if _refused(e) and local(host):
         if not running():
             return None
         return WEBSOCKET_OFF, "OBS is open, but its WebSocket server is off"
