@@ -56,5 +56,8 @@
 - Responder em português do Brasil.
 - `config.yaml` tem a senha do OBS: nunca mostrar, logar nem commitar. O repositório é público.
 - Testes manuais no servidor de teste (porta 8799, com cópia do config), nunca no app real (8765). Desligar depois.
-- Commit só quando pedirem. Commits em português, no formato "Área: o que mudou".
+- Commit só quando pedirem. Mensagens em inglês, no formato Conventional Commits: `tipo(área): what changed`, com
+  tipo `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`, `style` ou `perf` e a área em minúsculas
+  (ex.: `fix(obs): treat the PC's own LAN address as local`). Os commits até 2026-11-18 ficaram no formato antigo
+  ("Área: o que mudou", em português); o histórico não é reescrito.
 - Logs em inglês (loggers `deck.<área>`, segredos pelo `mask`), comentários em português, textos da interface com `t("English")`.
