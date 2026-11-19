@@ -85,7 +85,6 @@ Por último: cada uma exige cadastrar um app no serviço e passar por login (OAu
 
 - [ ] **Twitch** (G): criar clipe, marcador na live, rodar anúncio, mensagem no chat,
   trocar título/categoria.
-- [ ] **Discord oficial** (G): estado real de mute/áudio no ícone.
 - [ ] **Home Assistant** (M): luz, tomada, ar-condicionado, com o estado no ícone.
 
 ---
@@ -105,4 +104,5 @@ Por último: cada uma exige cadastrar um app no serviço e passar por login (OAu
 - [x] Bandeja do Windows, iniciar com o Windows, reconexão automática
 - [x] Editor visual: biblioteca de ações para arrastar, passos em sequência, bloco "Se… então… senão", desfazer, validação
 - [x] Atalho para outro programa (combinação exclusiva por tecla, "apertar para falar")
+- [x] Discord direto (Client ID): estado real de mudo e surdo no ícone
 - [x] Salvamento automático e histórico de versões (voltar para qualquer versão)

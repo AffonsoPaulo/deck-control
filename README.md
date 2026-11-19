@@ -9,7 +9,8 @@ App do zero para o Fifine AmpliGame D6 (USB `3142:0060`), sem o software da Fifi
 - [x] Fase 3: app com ações genéricas, OBS, Discord, páginas e config recarregável (`python -m app`)
 - [x] Bandeja do Windows, iniciar com o Windows, reconexão automática do D6
 - [x] Editor visual no navegador
-- [ ] Próximas: estado real do Discord, volume por aplicativo
+- [x] Discord direto (Client ID): o estado real de mudo e surdo no ícone
+- [ ] Próximas: volume por aplicativo
 
 ## Usar o app
 
@@ -20,7 +21,7 @@ pip install -e .
 ```
 
 ```
-pythonw -m app --tray    # dia a dia: ícone na bandeja, sem janela (log em %LOCALAPPDATA%\D6Deck\app.log)
+pythonw -m app --tray    # dia a dia: ícone na bandeja, sem janela (log em %LOCALAPPDATA%\D6Deck\logs\app.log)
 python -m app            # no terminal, com log na tela
 python -m app --debug    # mostra teclas, estados e tempos de desenho
 python -m app --editor   # já abre o editor no navegador
