@@ -106,5 +106,5 @@ def import_config(ctx: Context, body: dict):
         store.save(new)
         rev = store.revision()
     log.info("Config imported from %s (%s)", name, body.get("mode", "replace"))
-    store.record(reason=f"Importado de {name}")
+    store.record(reason=tr("Imported from {name}", name=name))
     return {"ok": True, "config": store.read_plain(), "rev": rev}

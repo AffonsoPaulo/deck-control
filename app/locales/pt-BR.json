@@ -275,5 +275,6 @@
  "To start the Deck with Windows, run the installer again and check that option. (Windows Defender blocks a program that isn't digitally signed from turning this on by itself.)": "Para o Deck iniciar com o Windows, rode o instalador de novo e marque essa opção. (O Windows Defender bloqueia um programa sem assinatura digital que liga isso sozinho.)",
  "OBS is open, but its WebSocket server is off: in OBS, Tools › WebSocket Server Settings › Enable WebSocket server. Retrying every 5 s.": "O OBS está aberto, mas o servidor WebSocket dele está desligado: no OBS, Ferramentas › Configurações do servidor WebSocket › Ativar servidor WebSocket. Tentando de novo a cada 5 s.",
  "device.screen_color: use true, false or {red, blue, saturation}": "device.screen_color: use true, false ou {red, blue, saturation}",
- "device.screen_color.{field}: a number from {lo} to {hi}": "device.screen_color.{field}: um número de {lo} a {hi}"
+ "device.screen_color.{field}: a number from {lo} to {hi}": "device.screen_color.{field}: um número de {lo} a {hi}",
+ "Imported from {name}": "Importado de {name}"
 }

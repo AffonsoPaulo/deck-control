@@ -60,6 +60,19 @@ describe("conferência", () => {
     );
   });
 
+  it("o erro do servidor em inglês (app em inglês) também vira texto da pessoa", () => {
+    const f = (e: string) => friendlyError(t, SCHEMA as never, e);
+    expect(f("pages.main.3.double: action 'hotkey' needs the field 'keys'")).toBe(
+      'Page main, key 3 (on double tap): fill in "Keys"',
+    );
+    expect(f("pages.main.4: 'page' action points to 'obs', which doesn't exist")).toBe(
+      'Page main, key 4: goes to page "obs", which doesn\'t exist',
+    );
+    expect(f("pages.main.5: unknown action type 'xyz'. Known: hotkey, text")).toBe('Page main, key 5: unknown action "xyz"');
+    expect(f("home: page 'x' doesn't exist")).toBe('The home page "x" doesn\'t exist');
+    expect(f("pages.main.5: tipo de ação desconhecido 'xyz'. Conhecidos: hotkey")).toBe('Page main, key 5: unknown action "xyz"');
+  });
+
   it("o painel mostra o que impede salvar e os atalhos repetidos; some sem nada", () => {
     const { container } = wrap(<Problems />);
     expect(container.innerHTML).toBe("");

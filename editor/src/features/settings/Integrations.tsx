@@ -292,7 +292,7 @@ function PluginBlock({ pl, applySchema }: { pl: Plugin; applySchema: (s: EditorS
                   try {
                     const r = await api("POST /api/plugins/remove", { id: pl.id });
                     applySchema(r.schema);
-                    toast(`${pl.name} removido.`);
+                    toast(t("{0} removed.", [pl.name]));
                   } catch (e) {
                     toast((e as Error).message, { bad: true });
                   }

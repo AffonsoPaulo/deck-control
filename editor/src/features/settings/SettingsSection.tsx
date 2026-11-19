@@ -360,15 +360,12 @@ function Advanced() {
           onChange={(v) => cfgTop("double_tap_ms", v === 250 ? null : v)}
         />
       </SetRow>
-      <SetSection title={t("Sending images")} />
-      <p className={LEAD}>
-        {t(
-          "Sending images to the screens. Only change this if some key stops updating.",
-        )}
-      </p>
+      {/* device.key_delay e device.per_key_session saíram da tela: só valem no envio antigo, com sessão
+          (device.session: true, só no config.yaml); o envio de hoje (deck.push) não usa nenhum dos dois */}
+      <SetSection title={t("Device")} />
       <SetRow
         label={t("Pause between commands")}
-        hint={t("Higher = slower and safer.")}
+        hint={t("The pauses while connecting to the Deck. Higher = slower and safer.")}
       >
         <Stepper
           value={Number(dev.settle ?? 1)}
@@ -380,23 +377,6 @@ function Advanced() {
           onChange={(v) => cfgIn("device", "settle", v)}
         />
       </SetRow>
-      <SetRow label={t("Pause per key")}>
-        <Stepper
-          value={Number(dev.key_delay ?? 0.3)}
-          min={0}
-          max={1}
-          step={0.01}
-          label={t("pause per key")}
-          format={(v) => `${numFmt(lang, v, 2)} s`}
-          onChange={(v) => cfgIn("device", "key_delay", v)}
-        />
-      </SetRow>
-      <SetSwitch
-        label={t("Send one image at a time")}
-        checked={dev.per_key_session !== false}
-        onChange={(on) => cfgIn("device", "per_key_session", on)}
-        hint={t("Much slower, but the safest mode.")}
-      />
       <SetSwitch
         label={t("Correct the screen colors")}
         checked={dev.screen_color !== false}
@@ -760,7 +740,7 @@ function About() {
         {line(t("Device"), t("Fifine AmpliGame D6"))}
         {line(
           t("Firmware"),
-          a.firmware || (device ? "lendo…" : t("Deck disconnected")),
+          a.firmware || (device ? t("reading…") : t("Deck disconnected")),
         )}
         {line(t("Settings file"), a.config || "?")}
       </div>

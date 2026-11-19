@@ -17,12 +17,23 @@ export function placeText(t: T, schema: EditorSchema | undefined, p: Obj): strin
 
 export function friendlyError(t: T, schema: EditorSchema | undefined, e: string): string {
   const labels = schema?.field_labels ?? {};
+  // o servidor responde no idioma do app: cada padrão aceita o texto em inglês (o original) e em português
+  const where = (p: string, k: string, w: string | undefined): string =>
+    w === "hold"
+      ? t("Page {0}, key {1} (on hold): ", [p, k])
+      : w === "release"
+        ? t("Page {0}, key {1} (on release): ", [p, k])
+        : w === "double"
+          ? t("Page {0}, key {1} (on double tap): ", [p, k])
+          : t("Page {0}, key {1}: ", [p, k]);
   return e
-    .replace(/^pages\.([^.]+)\.(\d+)(\.(action|hold|release))?[^:]*:\s*/, (_m, p: string, k: string, _2, w: string | undefined) =>
-      w === "hold" ? t("Page {0}, key {1} (on hold): ", [p, k]) : w === "release" ? t("Page {0}, key {1} (on release): ", [p, k]) : t("Page {0}, key {1}: ", [p, k]),
+    .replace(/^pages\.([^.]+)\.(\d+)(\.(action|double|hold|release))?[^:]*:\s*/, (_m, p: string, k: string, _2, w: string | undefined) =>
+      where(p, k, w),
     )
-    .replace(/ação '[^']+' precisa do campo '(\w+)'/, (_m, f: string) => t('fill in "{0}"', [labels[f] ? t(labels[f]) : f]))
-    .replace(/ação 'page' aponta para '([^']+)', que não existe/, t('goes to page "$1", which doesn\'t exist'))
-    .replace(/tipo de ação desconhecido '([^']+)'.*/, t('unknown action "$1"'))
-    .replace(/^home: página '([^']+)' não existe/, t('The home page "$1" doesn\'t exist'));
+    .replace(/(?:action '[^']+' needs the field|ação '[^']+' precisa do campo) '(\w+)'/, (_m, f: string) =>
+      t('fill in "{0}"', [labels[f] ? t(labels[f]) : f]),
+    )
+    .replace(/(?:'page' action points to|ação 'page' aponta para) '([^']+)', (?:which doesn't exist|que não existe)/, t('goes to page "$1", which doesn\'t exist'))
+    .replace(/(?:unknown action type|tipo de ação desconhecido) '([^']+)'.*/, t('unknown action "$1"'))
+    .replace(/^home: (?:page|página) '([^']+)' (?:doesn't exist|não existe)/, t('The home page "$1" doesn\'t exist'));
 }
