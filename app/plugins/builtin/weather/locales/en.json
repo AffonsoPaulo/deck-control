@@ -1,4 +1,5 @@
 {
+  "name": "Weather",
   "description": "Weather: temperature, rain and the next days on your keys",
   "category": "Weather",
   "setting.city.label": "City",

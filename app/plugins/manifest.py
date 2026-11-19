@@ -85,7 +85,11 @@ def localize(m: dict, locales: dict[str, dict], lang: str | None = None):
             return {k: (x if k in _FIXED else text(x)) for k, x in v.items()}
         return v
 
-    return text(m)
+    out = text(m)
+    # o nome do plugin pode ser traduzido ("name": "%name%"); dentro de settings e actions, "name" é identificador
+    if isinstance(out, dict) and isinstance(m.get("name"), str):
+        out["name"] = text(m["name"])
+    return out
 
 
 def missing_keys(m: dict, locales: dict[str, dict]) -> list[str]:

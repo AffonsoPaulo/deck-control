@@ -22,6 +22,17 @@ def test_builtin_plugins_register_their_actions():
     assert actions.REGISTRY["obs.record"].plugin == "obs"
 
 
+def test_plugin_name_is_translated_but_field_names_are_not():
+    from app.plugins.manifest import localize
+
+    m = {"id": "x", "name": "%name%", "settings": [{"name": "city", "label": "%city%"}]}
+    locales = {"en": {"name": "Weather", "city": "City"}, "pt-BR": {"name": "Clima", "city": "Cidade"}}
+    assert localize(m, locales, "en")["name"] == "Weather"
+    pt = localize(m, locales, "pt-BR")
+    assert (pt["name"], pt["settings"][0]["name"], pt["settings"][0]["label"]) == ("Clima", "city", "Cidade")
+    assert MANAGER.plugins["weather"].text("en")["name"] == "Weather"
+
+
 def test_valid_external_manifest():
     check_manifest(dict(OK), builtin=False)
 

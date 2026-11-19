@@ -231,9 +231,9 @@ pomodoro/
 {"description": "Ciclos de foco e pausa", "setting.focus.label": "Minutos de foco"}
 ```
 
-- Vale para `description`, `author`, `category`, `permissions`, `steps`, a descrição dos `states` e,
-  nas `settings` e nas `actions`, `label`, `help` e os rótulos de `options`. `id`, `name`, `icon`,
-  `placeholder` e os valores ficam como estão.
+- Vale para o `name` do plugin, `description`, `author`, `category`, `permissions`, `steps`, a descrição dos
+  `states` e, nas `settings` e nas `actions`, `label`, `help` e os rótulos de `options`. `id`, o `name` dos campos,
+  `icon`, `placeholder` e os valores ficam como estão.
 - A busca é: o idioma exato (`pt-BR`), depois o idioma base (`pt.json`), depois o `default_locale`,
   e por fim a própria chave. Uma chave que falta em algum arquivo aparece como aviso no log.
 - Texto comum, sem `%`, continua valendo: um plugin que só fala uma língua não precisa de nada disso.

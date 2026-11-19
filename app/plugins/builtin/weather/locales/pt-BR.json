@@ -1,4 +1,5 @@
 {
+  "name": "Clima",
   "description": "Clima (Weather): temperatura, chuva e os próximos dias nas teclas",
   "category": "Clima",
   "setting.city.label": "Cidade",
