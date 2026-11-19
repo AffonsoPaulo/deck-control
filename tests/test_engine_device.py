@@ -230,6 +230,9 @@ def test_brightness_action_absolute_and_in_cycle(make_engine):
     rig.tap(2)
     rig.tap(2)
     assert deck.brightness == [40, 65, 90, 10, 35]  # passou de 100: volta para 10
+    # o nível de 1 a 10 (a tecla de brilho com passo de 10 mostra em que nível está)
+    assert rig.engine.values.get("deck.brightness") == 35
+    assert rig.engine.values.get("deck.brightness_level") == 4
 
 
 # ---------------------------------------------------------------------------- anel de LEDs

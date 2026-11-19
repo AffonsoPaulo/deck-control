@@ -44,6 +44,7 @@ BUILTIN = [
     ("system.muted", "Windows sound muted", "System", "bool", False),
     ("deck.page", "Current page", "System", "text", "main"),
     ("deck.brightness", "Screen brightness", "System", "number", 80),
+    ("deck.brightness_level", "Screen brightness level (1 to 10)", "System", "number", 8),
 ]
 FORMATS = {"nz": "no leading zero", "up": "uppercase", "low": "lowercase"}
 OPS = ("eq", "ne", "gt", "lt", "ge", "le", "contains")
@@ -227,6 +228,9 @@ class Values:
             return e.page if e else None
         if name == "deck.brightness":
             return getattr(e, "_brightness", None) if e else None
+        if name == "deck.brightness_level":  # 1 a 10: os níveis da ação de brilho com passo de 10
+            b = getattr(e, "_brightness", None) if e else None
+            return None if b is None else max(1, min(10, round(b / 10)))
         with self._lock:
             v = self._plugin.get(name, _MISSING)
         if v is not _MISSING:
