@@ -29,7 +29,6 @@ from app.config.sections import (
     check_lighting,
     check_logging,
     check_widgets,
-    draw_options,
     check_screen_color,
     temp_pages,
 )
@@ -98,7 +97,6 @@ def build_config(raw: Any, path: Path) -> Config:
         pages=pages.value,
         home=home.value,
         brightness=brightness.value,
-        draw_options=draw_options(raw),
         lighting=raw.get("lighting") if isinstance(raw.get("lighting"), dict) else None,
         double_ms=int(raw.get("double_tap_ms", 250)),
         cover=cover.value,

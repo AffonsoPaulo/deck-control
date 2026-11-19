@@ -30,7 +30,6 @@ class DeckProtocol(Protocol):
     def set_brightness(self, pct: int) -> None: ...
     def events(self, timeout_ms: int = 500) -> Iterator[KeyEvent]: ...
     def push(self, key: int, jpeg: bytes) -> None: ...
-    def draw(self, tiles: dict[int, bytes], brightness: int = 100, **opts: Any) -> None: ...
     def set_leds(self, colors: Any) -> None: ...
     @staticmethod
     def screen_for_key(key: int) -> int: ...
@@ -59,7 +58,6 @@ class FakeDeck:
         self.pushes: list[tuple[int, bytes]] = []  # (tecla, JPEG) em ordem de envio
         self.screens: dict[int, bytes] = {}  # tecla -> última imagem
         self.leds: list[list[tuple[int, int, int]]] = []  # quadros do anel, em ordem
-        self.draws: list[dict[int, bytes]] = []  # draw() (modo antigo, com sessão)
         self.reads: list[int] = []  # timeout_ms de cada events()
         # roteiro de leitura: cada item é chamado no events() correspondente (antes de entregar os eventos);
         # pode levantar (cabo puxado) ou parar o engine
@@ -104,10 +102,6 @@ class FakeDeck:
         assert 1 <= key <= KEY_COUNT, key
         self.pushes.append((key, jpeg))
         self.screens[key] = jpeg
-
-    def draw(self, tiles: dict[int, bytes], brightness: int = 100, **opts: Any) -> None:
-        self.draws.append(dict(tiles))
-        self.screens.update(tiles)
 
     def set_leds(self, colors: Any) -> None:
         assert len(colors) == LED_COUNT

@@ -104,13 +104,9 @@ discord:
   mute: ctrl+shift+alt+f23    # "Toggle Mute" (F13–F24 don't exist on keyboards: they never clash)
   deafen: ctrl+shift+alt+f24  # "Toggle Deafen"
 
-# Fine-tuning for sending images. The fast mode (batch) was tested with all 15 keys.
-# These only matter for the old drawing mode (session: true below); the app doesn't use it by default.
+# The Deck: the pauses while connecting (images always go through the fast send, without a session).
 device:
-  # session: true      # old drawing mode (the light blinks on each change)
-  per_key_session: false
-  key_delay: 0.05
-  settle: 0.25       # factor for the pauses between commands (1.0 = more conservative and slower)
+  settle: 0.25       # factor for the pauses between commands while connecting (1.0 = more conservative and slower)
 
 # Logs. Errors, warnings and the main events are always recorded in
 # %LOCALAPPDATA%\D6Deck\logs\app.log (up to 5 files of 2 MB; messages are in English).

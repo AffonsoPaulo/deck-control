@@ -3,11 +3,8 @@
 Uso:
     python tools/draw_test.py                 # todas as 15 teclas
     python tools/draw_test.py --keys 1 5 11 15
-    python tools/draw_test.py --chunk 512     # variante de tamanho de pedaço
-    python tools/draw_test.py --batch         # uma sessão só (mais rápido, menos confiável)
 
-Cada execução gasta um "ciclo de desenho" do D6. Se ele parar de mostrar
-imagens, tire e recoloque o cabo.
+Usa o envio rápido, sem sessão (o mesmo do app). Feche o app do Deck antes.
 """
 
 from __future__ import annotations
@@ -32,13 +29,7 @@ def color_for(key: int) -> tuple[int, int, int]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--keys", type=int, nargs="*", default=list(range(1, KEY_COUNT + 1)))
-    ap.add_argument("--chunk", type=int, default=None, help="bytes de imagem por pacote (padrão: 1024)")
     ap.add_argument("--size", type=int, default=render.TILE)
-    ap.add_argument("--batch", action="store_true", help="todas as imagens numa sessão só")
-    ap.add_argument("--clear", action="store_true", help="limpa as telas antes")
-    ap.add_argument("--brightness", type=int, default=100)
-    ap.add_argument("--key-delay", type=float, default=0.3, help="pausa depois de cada imagem (s)")
-    ap.add_argument("--pace", type=float, default=0.005, help="pausa entre pacotes (s)")
     ap.add_argument("--prefix", default="", help="texto antes do número (para distinguir testes)")
     ap.add_argument("--invert", action="store_true", help="fundo branco, número colorido")
     args = ap.parse_args()
@@ -54,15 +45,8 @@ def main() -> int:
 
     with D6() as deck:
         t0 = time.time()
-        deck.draw(
-            tiles,
-            brightness=args.brightness,
-            chunk=args.chunk,
-            per_key_session=not args.batch,
-            clear=args.clear,
-            key_delay=args.key_delay,
-            pace=args.pace,
-        )
+        for k in sorted(tiles, key=deck.screen_for_key):
+            deck.push(k, tiles[k])
         print(f"Enviado em {time.time() - t0:.1f}s. Olhe o D6.")
     return 0
 

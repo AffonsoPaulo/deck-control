@@ -36,8 +36,7 @@ LED_COUNT = 18  # anel de LEDs em volta do aparelho
 
 ACK_PREFIX = b"ACK\x00\x00OK\x00\x00"
 
-MODE_KEYS = 1  # envia eventos de tecla
-MODE_DISPLAY = 2  # aceita upload de imagens (Fase 2)
+MODE_KEYS = 1  # envia eventos de tecla (as imagens vão por push, sem sessão, neste mesmo modo)
 
 
 @dataclass(frozen=True)
@@ -181,41 +180,21 @@ class D6:
         row, col = divmod(key - 1, COLS)
         return (ROWS - 1 - row) * COLS + col + 1
 
-    def _session(self, mode: int, brightness: int, clear: bool = False) -> None:
-        """Abre uma sessão no modo pedido (DIS, LIG 0, MOD n, LIG n, [CLE], STP)."""
-        w = self._wait
-        self.wake_display()
-        w(0.1)
-        self.send(crt("LIG", 0, 0, 0, 0))
-        w(0.1)
-        self.set_mode(mode)
-        w(0.2)
-        self.set_brightness(brightness)
-        w(0.2)
-        if clear:
-            self.send(crt("CLE", 0, 0, 0, 0xFF))
-        self.send(crt("STP"))
-        w(0.25)
+    def push(self, key: int, jpeg: bytes) -> None:
+        """Troca a imagem de uma tecla sem abrir sessão: BAT <tamanho> <tela>, os dados em pedaços, STP.
 
-    def _upload(self, screen: int, jpeg: bytes, chunk: int, pace: float) -> None:
-        """BAT <tamanho> <tela>, dados em pedaços, STP."""
+        É o único jeito de desenhar (rápido, e a iluminação não pisca). É assim que o app oficial anima
+        GIFs: reenvia cada quadro como JPEG na hora certa, com o D6 no modo de teclas (capturado em
+        2026-11-15). O D6 não toca GIF sozinho: GIF cru via BAT é ignorado. Várias teclas: em ordem de
+        tela (sorted(..., key=screen_for_key)).
+        """
         n = len(jpeg)
         if n > 0xFFFF:
             raise ValueError("image too large")
-        self.send(crt("BAT", 0, 0, (n >> 8) & 0xFF, n & 0xFF, screen))
-        for off in range(0, n, chunk):
-            self.send(jpeg[off : off + chunk])
-            time.sleep(pace)
+        self.send(crt("BAT", 0, 0, (n >> 8) & 0xFF, n & 0xFF, self.screen_for_key(key)))
+        for off in range(0, n, self._out_size):
+            self.send(jpeg[off : off + self._out_size])
         self.send(crt("STP"))
-
-    def push(self, key: int, jpeg: bytes) -> None:
-        """Troca a imagem de uma tecla sem abrir sessão (só BAT, dados, STP).
-
-        É assim que o app oficial anima GIFs: reenvia cada quadro como JPEG na
-        hora certa, com o D6 no modo de teclas (capturado em 2026-11-15). O D6
-        não toca GIF sozinho: GIF cru via BAT é ignorado.
-        """
-        self._upload(self.screen_for_key(key), jpeg, self._out_size, 0)
 
     def set_leds(self, colors) -> None:
         """Pinta o anel de LEDs: uma cor (r, g, b) por LED, LED_COUNT no total.
@@ -230,42 +209,6 @@ class D6:
             r, g, b = colors[i] if i < len(colors) else (0, 0, 0)
             data += bytes((max(0, min(255, int(r))), max(0, min(255, int(g))), max(0, min(255, int(b)))))
         self.send(bytes(data))
-
-    def draw(
-        self,
-        tiles: dict[int, bytes],
-        brightness: int = 100,
-        chunk: int | None = None,
-        pace: float = 0.005,
-        key_delay: float = 0.3,
-        per_key_session: bool = True,
-        clear: bool = False,
-    ) -> None:
-        """Envia imagens JPEG, indexadas pela TECLA (1..15).
-
-        Cuidados que vêm dos projetos de referência:
-          * Telas em ordem crescente, STP depois de cada imagem.
-          * Uma sessão por imagem (per_key_session): o D6 descarta as primeiras
-            imagens de um lote grande.
-          * O D6 aceita um número limitado de envios até ser religado; quem chama
-            deve mandar só o que mudou.
-        Ao final volta ao modo de teclas (as imagens continuam na tela).
-        """
-        chunk = chunk or self._out_size
-        order = sorted(tiles, key=self.screen_for_key)
-        if not per_key_session:
-            self._session(MODE_DISPLAY, brightness, clear=clear)
-        for i, key in enumerate(order):
-            if per_key_session:
-                self._session(MODE_DISPLAY, brightness, clear=clear and i == 0)
-            self._upload(self.screen_for_key(key), tiles[key], chunk, pace)
-            time.sleep(key_delay)
-            if per_key_session:
-                self.send(crt("STP"))
-        if not per_key_session:
-            self.send(crt("STP"))
-        self._wait(0.2)
-        self.enable_keys(brightness)
 
     # -- leitura ------------------------------------------------------------
 

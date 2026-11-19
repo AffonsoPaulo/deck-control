@@ -15,7 +15,6 @@ from app.config.model import Checked, Pages
 from app.i18n import tr
 
 LOGGING_FLAGS = ("detail", "show_tab", "key_error", "notify")
-DRAW_OPTIONS = ("session", "per_key_session", "key_delay", "pace")  # device: o que vai para o envio das imagens
 
 
 def check_widgets(raw_widgets: object) -> list[str]:
@@ -143,9 +142,3 @@ def build_brightness(raw: dict[str, Any]) -> Checked[int]:
     except (TypeError, ValueError, OverflowError):
         return Checked(100, [tr("brightness: a number from {lo} to {hi}", lo=0, hi=100)])
     return Checked(max(0, min(100, n)), [])
-
-
-def draw_options(raw: dict[str, Any]) -> dict[str, Any]:
-    """device: as opções do envio das imagens que o engine usa."""
-    dev = raw.get("device") or {}
-    return {k: dev[k] for k in DRAW_OPTIONS if k in dev}

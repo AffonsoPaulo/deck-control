@@ -116,7 +116,6 @@ See the comment at the top of `d6/device.py`. Based on
 - **Light**: a ring of 18 LEDs (LED 0 at the bottom center, clockwise), packet `CRTAd` + 18 + the RGB of each LED, no
   session. Effects and key reactions are animated by the app (~30 frames/s); the D6 only accepts them after two quick
   clicks on its back button.
-- Sending in a batch (one session for all keys) also works; a whole page takes ~1.4 s with `settle: 0.25`.
 
 ## Project structure
 

@@ -91,12 +91,11 @@ def test_connect_enables_keys_with_the_config_options(make_engine):
     assert rig.engine.device_info()["usb"] == "3142:0060"
 
 
-def test_old_draw_mode_uses_one_session(make_engine):
-    """device.session: true — o modo antigo manda tudo pelo draw() (com sessão), não pelo push()."""
-    rig = make_engine(RECONNECT.replace("{settle: 0.5}", "{session: true}"))
+def test_keys_are_always_drawn_without_a_session(make_engine):
+    """Só o envio rápido (push, sem sessão). As chaves do modo antigo num config velho são ignoradas."""
+    rig = make_engine(RECONNECT.replace("{settle: 0.5}", "{session: true, per_key_session: true, key_delay: 0.3}"))
     deck = rig.connect()
-    assert deck.pushes == []
-    assert len(deck.draws) == 1 and sorted(deck.draws[0]) == list(range(1, 16))
+    assert sorted(k for k, _ in deck.pushes) == list(range(1, 16))
 
 
 # ---------------------------------------------------------------------------- perder e reconectar

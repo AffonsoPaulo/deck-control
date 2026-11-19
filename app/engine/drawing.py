@@ -387,13 +387,8 @@ class Drawing:
             dlog.debug("Skipped redraw of keys %s (same image)", skipped)
         if tiles:
             t0 = clock.monotonic()
-            opts = dict(self._shared.cfg.draw_options)
-            if opts.pop("session", False):
-                # modo antigo: abre uma sessão (a iluminação pisca); só por segurança
-                deck.draw(tiles, brightness=self._queue.brightness, **opts)
-            else:
-                for key in sorted(tiles, key=deck.screen_for_key):
-                    deck.push(key, tiles[key])
+            for key in sorted(tiles, key=deck.screen_for_key):  # sem sessão: rápido, e a luz não pisca
+                deck.push(key, tiles[key])
             dlog.debug(
                 "Drew keys %s in %d ms (render %d ms, %d bytes)",
                 sorted(tiles),

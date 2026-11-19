@@ -360,8 +360,7 @@ function Advanced() {
           onChange={(v) => cfgTop("double_tap_ms", v === 250 ? null : v)}
         />
       </SetRow>
-      {/* device.key_delay e device.per_key_session saíram da tela: só valem no envio antigo, com sessão
-          (device.session: true, só no config.yaml); o envio de hoje (deck.push) não usa nenhum dos dois */}
+      {/* as imagens vão sempre pelo envio rápido, sem sessão (deck.push): daqui só a pausa ao conectar */}
       <SetSection title={t("Device")} />
       <SetRow
         label={t("Pause between commands")}

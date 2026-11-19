@@ -45,8 +45,8 @@ def main() -> int:
     print(f"GIF estático: {len(static)} bytes, começa com {static[:6]!r}")
     print(f"GIF animado: {len(animated)} bytes, começa com {animated[:6]!r}")
     with D6() as deck:
-        deck.settle = 0.5
-        deck.draw({14: static, 15: animated}, per_key_session=False, key_delay=0.1)
+        deck.push(14, static)  # envio rápido, sem sessão
+        deck.push(15, animated)
     print("Enviado. Olhe as teclas 14 e 15 (as duas últimas da fileira de baixo).")
     return 0
 

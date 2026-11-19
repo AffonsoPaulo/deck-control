@@ -99,7 +99,7 @@ Por último: cada uma exige cadastrar um app no serviço e passar por login (OAu
 
 ## Já feito
 
-- [x] Driver do D6: teclas, imagens 112×112, envio rápido em lote
+- [x] Driver do D6: teclas, imagens 112×112, envio rápido (sem sessão)
 - [x] App com ações genéricas, OBS, Discord, páginas, segurar/soltar, config recarregável
 - [x] Bandeja do Windows, iniciar com o Windows, reconexão automática
 - [x] Editor visual: biblioteca de ações para arrastar, passos em sequência, bloco "Se… então… senão", desfazer, validação

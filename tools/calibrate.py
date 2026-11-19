@@ -56,7 +56,8 @@ def main() -> int:
     data = render.encode(img, size=args.size)
     print(f"Padrão {args.size}x{args.size}: {len(data)} bytes, teclas {args.keys}")
     with D6() as deck:
-        deck.draw({k: data for k in args.keys})
+        for k in sorted(args.keys, key=deck.screen_for_key):  # envio rápido, sem sessão
+            deck.push(k, data)
     print("Enviado. Tire uma foto de frente e bem de perto.")
     return 0
 

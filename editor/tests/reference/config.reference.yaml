@@ -103,14 +103,9 @@ discord:
   mute: ctrl+shift+alt+f23    # "Alternar silenciar" (F13–F24 não existem no teclado: nunca colidem)
   deafen: ctrl+shift+alt+f24  # "Alternar ensurdecer"
 
-# Ajustes finos de envio de imagens. O modo rápido (lote) foi testado com as 15 teclas.
-# Se alguma tecla deixar de atualizar, troque para per_key_session: true e key_delay: 0.3
-# (bem mais lento, ~1,2 s por tecla, porém o modo mais conservador).
+# O Deck: as pausas ao conectar (as imagens vão sempre pelo envio rápido, sem sessão).
 device:
-  # session: true      # modo antigo de desenhar (a iluminação pisca a cada troca)
-  per_key_session: false
-  key_delay: 0.05
-  settle: 0.25       # fator das pausas entre comandos (1.0 = mais conservador e lento)
+  settle: 0.25       # fator das pausas entre comandos ao conectar (1.0 = mais conservador e lento)
 
 # Logs. Erros, avisos e os eventos principais são sempre gravados em
 # %LOCALAPPDATA%\D6Deck\logs\app.log (até 5 arquivos de 2 MB; as mensagens ficam em inglês).

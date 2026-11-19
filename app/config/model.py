@@ -66,7 +66,6 @@ class Config:
     pages: Pages
     home: str
     brightness: int
-    draw_options: dict[str, Any] = field(default_factory=dict)
     lighting: dict[str, Any] | None = None
     double_ms: int = 250  # janela do toque duplo
     cover: Cover = field(default_factory=dict)  # {página: {tecla coberta: (tecla do bloco, índice da célula)}}
