@@ -25,8 +25,8 @@ get much more out of it:
 - **An editor you'll enjoy using.** Drag and drop, over 1,500 icons, your own images and animated GIFs, undo, and
   a version history so you can go back to any earlier setup. Everything saves on its own and the Deck updates
   instantly.
-- **Quiet.** It lives in the Windows tray, reconnects by itself if you unplug the Deck, and gets out of the way
-  during your stream.
+- **Quiet.** It lives in the Windows tray, reconnects by itself if you unplug the Deck, turns the Deck off when
+  your PC shuts down or sleeps, and gets out of the way during your stream.
 
 Available in English and Portuguese.
 

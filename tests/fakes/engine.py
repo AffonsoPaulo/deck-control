@@ -93,10 +93,11 @@ class FakeStopEvent:
     """No lugar do _stop_event do engine (threading.Event): o wait(2) do run() esperando o Deck faz o relógio
     falso andar, em vez de esperar de verdade."""
 
-    def __init__(self, clock: FakeClock) -> None:
+    def __init__(self, clock: FakeClock, hooks: list[Callable[[], None]] | None = None) -> None:
         self.clock = clock
         self._set = False
         self.waits: list[float | None] = []
+        self.hooks = list(hooks or [])  # chamados um por wait(), em ordem (ex.: engine.resume)
 
     def set(self) -> None:
         self._set = True
@@ -111,6 +112,8 @@ class FakeStopEvent:
         self.waits.append(timeout)
         if timeout:
             self.clock.advance(timeout * 1000)
+        if self.hooks:
+            self.hooks.pop(0)()
         return self._set
 
 
@@ -153,10 +156,11 @@ class EngineRig:
         """Uma volta do loop principal (interno: _tick)."""
         self.engine._tick()
 
-    def run(self) -> FakeStopEvent:
+    def run(self, on_wait: list[Callable[[], None]] | None = None) -> FakeStopEvent:
         """O run() de verdade (conectar, loop, reconectar, parar), com a espera trocada (interno: _stop_event).
-        Quem para o loop é o roteiro do FakeDeck (deck.script) chamando engine.stop()."""
-        stop = FakeStopEvent(self.clock)
+        Quem para o loop é o roteiro do FakeDeck (deck.script) chamando engine.stop(). on_wait: chamados um a
+        cada espera do loop (sem o Deck, ou com o PC dormindo)."""
+        stop = FakeStopEvent(self.clock, on_wait)
         self.engine._stop_event = stop  # type: ignore[assignment]
         self.engine.run()
         return stop

@@ -113,6 +113,7 @@ files = [
     "app/plugins/api.py",
     "app/plugins/manifest.py",
     "app/plugin_runner.py",
+    "app/windows/power.py",
 ]
 follow_imports = "silent"
 warn_unused_ignores = true

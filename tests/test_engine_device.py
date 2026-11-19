@@ -134,6 +134,49 @@ def test_lost_deck_is_closed_and_reopened_with_every_key_redrawn(make_engine, er
     assert rig.pool.shutdowns == [{"wait": False, "cancel_futures": True}]
 
 
+BLACK_RING = [(0, 0, 0)] * 18
+
+
+def test_quitting_turns_the_screens_and_the_light_off(make_engine):
+    """Ao fechar o app, o Deck não fica congelado na última imagem: anel preto e telas dormindo (HAN), e só
+    depois a conexão fecha. A USB segue ligada (o PC pode estar carregando algo nela)."""
+    rig = make_engine(RECONNECT)
+    deck = rig.factory.prepare()
+    deck.script = [None, rig.engine.stop]
+    rig.run()
+    assert deck.slept == 1 and deck.leds[-1] == BLACK_RING
+    assert deck.closed
+
+
+def test_pc_going_to_sleep_turns_the_deck_off_and_waking_up_redraws_it(make_engine):
+    """suspend(): o laço apaga o Deck e o solta; resume(): reconecta (a sessão acorda as telas) e redesenha as
+    15 teclas. Enquanto o PC dorme, nada é mandado ao aparelho."""
+    rig = make_engine(RECONNECT)
+    first, second = rig.factory.prepare(), rig.factory.prepare()
+    first.script = [None, rig.engine.suspend]
+    second.script = [rig.engine.stop]
+    stop = rig.run(on_wait=[lambda: None, rig.engine.resume])  # duas esperas dormindo, depois acorda
+    assert first.slept == 1 and first.leds[-1] == BLACK_RING and first.closed
+    assert stop.waits[:2] == [0.5, 0.5]
+    assert rig.factory.made == [first, second]
+    assert second.enabled == [70]  # a sessão de enable_keys acorda as telas
+    assert sorted(second.pushed_keys()) == list(range(1, 16))
+    assert second.slept == 1  # e ao parar, apaga de novo
+
+
+def test_turning_off_a_deck_that_was_unplugged_does_not_break_the_stop(make_engine):
+    rig = make_engine(RECONNECT)
+    deck = rig.factory.prepare()
+
+    def unplugged() -> None:
+        raise OSError("unplugged")
+
+    deck.sleep = unplugged  # type: ignore[method-assign]
+    deck.script = [None, rig.engine.stop]
+    rig.run()
+    assert deck.closed and rig.engine.deck is None
+
+
 def test_other_errors_stop_the_loop_and_close_the_deck(make_engine):
     """Só OSError/ValueError (HID) reconectam; outro erro sai do run(), que ainda fecha tudo."""
     rig = make_engine(RECONNECT)

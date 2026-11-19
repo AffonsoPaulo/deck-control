@@ -65,7 +65,7 @@ from app.engine.recorder import Recorder
 from app.engine.session import Session
 from app.engine.states import StateTable
 from app.engine.timers import Timers
-from d6.device import D6
+from d6.device import D6, LED_COUNT
 
 if TYPE_CHECKING:
     from app.plugins import PluginManager
@@ -120,6 +120,10 @@ class Engine:
         # as peças recebem self._submit, nunca o pool: os testes trocam o _pool e o _stop_event depois
         self._pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="acao")
         self._stop_event = threading.Event()
+        # o PC indo dormir (suspend/resume, da janela de avisos do Windows) e o fim do laço (stop_and_wait)
+        self._suspended = threading.Event()
+        self._slept = threading.Event()  # o laço já apagou o Deck e o soltou
+        self._stopped = threading.Event()
         self._queue = DrawQueue(self._shared)
         self._timers = Timers(self._shared, self._submit)
         self._nav = Navigation(self._shared, self._queue, self._timers, self._submit)
@@ -372,6 +376,22 @@ class Engine:
     def stop(self) -> None:
         self._stop_event.set()
 
+    def stop_and_wait(self, timeout: float) -> bool:
+        """O Windows vai desligar ou encerrar a sessão: para o laço e espera ele apagar o Deck e terminar."""
+        self.stop()
+        return self._stopped.wait(timeout)
+
+    def suspend(self, timeout: float = 0) -> bool:
+        """O PC vai dormir: o laço apaga o Deck (anel preto, telas dormindo) e o solta até o resume().
+        Com timeout, espera até lá o laço fazer isso (o aviso de suspensão do Windows dá pouco tempo)."""
+        self._slept.clear()
+        self._suspended.set()
+        return self._slept.wait(timeout) if timeout else False
+
+    def resume(self) -> None:
+        """O PC acordou: o laço reconecta, o que acorda as telas, e redesenha tudo."""
+        self._suspended.clear()
+
     # -- conectar e cair ---------------------------------------------------------------
 
     def _open_deck(self) -> bool:
@@ -390,6 +410,20 @@ class Engine:
         self._session.connected()
         self.automations.on_connected()
         return True
+
+    def _sleep_deck(self) -> None:
+        """Apaga o Deck sem desligar a USB (ela segue carregando o que estiver ligado no PC): o anel preto e as
+        telas dormindo. Ao fechar o app e com o PC desligando ou indo dormir. Acorda ao apertar uma tecla ou na
+        próxima conexão (enable_keys)."""
+        deck = self.deck
+        if deck is None:
+            return
+        try:
+            deck.set_leds([(0, 0, 0)] * LED_COUNT)
+            deck.sleep()
+            dlog.info("Deck screens and light turned off")
+        except (OSError, ValueError):
+            dlog.debug("Couldn't turn the Deck off (it was probably unplugged)", exc_info=True)
 
     def _close_deck(self) -> None:
         self._input.release_mirrored()  # não deixa Ctrl/Shift presos
@@ -444,11 +478,19 @@ class Engine:
     def run(self) -> None:
         """Loop principal. Termina com stop() ou Ctrl+C. Reconecta se o D6 sumir."""
         self._stop_event.clear()
+        self._stopped.clear()
         self._sync_plugins()
         log.info("Running with %s (page %s)", self.config_path.name, self.page)
         last_reload_check = 0.0
         try:
             while not self._stop_event.is_set():
+                if self._suspended.is_set():
+                    if self.deck is not None:
+                        self._sleep_deck()
+                        self._close_deck()
+                    self._slept.set()
+                    self._stop_event.wait(0.5)
+                    continue
                 now = self._clock.monotonic()
                 if now - last_reload_check > 1.0:
                     last_reload_check = now
@@ -465,8 +507,10 @@ class Engine:
                     dlog.warning("Deck connection lost (%s); reconnecting", e)
                     self._close_deck()
         finally:
+            self._sleep_deck()  # primeiro: com o Windows desligando, o tempo é curto
             self.plugins.stop_all()
             self._pool.shutdown(wait=False, cancel_futures=True)
             self._close_deck()
             logs.resolve("device.disconnected")
             log.info("Stopped")
+            self._stopped.set()

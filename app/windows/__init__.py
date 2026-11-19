@@ -1,1 +1,2 @@
-"""Partes do Windows: bandeja (tray), teclado simulado (keys) e instância única, autostart, tela e volume (winutil)."""
+"""Partes do Windows: bandeja (tray), avisos de energia (power), teclado simulado (keys) e instância única,
+autostart, tela e volume (winutil)."""

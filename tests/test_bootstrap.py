@@ -48,6 +48,7 @@ MODULES = [
     "app.binds",
     "app.config.transfer",
     "app.windows.tray",
+    "app.windows.power",
     "app.bootstrap",
 ]
 

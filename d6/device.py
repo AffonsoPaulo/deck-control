@@ -196,6 +196,16 @@ class D6:
             self.send(jpeg[off : off + self._out_size])
         self.send(crt("STP"))
 
+    def sleep(self) -> None:
+        """Faz as telas dormirem (HAN): apagam por completo, sem desligar a USB.
+
+        Testado neste D6 em 2026-11-18 (firmware V3.D6.1.009): as telas apagam e as imagens ficam guardadas.
+        Ele acorda sozinho quando a pessoa aperta uma tecla (o aperto chega ao PC, como qualquer outro) ou com
+        a sessão de enable_keys, e as imagens voltam sem redesenhar. Não mexe no anel (apague com set_leds).
+        O SLP (citado em outro projeto) não faz nada neste aparelho.
+        """
+        self.send(crt("HAN"))
+
     def set_leds(self, colors) -> None:
         """Pinta o anel de LEDs: uma cor (r, g, b) por LED, LED_COUNT no total.
 

@@ -31,7 +31,7 @@ Right-click the icon for the menu:
 | **Open the app folder** | Opens the folder with your settings and images. |
 | **View the log** | Opens the [log](logs.md). |
 | **Start with Windows** | Shows whether the app opens with Windows. |
-| **Quit** | Closes the app. The Deck stops working until you open it again. |
+| **Quit** | Closes the app and turns the Deck's screens and light off. The Deck stops working until you open it again. |
 
 Only one copy of the app runs at a time. If you open it again from the Start menu while it's running, it tells you
 it's already in the tray: use **Open editor** there.

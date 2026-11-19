@@ -134,10 +134,19 @@ def main() -> int:
 
     from app.editor.server import EditorServer
     from app.engine import Engine
+    from app.windows import power
 
     engine = Engine(config, debug=args.debug, plugins=svc.plugins, values=svc.values)
     editor = EditorServer(config, engine, port=args.port, plugins=svc.plugins, values=svc.values)
     editor.start()
+    # PC desligando ou indo dormir: o Deck apaga (a USB pode continuar ligada, carregando outras coisas)
+    power.watch(
+        power.Handlers(
+            suspend=lambda: engine.suspend(timeout=2),
+            resume=engine.resume,
+            end_session=lambda: engine.stop_and_wait(3),
+        )
+    )
     if args.editor:
         webbrowser.open(editor.url)
 

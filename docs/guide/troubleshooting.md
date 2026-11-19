@@ -1,5 +1,15 @@
 # Troubleshooting
 
+## The Deck stays on when the PC is off
+
+Many PCs keep the USB ports powered while turned off (to charge headphones or phones), so the D6 stays powered too.
+The app turns the Deck's screens and light off when you quit it and when Windows shuts down, restarts, signs out or
+goes to sleep; they come back when the app starts again or the PC wakes up. Pressing a key also wakes the screens.
+
+The light ring only turns off when the app controls it ([Light › Control the Deck light](light.md#general)). If the
+ring is showing the device's own effects, it keeps them. If the app was closed abruptly (or the power went out),
+there was no chance to turn the Deck off.
+
 ## The Deck isn't detected
 
 - Close Fifine's own app, **fifine Control Deck**, including its icon in the tray. Only one program can talk to the
