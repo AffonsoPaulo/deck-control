@@ -53,6 +53,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 from app import actions, automations, lighting, logs
+from app import values as values_mod  # o parâmetro values do Engine é a instância
 from app.actions import Context
 from app.config.model import Config
 from app.config.load import load_config
@@ -136,6 +137,7 @@ class Engine:
         self._drawing = Drawing(self._shared, self._queue, self._nav, self._state_table, values)
         self.automations = automations.Automations(self)
         self.automations.configure(self.cfg.automations)
+        self.values.prime_timers(values_mod.timer_totals(self.cfg.raw))  # a tecla mostra 25:00 antes do 1º toque
         self._input = Input(
             self._shared, self._nav, self._timers, self._leds, self._recorder, self._submit, mark=self._remark
         )
@@ -184,6 +186,7 @@ class Engine:
             self._queue.mark_all()
             self._leds.configure(new.lighting)
             self.automations.configure(new.automations)
+            self.values.prime_timers(values_mod.timer_totals(new.raw))
             self._queue.forget_dynamic()
             self._drawing.forget_slices()
             self._queue.reload_brightness(new.brightness)

@@ -335,8 +335,10 @@ def test_countdown_starts_pauses_resumes_and_resets(make_engine):
     rig = make_engine(TIMER)
     deck = rig.connect()
     get = rig.engine.values.get
-    assert get("timer.egg") is None
-    assert deck.screens[1] == drawn(rig, {"text": "–"})
+    # antes do 1º toque: o tempo cheio, parada (a duração vem da ação timer.toggle do config)
+    assert get("timer.egg") == "01:00"
+    assert get("timer.egg.running") is False
+    assert deck.screens[1] == drawn(rig, {"text": "01:00"})
     rig.tap(1)  # começa no aperto
     assert get("timer.egg") == "01:00"
     assert get("timer.egg.running") is True
@@ -357,6 +359,30 @@ def test_countdown_starts_pauses_resumes_and_resets(make_engine):
     assert get("timer.egg") == "01:00"
     assert get("timer.egg.running") is False
     assert deck.screens[1] == drawn(rig, {"text": "01:00"})
+
+
+def test_countdown_never_started_resets_to_full_and_follows_the_config():
+    """Zerar uma contagem que nunca rodou volta ao tempo cheio (não a 00:00). Mudar a duração no config vale
+    para uma contagem parada no começo; uma andando não é tocada."""
+    from app import values as values_mod
+
+    v = values_mod.Values()
+    v.prime_timers(
+        values_mod.timer_totals(
+            {"pages": {"main": {1: {"action": {"type": "timer.toggle", "id": "p", "minutes": 25}}}}}
+        )
+    )
+    assert v.get("timer.p") == "25:00" and v.get("timer.p.pct") == 100
+    v.timer_reset("p")
+    assert v.get("timer.p") == "25:00"
+    v.prime_timers({"p": 10 * 60})  # o config mudou para 10 min
+    assert v.get("timer.p") == "10:00"
+    v.timer_toggle("p", 10 * 60)  # começou
+    v.prime_timers({"p": 30 * 60})
+    assert v.get("timer.p.running") is True and v.get("timer.p") in ("10:00", "09:59")
+    assert values_mod.timer_totals([{"type": "timer.toggle", "id": "a"}, {"type": "timer.toggle", "minutes": 3}]) == {
+        "a": 300.0
+    }
 
 
 def test_finished_countdown_needs_two_presses_to_start_again(make_engine):
@@ -454,7 +480,7 @@ def test_countdown_widget_runs_the_action_saved_on_the_key(make_engine):
     deck = rig.connect()
     cell = rig.engine.cfg.pages["main"][6].cells[0]
     assert cell["text"] == "{timer.egg}"
-    assert deck.screens[6] == drawn(rig, {**cell, "text": "–"})
+    assert deck.screens[6] == drawn(rig, {**cell, "text": "02:00"})  # o tempo cheio já antes do 1º toque
     rig.tap(6)
     assert rig.moments() == [("timer.toggle", "press")]
     assert rig.engine.values.get("timer.egg") == "02:00"

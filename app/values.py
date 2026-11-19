@@ -186,6 +186,16 @@ class Values:
             total = seconds if seconds is not None else old.get("total", 0)
             self._timers[tid] = {"total": total, "left": total, "since": None}
 
+    def prime_timers(self, totals: dict[str, float]) -> None:
+        """As contagens do config, antes de alguém apertar: a tecla já mostra o tempo cheio (25:00), parada, e
+        zerar uma que nunca rodou volta para ele (não para 00:00). Não mexe numa contagem andando ou pausada no
+        meio; uma parada no começo pega a duração nova se o config mudou."""
+        with self._lock:
+            for tid, seconds in totals.items():
+                t = self._timers.get(tid)
+                if t is None or (t["since"] is None and t["left"] == t["total"]):
+                    self._timers[tid] = {"total": seconds, "left": seconds, "since": None}
+
     def _timer(self, tid: str):
         t = self._timers.get(tid)
         if not t:
@@ -299,6 +309,27 @@ def resolve_icon(icon: dict, get) -> dict:
             out[k] = render(v, get) if isinstance(r, str) and "{" in r else r
         else:
             out[k] = v
+    return out
+
+
+def timer_totals(raw: object) -> dict[str, float]:
+    """As contagens citadas no config (ações timer.toggle com id), com a duração em segundos."""
+    out: dict[str, float] = {}
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "timer.toggle" and node.get("id") is not None:
+                try:
+                    out.setdefault(str(node["id"]), float(node.get("minutes", 5)) * 60)
+                except (TypeError, ValueError):
+                    pass  # minutos inválidos: o validador do config já reclama
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+
+    walk(raw)
     return out
 
 
