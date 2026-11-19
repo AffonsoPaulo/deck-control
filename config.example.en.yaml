@@ -1,0 +1,278 @@
+# =============================================================================
+#  D6 settings. The app reloads this file by itself when you save it.
+#  (English version of config.example.yaml: both must have the same fields; a test checks it.)
+# =============================================================================
+#
+# Keys are numbered in reading order:
+#     1  2  3  4  5
+#     6  7  8  9 10
+#    11 12 13 14 15
+#
+# Each key accepts:
+#   icon:         how the key looks (see "ICONS" below). It can be just a text.
+#   active_icon:  only what changes while the state is ACTIVE (e.g. recording).
+#                 If left out, the background turns red.
+#   action:       what to do on press.
+#   hold:         what to do on HOLD (with it, 'action' runs on release instead).
+#   hold_ms:      how long counts as "holding" (default 500).
+#   release:      what to do on release.
+#   rules:        appearance rules: [{if: {value: discord.mute, op: eq, to: true}, icon: {bg: "#b4232a"}}]
+#                 (the first one that holds changes the icon; op: eq ne gt lt ge le contains)
+#   span:         [columns, rows] joins keys into a block starting at this one (top-left corner);
+#                 cells: one icon per key of the block; mode: split (each key a part) | image
+#                 (icon.image crosses the screens, skipping the gap; adjust device.gap_px if needed)
+#   double:       what to do on two quick taps ('action' becomes the single tap). On a page
+#                 with double tap, every key waits double_tap_ms (default 250) before running
+#                 the press; the light reacts right away. Shortcuts that are held don't wait.
+#   repeat:       press = repeats 'action' while held (volume, next track, shortcut);
+#                 hold = repeats 'hold' after hold_ms. repeat_ms: interval (default 80);
+#                 repeat_delay: press only, wait before repeating (default 400).
+#   state:        which state the icon reflects. Usually automatic
+#                 (OBS, Discord, toggle); only fill it in for special cases.
+#
+# VALUES (keys that show information): text, sub, lucide, image and bg can use {id}:
+#   text: "{clock.hour}:{clock.minute}"   sub: "{clock.weekday_short}"   lucide: "{weather.icon}"
+#   bar: {value: system.volume, min: 0, max: 100, color: "#F5A524"}   (or bands: [[30, "#8f98a5"], [100, "#f97316"]])
+#   bg: {value: weather.temp, bands: [[20, "#1f3a5f"], [30, "#3a2a12"], [99, "#b4232a"]]}
+#   From the app: clock.*, system.volume, system.muted, deck.page, deck.brightness, timer.<name>; plugins
+#   add their own (obs.scene, obs.stream_time, weather.temp…). The full list is in the editor.
+#
+# AUTOMATIONS (they run while the app is open):
+#   automations:
+#     - name: When the live starts
+#       when: {type: value, value: obs.streaming, op: eq, to: true}   # time (at: "18:00") | every (minutes)
+#       do: [{type: light.flash, color: "#22c55e", seconds: 3}]        # | countdown (minutes) | connected | page
+#       cooldown: 30                                                   # days: all | weekdays | weekend
+#   temp_pages: [Weather]   pages marked as temporary (for the page.temp action)
+#   saved_keys: [...]       keys saved in the editor (Saved keys, in the library)
+#
+# ICONS:
+#   bg: "#5865F2"     background   | fg: white       text/glyph color
+#   text: "Mute"      text         | text_size: 18
+#   lucide: mic       Lucide icon, by name (list at https://lucide.dev/icons)
+#                     the old format 'glyph: E720' (Segoe Fluent Icons) still works
+#   image: icons/x.png  image (path relative to this file) | image_scale: 0.8
+#   loop: false         animated GIF: plays once and stops on the last frame (without the line, it repeats)
+#   border: "#FF0000"   4 px border
+#   style: below | top | big   icon with text below (default) | text above | icon only, large
+#
+# ACTIONS (type: ...):
+#   hotkey        keys: "ctrl+shift+m"  or  ["ctrl+c", "ctrl+v"]
+#   bind          keys: "ctrl+shift+alt+f13"   a combination of its own, to link in another program
+#                 (Discord, OBS, games). The editor picks a free one. mirror: false = a single tap
+#                 (default: held together with the D6 key, which makes "push to talk" work).
+#   text          text: "Hello!"  enter: true
+#   media         key: play_pause | next | prev | stop | vol_up | vol_down | mute   repeat: 5
+#   launch        target: program, file, folder or URL   args: "..."   cwd: "..."
+#   command       command: "..."   shell: cmd | powershell   hide: true   wait: false
+#   http          url: ...   method: POST   json: {...}   headers: {...}
+#   delay         ms: 500
+#   multi         actions: [ ... ]      (a plain list also counts as multi)
+#   toggle        on: action   off: action   state: optional-name
+#   set_state     state: name   value: true | false | toggle
+#   page          page: name | back | home
+#   brightness    value: 0-100   or   step: 25 (cycles)
+#   discord.mute / discord.deafen / discord.keybind (name: ...)
+#   obs.scene (scene) | obs.record (mode: toggle/start/stop/pause) | obs.stream
+#   obs.replay (mode: toggle/start/stop/save) | obs.virtualcam
+#   obs.mute (input, mode: toggle/on/off) | obs.source (scene, source, mode: toggle/show/hide)
+#   obs.request   request: "AnyRequest"  data: {...}   (the full obs-websocket protocol)
+#
+# One-line shortcuts: "page:obs", "hotkey:ctrl+c", "launch:notepad", "media:play_pause"
+# =============================================================================
+
+home: main
+brightness: 80
+# language: en       # pt-BR or en (editor, tray and plugins). Without the line (like here), it follows Windows.
+
+# Look of every key (each key can change the style in its icon's 'style' field).
+# The icon always has the same size and place, with or without text.
+icons:
+  style: below       # below = icon + text below | top = text above | big = icon only, large
+  text_size: 16      # fixed text size; long text wraps onto 2 lines before shrinking
+
+# OBS: Tools > WebSocket Server Settings > Enable. It starts off: turn it on in
+# Settings > Integrations after entering the password (or here, by deleting 'enabled: false').
+obs:
+  enabled: false
+  host: localhost
+  port: 4455
+  password: ""
+
+# Discord: create these shortcuts in User Settings > Keybinds ('enabled: false' turns it off).
+discord:
+  mute: ctrl+shift+alt+f23    # "Toggle Mute" (F13–F24 don't exist on keyboards: they never clash)
+  deafen: ctrl+shift+alt+f24  # "Toggle Deafen"
+
+# Fine-tuning for sending images. The fast mode (batch) was tested with all 15 keys.
+# These only matter for the old drawing mode (session: true below); the app doesn't use it by default.
+device:
+  # session: true      # old drawing mode (the light blinks on each change)
+  per_key_session: false
+  key_delay: 0.05
+  settle: 0.25       # factor for the pauses between commands (1.0 = more conservative and slower)
+
+# Logs. Errors, warnings and the main events are always recorded in
+# %LOCALAPPDATA%\D6Deck\logs\app.log (up to 5 files of 2 MB; messages are in English).
+# Passwords from this file and the editor token show as ****. Also adjustable in the editor (Settings).
+# logging:
+#   detail: false        # true: also records the step by step of the areas below (to chase a problem)
+#   areas: [keys, values, automations, plugins, editor, device]   # which areas to detail
+#   show_tab: false      # shows the Logs tab in the editor
+#   key_error: true      # the key shows a red X for 1 s when its action fails
+#   notify: false        # a Windows notification when a problem shows up (OBS not connecting, Deck disconnected...)
+
+# D6 light (the ring of 18 LEDs). Without this section the app doesn't touch the light.
+# For the app to control it, click the button on the back of the D6 twice, quickly
+# (a single click switches to the device's own effects). All of this can also
+# be adjusted in the editor, on the "Light" screen.
+# lighting:
+#   effect: comet          # off, solid, breath, beat, aurora, candle, rainbow, wave, grad,
+#                          # comet, chase, theater, fill, stars, sparks
+#   color: "#F5A524"
+#   color2: "#E5701A"      # second color (gradient)
+#   speed: 50              # 0 to 100
+#   size: 50               # comet trail / amount of stars and sparks
+#   direction: cw          # cw (clockwise) | ccw (counterclockwise)
+#   brightness: 80
+#   off_with_screen: true  # turns off with the PC screen or when Windows is locked
+#   per_page: false        # true: each page with its own (under pages:)
+#   reaction: { kind: ripple, color: key }   # default reaction on press: none, ripple, point, pulse
+#   pages:
+#     obs: { effect: breath, color: "#E5484D" }
+# On a key, 'light:' changes its reaction for each moment (it wins over the default):
+#   light: { press: { kind: ripple, color: fixed, fixed: "#E5484D" }, hold: { kind: hold } }
+
+pages:
+  # ---------------------------------------------------------------------------
+  main:
+    1:
+      icon: { lucide: mic, text: Mic, bg: "#5865F2" }
+      active_icon: { lucide: mic-off, text: Muted, bg: "#C62828" }
+      action: { type: discord.mute }
+      hold: { type: set_state, state: discord.mute, value: toggle }   # fixes the icon if it gets out of sync
+    2:
+      icon: { lucide: headphones, text: Audio, bg: "#5865F2" }
+      active_icon: { text: Deafened, bg: "#C62828" }
+      action: { type: discord.deafen }
+      hold: { type: set_state, state: discord.deafen, value: toggle }
+    3:
+      icon: { lucide: circle-dot, text: Record, bg: "#303030" }
+      active_icon: { text: Recording, bg: "#C62828" }
+      action: { type: obs.record }
+      hold: { type: obs.record, mode: pause }
+    4:
+      icon: { lucide: radio, text: Live, bg: "#303030" }
+      active_icon: { text: LIVE, bg: "#C62828" }
+      action: { type: obs.stream }
+    5:
+      icon: { lucide: folder, text: OBS, bg: "#1E3A5F" }
+      action: page:obs
+
+    6:
+      icon: { lucide: skip-back, bg: "#1B5E20" }
+      action: media:prev
+    7:
+      icon: { lucide: play, text: Play/Pause, bg: "#1B5E20" }
+      action: media:play_pause
+    8:
+      icon: { lucide: skip-forward, bg: "#1B5E20" }
+      action: media:next
+    9:
+      icon: { lucide: volume-1, text: Vol -, bg: "#263238" }
+      action: { type: media, key: vol_down, repeat: 2 }
+      hold: media:mute
+    10:
+      icon: { lucide: volume-2, text: Vol +, bg: "#263238" }
+      action: { type: media, key: vol_up, repeat: 2 }
+
+    11:
+      icon: { lucide: globe, text: Browser, bg: "#37474F" }
+      action: launch:https://www.google.com
+    12:
+      icon: { lucide: camera, text: Print, bg: "#37474F" }
+      action: hotkey:win+shift+s
+    13:
+      icon: { lucide: keyboard, text: Text, bg: "#37474F" }
+      action: { type: text, text: "Be right back! 🙂" }
+    14:
+      icon: { lucide: sun, text: Brightness, bg: "#424242" }
+      action: { type: brightness, step: 30 }
+    15:
+      icon: { lucide: settings, text: More, bg: "#4A148C" }
+      action: page:more
+
+  # ---------------------------------------------------------------------------
+  obs:
+    1:
+      icon: { lucide: monitor, text: Scene 1, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }          # green = current scene
+      action: { type: obs.scene, scene: "Scene" }
+    2:
+      icon: { lucide: monitor, text: Scene 2, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }
+      action: { type: obs.scene, scene: "Scene 2" }
+    3:
+      icon: { lucide: monitor, text: Scene 3, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }
+      action: { type: obs.scene, scene: "Scene 3" }
+    6:
+      icon: { lucide: mic, text: Mic OBS, bg: "#303030" }
+      active_icon: { lucide: mic-off, text: Mic muted, bg: "#C62828" }
+      action: { type: obs.mute, input: "Mic/Aux" }
+    7:
+      icon: { lucide: volume-1, text: Desktop, bg: "#303030" }
+      active_icon: { lucide: volume-x, text: Muted, bg: "#C62828" }
+      action: { type: obs.mute, input: "Desktop Audio" }
+    8:
+      icon: { lucide: video, text: Webcam, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }          # green = visible
+      action: { type: obs.source, scene: "Scene", source: "Webcam" }
+    11:
+      icon: { lucide: save, text: Save replay, bg: "#303030" }
+      action: { type: obs.replay, mode: save }
+    12:
+      icon: { lucide: circle-dot, text: Replay, bg: "#303030" }
+      active_icon: { text: Replay ON, bg: "#C62828" }
+      action: { type: obs.replay }
+    13:
+      icon: { lucide: video, text: Virtual cam, bg: "#303030" }
+      active_icon: { bg: "#2E7D32" }
+      action: { type: obs.virtualcam }
+    15:
+      icon: { lucide: arrow-left, text: Back, bg: "#1E3A5F" }
+      action: page:back
+
+  # ---------------------------------------------------------------------------
+  more:
+    1:
+      icon: { text: "Notes", lucide: sticky-note, bg: "#00695C" }
+      action: { type: launch, target: notepad.exe }
+    2:
+      icon: { text: "Copy\npaste", bg: "#00695C" }
+      action: { type: hotkey, keys: ["ctrl+c", "ctrl+v"] }
+    3:
+      icon: { text: "Toggle", bg: "#424242" }
+      active_icon: { text: "On", bg: "#2E7D32" }
+      action:
+        type: toggle
+        on:  { type: text, text: "turned on" }
+        off: { type: text, text: "turned off" }
+    4:
+      icon: { text: "Combo", lucide: zap, bg: "#E65100" }
+      action:                                   # a list = several actions in sequence
+        - { type: launch, target: notepad.exe }
+        - { type: delay, ms: 800 }
+        - { type: text, text: "Opened from the D6!", enter: true }
+    5:
+      icon: { text: "Webhook", lucide: network, bg: "#283593" }
+      action: { type: http, url: "https://httpbin.org/post", json: { source: d6 } }
+    6:
+      icon: { text: "Downloads\nfolder", lucide: download, bg: "#5D4037" }
+      action: { type: launch, target: "%USERPROFILE%\\Downloads" }
+    7:
+      icon: { text: "Lock", lucide: lock, bg: "#B71C1C" }
+      action: { type: command, command: "rundll32.exe user32.dll,LockWorkStation" }
+    15:
+      icon: { lucide: arrow-left, text: Back, bg: "#1E3A5F" }
+      action: page:back

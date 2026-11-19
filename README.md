@@ -42,7 +42,7 @@ de erro e os plugins. O texto em inglês é a chave: as traduções ficam em
 ficam sempre em inglês.
 
 Todas as ações, campos de ícone e opções estão documentados no topo de
-`config.example.yaml`. O app recarrega o `config.yaml` sozinho ao salvar.
+`config.example.yaml` (em inglês: `config.example.en.yaml`). Na primeira abertura, o app copia o do idioma do Windows. O app recarrega o `config.yaml` sozinho ao salvar.
 
 ## Desenvolvimento
 

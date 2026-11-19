@@ -44,7 +44,7 @@ def main() -> int:
     from app.i18n import tr
 
     ap = argparse.ArgumentParser(prog="python -m app")
-    from app import __version__, paths
+    from app import __version__, i18n, paths
 
     ap.add_argument("--config", type=Path, default=paths.default_config())
     ap.add_argument(
@@ -103,7 +103,8 @@ def main() -> int:
 
     _copy_old_config(config, cli, log)
     store = ConfigRepository(config)
-    if store.create_from(paths.EXAMPLE_CONFIG):
+    # sem config ainda, o idioma é o do Windows: o exemplo vem nele
+    if store.create_from(paths.example_config(i18n.language())):
         msg = f"Created {config} from the example. Edit it as you like (it reloads by itself)."
         if cli:
             print(msg)

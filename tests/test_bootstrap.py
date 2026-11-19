@@ -86,6 +86,15 @@ def test_example_config_validates_after_bootstrap(example_raw):
     assert build_config(example_raw, EXAMPLE).pages
 
 
+def test_first_config_follows_windows_language_and_starts_without_obs(example_raw):
+    # a primeira abertura copia o exemplo: o idioma fica o do Windows, e o OBS (que pede senha) começa desligado
+    from app.plugins import MANAGER
+
+    assert "language" not in example_raw
+    assert not MANAGER.plugins["obs"].enabled_in(example_raw)
+    assert MANAGER.plugins["discord"].enabled_in(example_raw)
+
+
 @pytest.mark.parametrize(
     ("args", "in_project"),
     [

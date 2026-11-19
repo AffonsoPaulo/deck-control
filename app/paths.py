@@ -35,7 +35,8 @@ LOCALES = APP / "locales"  # traduções do Python
 BUILTIN_PLUGINS = APP / "plugins" / "builtin"
 EDITOR_DIST = ROOT / "editor" / "dist"  # o editor (React), servido na raiz depois do npm run build
 MAIN_SCRIPT = APP / "__main__.py"  # o que o "iniciar com o Windows" roda (fora do executável)
-EXAMPLE_CONFIG = ROOT / "config.example.yaml"
+EXAMPLE_CONFIG = ROOT / "config.example.yaml"  # o config da primeira abertura, em português
+EXAMPLE_CONFIG_EN = ROOT / "config.example.en.yaml"  # o mesmo em inglês (os dois têm os mesmos campos)
 CONFIG_NAME = "config.yaml"
 
 # O que o app lê do pacote enquanto roda. O `--check` do executável confere que cada um existe (a CI de versão
@@ -47,8 +48,14 @@ RESOURCES = {
     "lucide font": STATIC / "fonts" / "lucide.ttf",
     "translations": LOCALES / "pt-BR.json",
     "example config": EXAMPLE_CONFIG,
+    "example config (en)": EXAMPLE_CONFIG_EN,
     **{f"plugin {n}": BUILTIN_PLUGINS / n / "plugin.json" for n in ("obs", "discord", "weather")},
 }
+
+
+def example_config(lang: str) -> Path:
+    """O config de exemplo no idioma (pt-BR ou en): é o que a primeira abertura copia."""
+    return EXAMPLE_CONFIG if lang == "pt-BR" else EXAMPLE_CONFIG_EN
 
 
 def missing_resources() -> list[str]:

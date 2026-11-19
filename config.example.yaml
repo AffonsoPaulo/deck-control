@@ -82,7 +82,7 @@
 
 home: main
 brightness: 80
-language: pt-BR      # pt-BR ou en (editor, bandeja e plugins). Sem a linha, segue o idioma do Windows.
+# language: pt-BR    # pt-BR ou en (editor, bandeja e plugins). Sem a linha (como aqui), segue o idioma do Windows.
 
 # Aparência de todas as teclas (cada tecla pode trocar o estilo no campo 'style' do ícone).
 # O ícone fica sempre do mesmo tamanho e no mesmo lugar, com ou sem texto.
@@ -90,9 +90,10 @@ icons:
   style: below       # below = ícone + texto embaixo | top = texto em cima | big = só ícone grande
   text_size: 16      # tamanho fixo do texto; texto longo quebra em 2 linhas antes de diminuir
 
-# OBS: Ferramentas > Configurações do servidor WebSocket > Ativar. Apague esta seção se não usar
-# (ou ponha 'enabled: false' para desligar sem perder os dados).
+# OBS: Ferramentas > Configurações do servidor WebSocket > Ativar. Começa desligado: ligue em
+# Configurações > Integrações depois de pôr a senha (ou aqui, apagando o 'enabled: false').
 obs:
+  enabled: false
   host: localhost
   port: 4455
   password: ""
@@ -103,8 +104,7 @@ discord:
   deafen: ctrl+shift+alt+f24  # "Alternar ensurdecer"
 
 # Ajustes finos de envio de imagens. O modo rápido (lote) foi testado com as 15 teclas.
-# Se alguma tecla deixar de atualizar, troque para per_key_session: true e key_delay: 0.3
-# (bem mais lento, ~1,2 s por tecla, porém o modo mais conservador).
+# Só valem no modo antigo de desenhar (session: true, abaixo); o app não usa esse modo por padrão.
 device:
   # session: true      # modo antigo de desenhar (a iluminação pisca a cada troca)
   per_key_session: false
@@ -265,7 +265,7 @@ pages:
         - { type: text, text: "Aberto pelo D6!", enter: true }
     5:
       icon: { text: "Webhook", lucide: network, bg: "#283593" }
-      action: { type: http, url: "https://httpbin.org/post", json: { origem: d6 } }
+      action: { type: http, url: "https://httpbin.org/post", json: { source: d6 } }
     6:
       icon: { text: "Pasta\nDownloads", lucide: download, bg: "#5D4037" }
       action: { type: launch, target: "%USERPROFILE%\\Downloads" }

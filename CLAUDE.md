@@ -36,6 +36,9 @@
 ## Python
 - Testes: `python -m pytest` (só a pasta `tests/`; os scripts de `tools/` falam com o D6 de verdade).
   Teste novo nunca usa o `config.yaml` de verdade: config sintético ou o `config.example.yaml`, em `tmp_path`.
+- `config.example.yaml` (português) e `config.example.en.yaml` andam juntos: mudou um, mude o outro. Só o texto das
+  teclas e os nomes de página e de cena podem mudar (`tests/test_example_configs.py` confere). A primeira abertura
+  copia o do idioma do Windows.
 - `python -m ruff check .`, `python -m ruff format .` e `python -m mypy` antes de commitar. Formatação vai em
   commit separado de mudança de lógica.
 - Importar um módulo não liga nada. Plugins carregam e as peças compartilhadas saem de `app.bootstrap.services()`;

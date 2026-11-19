@@ -55,6 +55,7 @@ datas = [
     (str(paths.STATIC / "fonts" / "lucide.ttf"), _rel(paths.STATIC / "fonts" / "lucide.ttf")),
     (str(paths.STATIC / "fonts" / "lucide-LICENSE.txt"), _rel(paths.STATIC / "fonts" / "lucide-LICENSE.txt")),
     (str(paths.EXAMPLE_CONFIG), "."),
+    (str(paths.EXAMPLE_CONFIG_EN), "."),
 ]
 for name, p in paths.RESOURCES.items():  # o que o app lê tem de estar na lista (o --check do exe confere de novo)
     if not any(Path(src) == p for src, _ in datas):
