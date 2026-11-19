@@ -2,6 +2,8 @@
 
 App do zero para o Fifine AmpliGame D6 (USB `3142:0060`), sem o software da Fifine.
 
+**Guia de uso** (em inglês): [docs/guide](docs/guide/README.md), com cada tela, um tutorial e as integrações.
+
 ## Estado
 
 - [x] Fase 1: conectar e ler teclas (`tools/listen.py`)
@@ -149,5 +151,5 @@ tests/              testes automáticos (pytest)
 tools/              ferramentas que falam com o D6 de verdade (fora do pytest)
 packaging/          executável (PyInstaller) e instalador (Inno Setup)
 examples/plugins/   plugin de exemplo (pomodoro)
-docs/               plugins.md (como fazer um plugin), roadmap.md, design-system.md
+docs/               guide/ (guia de uso, em inglês), plugins.md (como fazer um plugin), roadmap.md, design-system.md
 ```
