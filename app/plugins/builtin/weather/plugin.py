@@ -277,7 +277,7 @@ class _Plugin:
                 log.warning("Couldn't publish %s: %s", name, e, exc_info=True)
 
     def _clear(self) -> None:
-        for name in ("temp", "max", "min", "condition", "icon", "wind", "rain", "humidity", "city"):
+        for name in ("temp", "max", "min", "condition", "condition_short", "icon", "wind", "rain", "humidity", "city"):
             self._set(f"weather.{name}", None)
         for d in (1, 2, 3):
             for part in ("name", "max", "min", "icon"):
@@ -295,6 +295,7 @@ class _Plugin:
         self._set("weather.max", _int(day("temperature_2m_max", 0)))
         self._set("weather.min", _int(day("temperature_2m_min", 0)))
         self._set("weather.condition", self.t(f"wmo.{key}"))
+        self._set("weather.condition_short", self.t(f"wmo_short.{key}"))  # cabe numa linha da tecla
         self._set("weather.icon", icon)
         self._set("weather.wind", _int(cur.get("wind_speed_10m")))
         self._set("weather.rain", _int(day("precipitation_probability_max", 0)))

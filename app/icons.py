@@ -392,7 +392,9 @@ def _render_info(img, draw, spec, base_dir, art, fg) -> None:
     # alturas de cada parte, distribuídas no espaço útil
     parts = []
     if has_art:
-        parts.append(("art", 30 if (text and sub) else 40 if (text or sub) else 64))
+        # ícone + linha menor, sem texto: o ícone no lugar do texto grande (30), para a tecla alinhar com as
+        # vizinhas de número + linha menor (o clima: condição, agora, máxima...)
+        parts.append(("art", 30 if sub else 40 if text else 64))
     if text:
         big = int(spec.get("text_size") or (26 if has_art and sub else 30 if has_art or sub else 40))
         parts.append(("text", big))
@@ -407,7 +409,9 @@ def _render_info(img, draw, spec, base_dir, art, fg) -> None:
             if spec.get("image"):
                 _paste_image(img, draw, spec, base_dir, int(cy), h + 4, art)
             else:
-                _draw_lucide(img, spec["lucide"], h, cy, fg)
+                # no lugar do texto grande, o traço fino do Lucide parece menor que os números: desenha maior
+                # no mesmo espaço (a linha menor continua alinhada com a das vizinhas)
+                _draw_lucide(img, spec["lucide"], 42 if (sub and not text) else h, cy, fg)
         elif kind == "text":
             font = _fit_one_line(draw, text, h)
             draw.text((SIZE / 2, cy), text, font=font, fill=fg, anchor="mm")

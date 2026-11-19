@@ -95,7 +95,7 @@ account, needs internet).
 **Update every** sets how often it fetches (15 minutes by default). If the internet drops, the keys keep the last
 values.
 
-Its values (temperature now, today's high and low, condition and its icon, wind, rain, humidity, the next three days)
+Its values (temperature now, today's high and low, the condition (also in a short form that fits on a key) and its icon, wind, rain, humidity, the next three days)
 can go on any key: see [Values](keys.md#values).
 
 ## Installing a plugin

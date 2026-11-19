@@ -70,6 +70,12 @@
       "sample": "%sample.condition%"
     },
     {
+      "id": "weather.condition_short",
+      "label": "%value.condition_short%",
+      "kind": "text",
+      "sample": "%sample.condition_short%"
+    },
+    {
       "id": "weather.icon",
       "label": "%value.icon%",
       "kind": "icon",
@@ -201,6 +207,7 @@
           [
             {
               "lucide": "{weather.icon}",
+              "sub": "{weather.condition_short}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },
@@ -216,6 +223,7 @@
           [
             {
               "lucide": "{weather.icon}",
+              "sub": "{weather.condition_short}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },
@@ -237,6 +245,7 @@
           [
             {
               "lucide": "{weather.icon}",
+              "sub": "{weather.condition_short}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },
@@ -264,6 +273,7 @@
           [
             {
               "lucide": "{weather.icon}",
+              "sub": "{weather.condition_short}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },
@@ -297,6 +307,7 @@
           [
             {
               "lucide": "{weather.icon}",
+              "sub": "{weather.condition_short}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },
@@ -326,6 +337,7 @@
           [
             {
               "lucide": "{weather.icon}",
+              "sub": "{weather.condition_short}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },
@@ -370,6 +382,7 @@
           [
             {
               "lucide": "{weather.icon}",
+              "sub": "{weather.condition_short}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },
@@ -426,6 +439,7 @@
           [
             {
               "lucide": "{weather.icon}",
+              "sub": "{weather.condition_short}",
               "bg": "#1f3a5f",
               "fg": "#ffffff"
             },
