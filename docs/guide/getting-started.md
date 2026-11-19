@@ -9,8 +9,8 @@
    [Settings › General](settings.md#general).)
 4. At the end, leave **Open the Deck now** checked.
 
-You need a 64-bit Windows. To run it from the source code instead, see the
-[README](../../README.md).
+You need a 64-bit Windows. To run it from the source code instead, see
+[Development](../development.md).
 
 > [!IMPORTANT]
 > Close Fifine's own app ("fifine Control Deck"), including its icon in the tray. Only one program can talk to the

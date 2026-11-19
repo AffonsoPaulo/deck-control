@@ -24,5 +24,5 @@ browser, and the app runs quietly in the Windows tray.
 - [**Integrations and plugins**](integrations.md): OBS Studio, Discord, weather, and installing plugins.
 - [**Troubleshooting**](troubleshooting.md): common problems and where your files are.
 
-For developers: [making plugins](../plugins.md) (in Portuguese) and the [README](../../README.md) (running from
+For developers: [making plugins](../plugins.md) (in Portuguese) and [development](../development.md) (running from
 source, building the installer).

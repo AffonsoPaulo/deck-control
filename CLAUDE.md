@@ -48,7 +48,9 @@
   `python -m app.editor.contract` (o teste avisa). O servidor (`server.py`) só cuida do HTTP.
 - Bug achado em teste de caracterização: registrar com `xfail(strict=True)` e avisar, sem corrigir junto.
 - Planos de trabalho em `docs/plano-*.md` (só na máquina: o `.gitignore` deixa entrar no git só o `guide/` (guia de
-  uso, em inglês), o `design-system.md`, o `plugins.md` e o `roadmap.md` de `docs/`).
+  uso, em inglês), o `development.md`, o `design-system.md`, o `plugins.md` e o `roadmap.md` de `docs/`).
+- O `README.md` é a vitrine do projeto, em inglês, para quem vai usar; o que é de desenvolvimento vai no
+  `docs/development.md`.
 
 ## Trabalho
 - Responder em português do Brasil.
