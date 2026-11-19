@@ -1,7 +1,8 @@
 name: Versão
 
 # Ao criar uma tag v* (v0.9.0): monta o editor, o Deck.exe e o instalador, confere o executável e anexa o
-# Deck-Setup.exe no Release da tag. A versão é a de app/__init__.py e tem de bater com a tag.
+# Deck-Setup.exe no Release da tag, com o changelog (os commits desde a tag anterior, por tipo: o build gera o
+# release-notes.md, o job do Release só usa o arquivo). A versão é a de app/__init__.py e tem de bater com a tag.
 # O nome da tag vem de fora: entra nos scripts só por variável de ambiente (TAG), nunca colado no texto do script.
 # Dois jobs: o build (npm ci, pip install, PyInstaller: código de terceiros rodando) só pode LER o repositório;
 # quem pode escrever (criar o Release) é o segundo job, que só baixa o instalador pronto e chama o gh.
@@ -26,6 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false  # o token não fica no .git para os passos seguintes
+          fetch-depth: 0  # o histórico e as tags: o changelog vai da tag anterior até esta
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -69,6 +71,15 @@ jobs:
           if (-not (Test-Path $iscc)) { throw "ISCC.exe não encontrado em $iscc" }
           "ISCC=$iscc" >> $env:GITHUB_ENV
 
+      - name: Changelog (packaging/Output/release-notes.md)
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          New-Item -ItemType Directory -Force packaging/Output | Out-Null
+          python packaging/release_notes.py "$env:TAG" packaging/Output/release-notes.md
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Get-Content packaging/Output/release-notes.md
+
       - name: Instalador (packaging/Output/Deck-Setup.exe)
         run: |
           & $env:ISCC "/DAppVersion=$env:VERSION" "/DIconFile=$pwd\build\deck\deck.ico" packaging\installer.iss
@@ -83,7 +94,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Deck-Setup
-          path: packaging/Output/Deck-Setup.exe
+          path: |
+            packaging/Output/Deck-Setup.exe
+            packaging/Output/release-notes.md
           if-no-files-found: error
 
   release:
@@ -106,6 +119,7 @@ jobs:
           case "$TAG" in *-*) pre="--prerelease" ;; esac
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" Deck-Setup.exe --clobber
+            gh release edit "$TAG" --notes-file release-notes.md
           else
-            gh release create "$TAG" Deck-Setup.exe --title "Deck ${TAG#v}" --generate-notes $pre
+            gh release create "$TAG" Deck-Setup.exe --title "Deck ${TAG#v}" --notes-file release-notes.md $pre
           fi
