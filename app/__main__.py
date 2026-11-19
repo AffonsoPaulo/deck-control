@@ -1,6 +1,6 @@
 """Inicia o app.
 
-python -m app                 terminal (log na tela), editor em http://127.0.0.1:8765
+python -m app                 terminal (log na tela), editor em http://deck.localhost:8765
 python -m app --tray          ícone na bandeja, sem janela (use pythonw para não abrir console)
 python -m app --debug         log detalhado de tudo (teclas, estados, desenho, plugins, editor)
 python -m app --check         só valida o config

@@ -7,6 +7,9 @@ aberto no navegador poderia mandar o app gravar uma ação 'command' no config.
 O token tem o formato XXXX-XXXX-XXXX (base32 de Crockford: sem I, L, O, U; 60 bits). O editor o leva no
 caminho (/XXXX-XXXX-XXXX/teclas/...): por isso toda resposta manda Referrer-Policy: no-referrer, para o
 navegador nunca repassar o endereço a outro site, e o log mascara o token como qualquer segredo.
+
+O endereço é http://deck.localhost:<porta>: o navegador manda todo *.localhost para o próprio PC, sem DNS e
+sem mexer no Windows. 127.0.0.1 e localhost continuam valendo (links antigos, testes, o npm run dev).
 """
 
 from __future__ import annotations
@@ -32,6 +35,8 @@ if TYPE_CHECKING:
     from app.engine import Engine
     from app.plugins import PluginManager
     from app.values import Values
+
+HOST_NAME = "deck.localhost"  # o nome do editor no navegador (ver o topo); o servidor escuta em 127.0.0.1
 
 # o que a página do editor pode carregar: só deste servidor (imagens também data:, as prévias das teclas); nenhum
 # outro site pode abrir o editor dentro de um quadro (frame-ancestors), contra clique enganado
@@ -129,7 +134,7 @@ class EditorServer:
     @property
     def url(self) -> str:
         """O editor, com o token no caminho."""
-        return f"http://127.0.0.1:{self.port}/{self.token}/teclas"
+        return f"http://{HOST_NAME}:{self.port}/{self.token}/teclas"
 
     def start(self) -> None:
         self._thread.start()
@@ -176,7 +181,7 @@ def _make_handler(server: EditorServer):
 
         def _host_ok(self) -> bool:
             host = (self.headers.get("Host") or "").lower()
-            return host in (f"127.0.0.1:{server.port}", f"localhost:{server.port}")
+            return host in (f"{HOST_NAME}:{server.port}", f"127.0.0.1:{server.port}", f"localhost:{server.port}")
 
         def _send(self, code: int, body: bytes, ctype: str) -> None:
             self.status = code

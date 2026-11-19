@@ -500,6 +500,15 @@ def test_wrong_token(api):
 def test_wrong_host(api):
     status, r = api.request("GET", "/api/config", host="evil.example:80")
     assert status == 403 and r == b"host"
+    # um nome parecido, ou o certo noutra porta, também não (DNS rebinding)
+    for host in ("deck.localhost.evil.example", "evil.localhost:80", f"deck.localhost:{api.srv.port + 1}"):
+        assert api.request("GET", "/api/config", host=host)[0] == 403
+
+
+@pytest.mark.parametrize("name", ["deck.localhost", "127.0.0.1", "localhost"])
+def test_editor_address_and_the_old_ones_work(api, name):
+    status, r = api.request("GET", "/api/config", host=f"{name}:{api.srv.port}")
+    assert status == 200 and "config" in r
 
 
 def test_unknown_route(api):
@@ -677,7 +686,7 @@ def test_token_is_short_and_old_ones_are_replaced(cfg_path, no_side_effects):
         assert TOKEN_RE.fullmatch(srv.token)
         assert not set(srv.token) & set("ILOU")
         assert f.read_text(encoding="ascii") == srv.token
-        assert srv.url == f"http://127.0.0.1:{srv.port}/{srv.token}/teclas"
+        assert srv.url == f"http://deck.localhost:{srv.port}/{srv.token}/teclas"
     finally:
         srv.stop()
         srv.httpd.server_close()

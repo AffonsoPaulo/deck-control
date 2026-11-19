@@ -38,7 +38,7 @@ it's already in the tray: use **Open editor** there.
 
 ## The editor
 
-The editor opens in your browser, at an address like `http://127.0.0.1:8765/ABCD-EFGH-JKMN/teclas`. It only works on
+The editor opens in your browser, at an address like `http://deck.localhost:8765/ABCD-EFGH-JKMN/teclas`. It only works on
 this PC: the code at the end is a key that the app gives to your browser, so other devices on the network can't open
 it. Bookmark it if you like; it stays the same.
 
