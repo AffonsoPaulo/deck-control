@@ -78,3 +78,7 @@ The D6 protocol was worked out with the help of
 [Lucide](https://lucide.dev) (ISC license); font: Figtree.
 
 Deck is an independent project and isn't affiliated with or endorsed by Fifine.
+
+## License
+
+Deck is free software, licensed under the [GNU General Public License v3.0 or later](LICENSE).
